@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Asserts the built image satisfies the stack spec. Run from the repo root.
+# Asserts the built image has the required toolchain. Does NOT verify rendering — that is covered by the PDF render test in Task 6.
 set -euo pipefail
 
 docker compose run --rm --no-deps --entrypoint sh app -c '
@@ -19,4 +19,4 @@ docker compose run --rm --no-deps --entrypoint sh app -c '
   echo "ok: weasyprint and composer"
 '
 
-echo "PASS: image satisfies the stack spec"
+echo "PASS: image has the required toolchain (PHP, extensions, weasyprint, composer)"

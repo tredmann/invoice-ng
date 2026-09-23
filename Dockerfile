@@ -10,9 +10,10 @@ RUN install-php-extensions \
         opcache
 
 # WeasyPrint's native rendering stack, plus fonts with full German coverage.
-# Fonts are installed deliberately rather than inherited: an invoice that
-# renders differently after a base image update no longer matches the PDF
-# that was stored and sent.
+# Fonts are deliberately NOT version-pinned: exact apt pins break the build
+# when Debian point releases rotate old versions off the mirror, and document
+# immutability comes from freezing each PDF as a file with its fonts embedded,
+# not from build reproducibility. Font drift can only affect future documents.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         git \
