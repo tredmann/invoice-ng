@@ -1,5 +1,7 @@
 <?php
 
+use Brick\Math\Exception\RoundingNecessaryException;
+use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use horstoeko\zugferd\ZugferdDocumentBuilder;
 use Illuminate\Support\Facades\Storage;
@@ -16,10 +18,19 @@ it('has the runtime packages the stack spec allows', function () {
         ->and(class_exists(ZugferdDocumentBuilder::class))->toBeTrue();
 });
 
-it('does arithmetic on money without floats', function () {
-    $total = Money::of('19.99', 'EUR')->multipliedBy(3);
+it('refuses money arithmetic it cannot represent exactly', function () {
+    // This is the discriminator. 19.99 * 3 in floats prints "59.97" too,
+    // because PHP's float-to-string cast rounds at 14 significant digits —
+    // so asserting that value proves nothing about float vs decimal.
+    // brick/money instead REFUSES an operation whose exact result it cannot
+    // represent, unless given an explicit rounding mode. A float
+    // implementation would silently return 3.3333…
+    expect(fn () => Money::of('10.00', 'EUR')->dividedBy(3))
+        ->toThrow(RoundingNecessaryException::class);
 
-    expect($total->getAmount()->__toString())->toBe('59.97');
+    // And with a rounding mode stated, the result is exact to the cent.
+    expect(Money::of('10.00', 'EUR')->dividedBy(3, RoundingMode::HalfUp)->getAmount()->__toString())
+        ->toBe('3.33');
 });
 
 it('resolves the documents disk from configuration', function () {
