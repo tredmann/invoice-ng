@@ -27,6 +27,7 @@ RUN apt-get update \
         libgdk-pixbuf-2.0-0 \
         fonts-dejavu \
         fonts-liberation2 \
+        poppler-utils \
  && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --break-system-packages --no-cache-dir weasyprint==70.0

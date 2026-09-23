@@ -16,7 +16,7 @@ it('renders a pdf containing german characters', function () {
 
     // The umlauts are the point. A missing font stack produces a valid PDF
     // full of empty boxes, which no smoke test on file size would catch.
-    Pdf::html('<h1>Rechnung</h1><p>Größe · Übertrag · Änderung · Weiß</p>')
+    Pdf::html('<!doctype html><html><head><meta charset="utf-8"></head><body><h1>Rechnung</h1><p>Größe · Übertrag · Änderung · Weiß</p></body></html>')
         ->format('a4')
         ->save($path);
 
@@ -24,9 +24,20 @@ it('renders a pdf containing german characters', function () {
         ->and(file_get_contents($path, false, null, 0, 5))->toBe('%PDF-')
         ->and(filesize($path))->toBeGreaterThan(1000);
 
-    // Deliberately NOT asserting on the PDF's internals here. Font
-    // dictionaries live inside compressed object streams, so grepping the
-    // bytes would fail for reasons unrelated to fonts. Whether the umlauts
-    // are letters or empty boxes is checked by eye in the next step.
+    // Deliberately NOT grepping the raw PDF bytes for font markers: font
+    // dictionaries live inside compressed object streams, so that would
+    // fail for reasons unrelated to fonts. Instead, extract the text back
+    // out with pdftotext. This is what makes the test able to fail for the
+    // reason it exists: a %PDF- header and a plausible file size are both
+    // present even when every German character in the document is mojibake
+    // (e.g. UTF-8 input read back as Latin-1/windows-1252).
+    $text = Process::run("pdftotext {$path} -")->output();
+
+    expect($text)->toContain('Rechnung')
+        ->and($text)->toContain('Größe')
+        ->and($text)->toContain('Übertrag')
+        ->and($text)->toContain('Änderung')
+        ->and($text)->toContain('Weiß');
+
     unlink($path);
 });
