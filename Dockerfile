@@ -14,6 +14,10 @@ RUN install-php-extensions \
 # when Debian point releases rotate old versions off the mirror, and document
 # immutability comes from freezing each PDF as a file with its fonts embedded,
 # not from build reproducibility. Font drift can only affect future documents.
+#
+# poppler-utils provides pdftotext/pdffonts, used by the test suite to read
+# rendered output back and catch encoding regressions. It is a test tool, not
+# a rendering dependency.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         git \

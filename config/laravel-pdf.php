@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file diverges from the vendor default by exactly one key:
+ * weasyprint.encoding => 'utf-8'. Without it, WeasyPrint's HTML5 parser falls
+ * back to a locale default when the input declares no charset, and every umlaut
+ * in a German invoice renders as mojibake. Diff against
+ * vendor/spatie/laravel-pdf/config/laravel-pdf.php before accepting any upgrade
+ * that rewrites this file.
+ */
+
 use Spatie\LaravelPdf\Caching\DefaultPdfCache;
 use Spatie\LaravelPdf\Encryption\DefaultPdfEncrypter;
 use Spatie\LaravelPdf\Jobs\GeneratePdfJob;
