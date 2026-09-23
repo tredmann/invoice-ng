@@ -281,6 +281,19 @@ docker compose run --rm --no-deps --entrypoint sh app -c '
 '
 ```
 
+- [ ] **Step 1b: Restore the workspace ignore rule**
+
+`cp -a` overwrites the repo's `.gitignore` with Laravel's. Ours carries the
+SDD workspace ignore, and losing it would let `.superpowers/` be committed
+by the next `git add -A`. Re-add it as the first line:
+
+```bash
+printf '.superpowers/\n' | cat - .gitignore > .gitignore.new && mv .gitignore.new .gitignore
+git check-ignore -q .superpowers && echo "ok: workspace ignored"
+```
+
+Expected: `ok: workspace ignored`
+
 On macOS the bind mount maps the files to your own user. On a Linux host
 the container runs as root and the copied files will be root-owned; fix
 that with `sudo chown -R "$USER:$USER" .` before continuing.
@@ -796,10 +809,15 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/admin');
 ```
 
-- [ ] **Step 3: Delete the unused welcome view**
+- [ ] **Step 3: Delete the unused welcome view and the test that asserted it**
+
+Laravel's skeleton ships `tests/Feature/ExampleTest.php`, which asserts that
+`GET /` returns 200. Step 2 just made it a 302, so that test now fails. Its
+coverage is replaced by `PanelTest` below.
 
 ```bash
 rm resources/views/welcome.blade.php
+rm tests/Feature/ExampleTest.php
 ```
 
 - [ ] **Step 4: Write the failing test**
@@ -826,10 +844,14 @@ it('serves the login page', function () {
 it('shows the dashboard to an authenticated user', function () {
     $user = User::factory()->create();
 
+    // Asserting on the user's name rather than on the word "Dashboard":
+    // the app runs with locale=de and Filament ships German translations,
+    // so any chrome string is a translation change away from breaking.
+    // The name is data, and its presence proves the panel chrome rendered.
     $this->actingAs($user)
         ->get('/admin')
         ->assertOk()
-        ->assertSee('Dashboard');
+        ->assertSee($user->name);
 });
 ```
 
