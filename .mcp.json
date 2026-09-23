@@ -1,8 +1,14 @@
 {
     "mcpServers": {
         "laravel-boost": {
-            "command": "php",
+            "command": "docker",
             "args": [
+                "compose",
+                "run",
+                "--rm",
+                "-T",
+                "app",
+                "php",
                 "artisan",
                 "boost:mcp"
             ]

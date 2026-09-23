@@ -1,12 +1,18 @@
 <?php
 
 /*
- * This file diverges from the vendor default by exactly one key:
- * weasyprint.encoding => 'utf-8'. Without it, WeasyPrint's HTML5 parser falls
- * back to a locale default when the input declares no charset, and every umlaut
- * in a German invoice renders as mojibake. Diff against
- * vendor/spatie/laravel-pdf/config/laravel-pdf.php before accepting any upgrade
- * that rewrites this file.
+ * This file diverges from the vendor default in two places. Diff against
+ * vendor/spatie/laravel-pdf/config/laravel-pdf.php before accepting any
+ * upgrade that rewrites this file.
+ *
+ * 1. weasyprint.encoding => 'utf-8'. Without it, WeasyPrint's HTML5 parser
+ *    falls back to a locale default when the input declares no charset, and
+ *    every umlaut in a German invoice renders as mojibake.
+ *
+ * 2. driver default is 'weasyprint', not the vendor default 'browsershot'.
+ *    Browsershot needs Chrome, which this project deliberately does not
+ *    install (see CLAUDE.md / the tech-stack spec) — WeasyPrint is the only
+ *    PDF renderer present in the image.
  */
 
 use Spatie\LaravelPdf\Caching\DefaultPdfCache;
@@ -18,7 +24,7 @@ return [
      * The default driver to use for PDF generation.
      * Supported: "browsershot", "cloudflare", "dompdf", "gotenberg", "chrome"
      */
-    'driver' => env('LARAVEL_PDF_DRIVER', 'browsershot'),
+    'driver' => env('LARAVEL_PDF_DRIVER', 'weasyprint'),
 
     /*
      * Render caching. When you call `->cache()` on a PDF, the generated

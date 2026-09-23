@@ -6,17 +6,16 @@ it('runs tests against postgresql, never sqlite', function () {
     expect(DB::connection()->getDriverName())->toBe('pgsql');
 });
 
-it('runs tests against a separate database', function () {
-    expect(DB::connection()->getDatabaseName())->toBe('invoice_test');
-});
+it('is really talking to a live, separate postgresql database', function () {
+    // getDatabaseName() only reads resolved config — it would pass even
+    // against a database that does not exist. Folding driver, database name
+    // and liveness into one round trip against the server itself proves all
+    // three at once; the guard against SQLite cannot silently become a
+    // no-op, and neither can the guard against sharing the dev database.
+    $row = DB::selectOne('select version() as version, current_database() as db');
 
-it('is really talking to a live postgresql server', function () {
-    // getDriverName() and getDatabaseName() only read resolved config — they
-    // would both pass against an unreachable database. This asks the server
-    // itself, so the guard against SQLite cannot silently become a no-op.
-    $version = DB::selectOne('select version() as version')->version;
-
-    expect($version)->toContain('PostgreSQL');
+    expect($row->version)->toContain('PostgreSQL')
+        ->and($row->db)->toBe('invoice_test');
 });
 
 it('is configured for german invoicing', function () {

@@ -42,3 +42,19 @@ it('resolves the documents disk from configuration', function () {
 
     Storage::disk(config('invoice.documents_disk'))->delete('probe.txt');
 });
+
+it('actually reads the documents disk from the environment, not a hardcoded default', function () {
+    // The test above would still pass even if config/invoice.php hardcoded
+    // 'local' instead of reading env('INVOICE_DOCUMENTS_DISK'), because
+    // 'local' is also the default. This proves the value genuinely comes
+    // from the environment by overriding it and re-evaluating the config
+    // file directly. putenv() does not work here — Laravel's Env repository
+    // gives $_SERVER precedence — so $_SERVER is set and used instead.
+    $_SERVER['INVOICE_DOCUMENTS_DISK'] = 's3';
+
+    try {
+        expect((require base_path('config/invoice.php'))['documents_disk'])->toBe('s3');
+    } finally {
+        unset($_SERVER['INVOICE_DOCUMENTS_DISK']);
+    }
+});

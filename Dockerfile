@@ -7,7 +7,8 @@ RUN install-php-extensions \
         bcmath \
         zip \
         gd \
-        opcache
+        opcache \
+        pcntl
 
 # WeasyPrint's native rendering stack, plus fonts with full German coverage.
 # Fonts are deliberately NOT version-pinned: exact apt pins break the build
@@ -34,7 +35,9 @@ RUN apt-get update \
         poppler-utils \
  && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --break-system-packages --no-cache-dir weasyprint==70.0
+COPY docker/requirements.txt /tmp/requirements.txt
+RUN pip3 install --break-system-packages --no-cache-dir -r /tmp/requirements.txt \
+ && rm /tmp/requirements.txt
 
 COPY --from=composer/composer:2-bin /composer /usr/bin/composer
 

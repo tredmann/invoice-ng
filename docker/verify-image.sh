@@ -5,7 +5,7 @@ set -euo pipefail
 docker compose run --rm --no-deps --entrypoint sh app -c '
   set -e
 
-  for ext in pdo_pgsql intl bcmath zip gd; do
+  for ext in pdo_pgsql intl bcmath zip gd pcntl; do
     php -m | grep -qx "$ext" || { echo "FAIL: missing PHP extension: $ext"; exit 1; }
   done
   echo "ok: php extensions"

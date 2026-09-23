@@ -10,12 +10,8 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application running on PHP 8.4. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
 
 Before relying on a package's API, confirm its installed version:
-- PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
-- JS packages: check `package.json` for the installed versions.
-
-## Skills Activation
-
-This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+- PHP packages: run `docker compose run --rm app composer show --direct` to list direct dependencies with versions, or `docker compose run --rm app composer show <vendor/package>` for a single package.
+- JS packages: this project has no Node runtime and no `package.json` dependencies that matter — see Frontend Bundling below.
 
 ## Conventions
 
@@ -34,7 +30,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Frontend Bundling
 
-- This project has no frontend build step and no Node runtime. Do not suggest `npm run build`, `npm run dev`, or `composer run dev` — there is nothing to build.
+- This project has no frontend build step and no Node runtime. Do not suggest `npm run build`, `npm run dev`, or `composer run dev` — there is nothing to build. `package.json` and `vite.config.js` are vestigial from the Laravel skeleton; nothing in the app references `@vite`.
 
 ## Documentation Files
 
@@ -77,15 +73,15 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Artisan
 
-- Run Artisan commands directly via the command line (e.g., `php artisan route:list`). Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
-- Inspect routes with `php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
-- Read configuration values using dot notation: `php artisan config:show app.name`, `php artisan config:show database.default`. Or read config files directly from the `config/` directory.
+- This project has no PHP on the host. Run Artisan commands through the container: `docker compose run --rm app php artisan route:list`. Use `docker compose run --rm app php artisan list` to discover available commands and `docker compose run --rm app php artisan [command] --help` to check parameters.
+- Inspect routes with `docker compose run --rm app php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
+- Read configuration values using dot notation: `docker compose run --rm app php artisan config:show app.name`, `docker compose run --rm app php artisan config:show database.default`. Or read config files directly from the `config/` directory.
 
 ## Tinker
 
 - Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
-- Always use single quotes to prevent shell expansion: `php artisan tinker --execute 'Your::code();'`
-  - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
+- Always run through the container, and use single quotes to prevent shell expansion: `docker compose run --rm app php artisan tinker --execute 'Your::code();'`
+  - Double quotes for PHP strings inside: `docker compose run --rm app php artisan tinker --execute 'User::where("active", true)->count();'`
 
 === php rules ===
 
@@ -118,13 +114,15 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 # Do Things the Laravel Way
 
-- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using `php artisan list` and check their parameters with `php artisan [command] --help`.
-- If you're creating a generic PHP class, use `php artisan make:class`.
+This project has no PHP on the host — every Artisan command below runs through the container.
+
+- Use `docker compose run --rm app php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using `docker compose run --rm app php artisan list` and check their parameters with `docker compose run --rm app php artisan [command] --help`.
+- If you're creating a generic PHP class, use `docker compose run --rm app php artisan make:class`.
 - Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
 
 ### Model Creation
 
-- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `php artisan make:model --help` to check the available options.
+- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `docker compose run --rm app php artisan make:model --help` to check the available options.
 
 ## APIs & Eloquent Resources
 
@@ -138,7 +136,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
 - Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
-- When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
+- When creating tests, make use of `docker compose run --rm app php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
 
 ## Vite Error
 
@@ -148,23 +146,27 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 # Laravel Pint Code Formatter
 
-- If you have modified any PHP files, you must run `vendor/bin/pint --dirty --format agent` before finalizing changes to ensure your code matches the project's expected style.
-- Do not run `vendor/bin/pint --test --format agent`, simply run `vendor/bin/pint --format agent` to fix any formatting issues.
+This project has no PHP on the host — always run Pint through the container.
+
+- If you have modified any PHP files, you must run `docker compose run --rm app ./vendor/bin/pint --dirty --format agent` before finalizing changes to ensure your code matches the project's expected style.
+- Do not run `docker compose run --rm app ./vendor/bin/pint --test --format agent`, simply run `docker compose run --rm app ./vendor/bin/pint --format agent` to fix any formatting issues.
 
 === pest/core rules ===
 
 # Pest
 
-- This project uses Pest. Create tests with `php artisan make:test --pest {name}`.
+This project has no PHP on the host — always run Pest through the container.
+
+- This project uses Pest. Create tests with `docker compose run --rm app php artisan make:test --pest {name}`.
 - Do not include the test suite directory in `{name}`. Use `SomeFeatureTest`, not `Feature/SomeFeatureTest`.
 - Read the `testing-best-practices` skill for guidance on coverage, naming, structure, dependency isolation, and review.
 - Do not delete tests or test files without approval. They are part of the application.
 
 ## Running Tests
 
-- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `php artisan test --compact`.
+- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `docker compose run --rm app php artisan test --compact`.
 - Rerun a test after each change to it.
-- Run `vendor/bin/pest` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
-- After the feature tests pass, ask the user to run the complete suite with `php artisan test --compact`.
+- Run `docker compose run --rm app ./vendor/bin/pest` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
+- After the feature tests pass, ask the user to run the complete suite with `docker compose run --rm app php artisan test --compact`.
 
 </laravel-boost-guidelines>
