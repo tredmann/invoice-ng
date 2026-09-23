@@ -45,14 +45,15 @@ it('renders a pdf containing german characters', function () {
     // Not a substitute for looking, but it does catch the case where no font was
     // embedded at all.
     //
-    // pdffonts' columns are fixed-width (verified against the installed
-    // poppler-utils 22.12.0: name=36, type=17, encoding=16, emb=3, sub=3, uni=3,
-    // then "object ID"), so slicing the "emb" column directly is what makes this
-    // sound. A naive toContain('yes') would not be: the "type" column itself
-    // contains a space for CID fonts (e.g. "CID TrueType"), and "sub"/"uni" are
-    // also yes/no columns that are frequently "yes" independent of embedding —
-    // so a plain substring search would pass even when every font's "emb" column
-    // reads "no".
+    // Anchored on the end of the line ("emb sub uni objectID gen") instead of a
+    // fixed byte offset: pdffonts pads its name/type/encoding columns to fit
+    // their content rather than truncating, so a long subset name or font type
+    // would silently shift every later column right and make a byte-offset read
+    // wrong without the assertion failing. A naive toContain('yes') isn't sound
+    // either — "yes" can appear in any of "emb"/"sub"/"uni" on any row of the
+    // whole multi-line blob — so this matches each row's trailing
+    // "emb sub uni objectID gen" shape directly and reads the first captured
+    // group as the "emb" column.
     $fontsOutput = Process::run(['pdffonts', $path])->output();
     $fontLines = array_filter(
         array_slice(preg_split('/\r?\n/', $fontsOutput) ?: [], 2),
@@ -62,7 +63,10 @@ it('renders a pdf containing german characters', function () {
     expect($fontLines)->not->toBeEmpty();
 
     foreach ($fontLines as $line) {
-        expect(trim(substr($line, 72, 3)))->toBe('yes');
+        $matched = preg_match('/(yes|no)\s+(yes|no)\s+(yes|no)\s+\d+\s+\d+$/', trim($line), $matches);
+
+        expect($matched)->toBe(1);
+        expect($matches[1] ?? null)->toBe('yes'); // the emb column
     }
 
     unlink($path);
