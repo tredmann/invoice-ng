@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Progress tracking is external.** A task guide lives in Outline at
+> <https://heimdall.tail1ec8f7.ts.net/doc/local-dev-setup-task-guide-wuiOXTFgBW>.
+> After completing each task here, tick that task's boxes there before
+> starting the next one. The Outline guide is the tracking surface; this
+> file is the source of truth for what to actually do. If the two ever
+> disagree, this file wins and the guide gets corrected.
+
 **Goal:** A working local development environment — Docker image, Compose stack, Laravel with the project's packages, quality tooling, a verified WeasyPrint renderer, and a Filament panel with login and an empty dashboard.
 
 **Architecture:** One Dockerfile carrying PHP 8.4 (FrankenPHP), the PHP extensions the project needs, and WeasyPrint with its native rendering stack. Compose runs that image plus PostgreSQL. The application is installed *through* the container, so no PHP, Composer or Python is ever required on the host.
