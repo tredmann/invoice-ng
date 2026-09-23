@@ -1,0 +1,8 @@
+.git
+.github
+docs
+vendor
+node_modules
+.env
+storage/logs/*
+storage/framework/cache/*
