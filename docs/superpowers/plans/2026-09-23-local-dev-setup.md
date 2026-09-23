@@ -41,7 +41,7 @@ Copied from the stack spec. Every task's requirements implicitly include these.
 - **No Node.js in the image.** No custom Filament theme exists yet, so nothing needs building. Revisit only when a theme is added.
 - **Fonts and the WeasyPrint version are pinned.** A renderer that drifts produces documents that no longer match their stored PDFs.
 - **Larastan level 8** with `treatPhpDocTypesAsCertain`.
-- **Runtime dependencies are limited to five** beyond Laravel and Filament: `tighten/parental`, `brick/money`, `spatie/laravel-pdf`, `pontedilana/php-weasyprint`, `horstoeko/zugferd`.
+- **Runtime dependencies are limited to five** beyond Laravel and Filament: `tightenco/parental`, `brick/money`, `spatie/laravel-pdf`, `pontedilana/php-weasyprint`, `horstoeko/zugferd`.
 - **Timezone `Europe/Berlin`, locale `de`**, fallback `en`.
 
 ## Review Focus
@@ -573,7 +573,7 @@ The stack spec allows exactly these five beyond Laravel and Filament:
 
 ```bash
 docker compose run --rm app composer require --no-interaction \
-  tighten/parental \
+  tightenco/parental \
   brick/money \
   spatie/laravel-pdf \
   pontedilana/php-weasyprint \
@@ -621,7 +621,7 @@ use Brick\Money\Money;
 use Illuminate\Support\Facades\Storage;
 
 it('has the runtime packages the stack spec allows', function () {
-    expect(class_exists(Parental\HasChildren::class))->toBeTrue()
+    expect(trait_exists(Parental\HasChildren::class))->toBeTrue()
         ->and(class_exists(Brick\Money\Money::class))->toBeTrue()
         ->and(class_exists(Spatie\LaravelPdf\Facades\Pdf::class))->toBeTrue()
         ->and(class_exists(Pontedilana\PhpWeasyPrint\Pdf::class))->toBeTrue()

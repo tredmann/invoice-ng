@@ -46,7 +46,7 @@ Four requirements do most of the choosing:
 | File storage | DigitalOcean Spaces, versioning enabled |
 | PDF rendering | `spatie/laravel-pdf` with the WeasyPrint driver |
 | e-Rechnung | `horstoeko/zugferd` |
-| Document types | `tighten/parental` (single table inheritance) |
+| Document types | `tightenco/parental` (single table inheritance) |
 | Money | `brick/money` |
 | Tests | Pest, run inside the Docker image, against Postgres |
 | Static analysis | Larastan, level 8 |
@@ -170,7 +170,7 @@ this is not.
 
 ### 6.5 Document types
 
-`tighten/parental`. `Document` carries a `type` column; `Invoice`,
+`tightenco/parental`. `Document` carries a `type` column; `Invoice`,
 `Storno` and `Gutschrift` are child classes.
 
 `Document::query()` returns all three as their proper classes.
@@ -317,7 +317,7 @@ document.
 | Package | For |
 | --- | --- |
 | `filament/filament` ^5 | The entire user interface |
-| `tighten/parental` | Three document classes over one table |
+| `tightenco/parental` | Three document classes over one table |
 | `brick/money` | Money arithmetic and rounding |
 | `spatie/laravel-pdf` | HTML to PDF via the WeasyPrint driver |
 | `horstoeko/zugferd` | EN16931 XML and PDF/A-3 embedding |
@@ -457,7 +457,7 @@ recurring job will call.
 | PDF renderer | WeasyPrint via `spatie/laravel-pdf` |
 | e-Rechnung | `horstoeko/zugferd` |
 | XML validation | XSD at runtime; KoSIT validator in CI |
-| Document classes | `tighten/parental` |
+| Document classes | `tightenco/parental` |
 | Money | `brick/money` |
 | Snapshot block | `jsonb` + custom cast, no package |
 | Tenancy | Filament native + `BelongsToCompany` trait |
