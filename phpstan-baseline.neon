@@ -5,15 +5,3 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: config/filesystems.php
-
-		-
-			message: '#^Function something\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: tests/Pest.php
-
-		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 1
-			path: tests/Unit/ExampleTest.php

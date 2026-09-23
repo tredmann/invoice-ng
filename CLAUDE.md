@@ -1,47 +1,38 @@
-<laravel-boost-guidelines>
-# Laravel Application
+# Invoice
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+A multi-company German invoicing application. Laravel 13 + Filament 5, PHP 8.4.
 
-## Prerequisites
+## Everything runs in Docker
 
-Verify that PHP and Composer are available:
-
-```sh
-php -v
-composer -V
-```
-
-If either command is unavailable, detect the user's operating system and install the prerequisites with the appropriate command:
-
-macOS:
+Nothing is installed on the host — not PHP, not Composer, not Postgres, not WeasyPrint.
+Never run `php`, `composer`, or `artisan` directly. Always go through the container:
 
 ```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
+docker compose up -d                                    # start the stack
+docker compose run --rm app php artisan <command>       # artisan
+docker compose run --rm app composer <command>           # composer
+docker compose run --rm app ./vendor/bin/pest           # tests
+docker compose run --rm app ./vendor/bin/pint           # formatting
+docker compose run --rm app ./vendor/bin/phpstan analyse --memory-limit=512M
 ```
 
-Windows PowerShell:
+The app serves at http://localhost:8080.
 
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
-```
+## Decisions that are not negotiable
 
-Linux:
+- **PostgreSQL only, never SQLite — including in tests.** Invoice numbering must be
+  gapless, which rests on `SELECT … FOR UPDATE`. SQLite does not implement it, so a
+  suite green on SQLite would prove nothing.
+- **No Node.js.** There is no frontend build. Nothing should reference `@vite`.
+- **Deployment target is DigitalOcean App Platform, not Laravel Cloud.** Laravel Cloud
+  cannot run WeasyPrint, which this project needs to render invoices.
+- **Larastan runs at level 8.** If it reports errors, fix them or baseline them —
+  never lower the level.
+- Money is integer cents via `brick/money`. Never floats.
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
-```
+## Where the design lives
 
-After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
+- `docs/superpowers/specs/2026-09-23-invoice-system-design.md` — what the system does
+- `docs/superpowers/specs/2026-09-23-invoice-tech-stack-design.md` — what it is built from
 
-## Agent Setup
-
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
-```
-
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
-</laravel-boost-guidelines>
+Read the relevant spec before changing behaviour. The specs are the authority.

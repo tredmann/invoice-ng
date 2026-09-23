@@ -34,7 +34,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Frontend Bundling
 
-- If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.
+- This project has no frontend build step and no Node runtime. Do not suggest `npm run build`, `npm run dev`, or `composer run dev` — there is nothing to build.
 
 ## Documentation Files
 
@@ -102,8 +102,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 # Deployment
 
-- Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
-- Activate the `deploying-to-cloud` skill whenever deploying to Laravel Cloud, configuring Cloud environments or resources, using the Cloud CLI, or troubleshooting Cloud deployments.
+- This project deploys to DigitalOcean App Platform, not Laravel Cloud — Laravel Cloud cannot run WeasyPrint, which this project needs to render invoices. There is no `deploying-to-cloud` skill in this project; do not activate it or reference Laravel Cloud tooling.
 
 === tests rules ===
 
@@ -143,7 +142,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Vite Error
 
-- If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
+- This project has no Vite build. An "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error means a view references `@vite` and should not — remove the reference instead of trying to build assets.
 
 === pint/core rules ===
 
