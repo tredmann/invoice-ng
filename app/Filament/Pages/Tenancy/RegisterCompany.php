@@ -11,6 +11,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Pages\Tenancy\RegisterTenant;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The only place a company is created.
@@ -48,13 +49,21 @@ class RegisterCompany extends RegisterTenant
      */
     protected function handleRegistration(array $data): Company
     {
-        $company = Company::query()->create($data);
+        // Filament's RegisterTenant::register() looks like it wraps this in a
+        // transaction, but CanUseDatabaseTransactions::beginDatabaseTransaction()
+        // returns early unless hasDatabaseTransactions(), which falls back to
+        // the panel — and AdminPanelProvider never calls
+        // ->databaseTransactions(). So this wraps itself: without it, a create
+        // that lands but an attach that does not leaves a company that fails
+        // canAccessTenant() and is therefore unreachable, and undeletable from
+        // the UI, while holding its slug.
+        return DB::transaction(function () use ($data): Company {
+            $company = Company::query()->create($data);
 
-        // Without this the user has created a company that fails
-        // canAccessTenant() and is therefore unreachable.
-        $company->users()->attach(Auth::id());
+            $company->users()->attach(Auth::id());
 
-        return $company;
+            return $company;
+        });
     }
 
     protected function getRedirectUrl(): ?string
