@@ -37,10 +37,11 @@ Each was expensive to reach. Read the reason before changing one.
   WeasyPrint, which renders the invoices.
 - **Larastan stays at level 8.** Fix findings, or baseline them with a reason.
 - **UUID primary keys on every model.** The UUID *is* the key — not a column
-  beside a bigint. Identifiers here end up in URLs that get bookmarked and
-  shared, and a sequential key tells the holder how many customers exist and
-  lets them walk to a neighbour's. Unrelated to invoice numbers, which are
-  sequential by law. See §3.1 of the system design spec.
+  beside a bigint. Version 7 via Laravel's `HasUuids`, so keys are time-ordered
+  and index locality is fine. Identifiers here end up in URLs that get
+  bookmarked and shared, and a sequential key tells the holder how many
+  customers exist and lets them walk to a neighbour's. Unrelated to invoice
+  numbers, which are sequential by law. See §3.1 of the system design spec.
 - **The current company lives in the URL, not only the session.** Every
   company-scoped screen sits under the company's slug — `/{company}/invoices`,
   `/{company}/settings`. Held in session alone, one URL shows different

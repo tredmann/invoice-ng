@@ -70,10 +70,20 @@ many companies, customers or documents exist, and lets them walk to a
 neighbour's. That is a disclosure problem in a system holding other
 businesses' books.
 
-The costs are taken knowingly: wider keys and indexes, and no natural
-insertion order. Neither is load-bearing at this volume. Where creation order
-matters, `created_at` answers it — a primary key was never a safe proxy for
-it anyway.
+**Version 7**, via Laravel's `HasUuids` — which on this framework version
+generates v7 rather than v4. That matters: a v7 UUID leads with a timestamp,
+so keys sort in creation order and new rows land at the end of the index
+instead of scattering across it. The usual objection to UUID keys — random
+insertion wrecking index locality — does not apply.
+
+The cost that remains is width: sixteen bytes against eight, in the table and
+in every index and foreign key referencing it. Not load-bearing at this
+volume.
+
+> An earlier draft of this section also listed "no natural insertion order" as
+> a cost, and sent the reader to `created_at`. That was written before the
+> version was pinned down and is simply wrong for v7. Corrected rather than
+> left standing, since it would have argued someone out of ordering by key.
 
 Note that this is **unrelated to document numbers**. Invoice numbers are
 gapless, sequential and legally mandated (§5); they are not identifiers of
