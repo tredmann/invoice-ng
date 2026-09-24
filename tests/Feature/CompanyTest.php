@@ -142,8 +142,9 @@ it('refuses to archive the last active company', function (): void {
     // restore anything.
     $only = Company::factory()->create();
 
-    expect(fn (): mixed => $only->archive())
-        ->toThrow(CannotArchiveLastCompany::class);
+    expect(function () use ($only): void {
+        $only->archive();
+    })->toThrow(CannotArchiveLastCompany::class);
 
     expect($only->fresh()?->isArchived())->toBeFalse();
 });
