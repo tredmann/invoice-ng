@@ -16,6 +16,11 @@ RUN install-php-extensions \
 # immutability comes from freezing each PDF as a file with its fonts embedded,
 # not from build reproducibility. Font drift can only affect future documents.
 #
+# libharfbuzz-subset0 is separate from libharfbuzz0b and is the one WeasyPrint
+# subsets fonts with. Without it WeasyPrint silently falls back to fontTools
+# and warns that the fallback is going away in a future release — so this is a
+# future break in the PDF path, not a cosmetic warning.
+#
 # poppler-utils provides pdftotext/pdffonts, used by the test suite to read
 # rendered output back and catch encoding regressions. It is a test tool, not
 # a rendering dependency.
@@ -28,6 +33,7 @@ RUN apt-get update \
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
         libharfbuzz0b \
+        libharfbuzz-subset0 \
         libcairo2 \
         libgdk-pixbuf-2.0-0 \
         fonts-dejavu \
