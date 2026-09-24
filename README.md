@@ -39,7 +39,9 @@ What each step does:
    pass `--name=`, `--email=`, `--password=` non-interactively).
 7. `docker compose up -d` — starts the stack in the background. The app
    serves at <http://localhost:8080>, and the admin panel is at
-   <http://localhost:8080/admin>.
+   <http://localhost:8080/admin>. A freshly created user belongs to no
+   company yet, so the first login lands on company registration rather than
+   a dashboard — that is expected, not a broken login.
 
 ## Day-to-day commands
 

@@ -219,6 +219,19 @@ This project has no PHP on the host — every Artisan command below runs through
 - Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
 - When creating tests, make use of `docker compose run --rm app php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
 
+## Naming: identifiers are English
+
+- Columns, enums, classes and methods are named in English, even where the
+  domain and the specs are German. German appears in exactly two places: **user-facing
+  labels**, which live in `lang/de/`, and **legal designations that print
+  verbatim on a document and have no English equivalent** — `GmbH` and `UG`
+  are names, not words, the way `Inc.` is.
+- So the §19 UStG Kleinunternehmer flag is the `VatScheme` enum
+  (`Standard`/`SmallBusiness`), not `is_small_business` or a German name, and
+  the invoicing wave's Storno, Gutschrift and Mahnung become
+  `CancellationInvoice`, `CreditNote` and `PaymentReminder` in code while the
+  German terms stay in the specs and in `lang/de/`.
+
 ## Vite Error
 
 - This project has no Vite build. An "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error means a view references `@vite` and should not — remove the reference instead of trying to build assets.

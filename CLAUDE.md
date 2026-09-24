@@ -2,10 +2,12 @@
 
 A multi-company German invoicing application. Laravel 13 + Filament 5, PHP 8.5.
 
-**Current state: the development environment only.** No domain model exists yet —
-no companies, customers, documents, numbering or money handling. If you are looking
-for an `Invoice` model, it has not been written. What works is the container stack,
-the test harness, a proven PDF renderer, and a Filament panel with login.
+**Current state: companies and the tenancy backbone are in place.** A company can
+be created, completed and archived, and every company-scoped screen sits behind a
+Filament tenant boundary keyed on the company's slug. Customers, documents,
+numbering and money handling do not exist yet. If you are looking for an `Invoice`
+model, it has not been written. What works is the container stack, the test
+harness, a proven PDF renderer, and a Filament panel with login and tenancy.
 
 ## Everything runs in the container
 
@@ -43,9 +45,21 @@ Each was expensive to reach. Read the reason before changing one.
   customers exist and lets them walk to a neighbour's. Unrelated to invoice
   numbers, which are sequential by law. See §3.1 of the system design spec.
 - **The current company lives in the URL, not only the session.** Every
-  company-scoped screen sits under the company's slug — `/{company}/invoices`,
-  `/{company}/settings`. Held in session alone, one URL shows different
-  companies to the same person and a second tab fights the first. See §3.2.
+  company-scoped screen sits under the company's slug — `/admin/{company}/invoices`,
+  `/admin/{company}/settings`. Held in session alone, one URL shows different
+  companies to the same person and a second tab fights the first. The panel
+  keeps Filament's `/admin` prefix rather than mounting at the root; the
+  property being protected is the company in the path, not the position of
+  the prefix, and keeping it also leaves the root free for a real 404 instead
+  of every unrecognised top-level segment reading as a company slug. See §3.2.
+- **Identifiers are English; German is for labels and legal designations.**
+  Columns, enums, classes and methods are named in English. German appears in
+  user-facing labels, which live in `lang/de/`, and in legal designations that
+  print verbatim and have no English equivalent — `GmbH` is a name, not a word.
+  So the §19 UStG flag is a `vat_scheme` enum, and the document types of the
+  next wave are `CancellationInvoice`, `CreditNote` and `PaymentReminder`
+  rather than Storno, Gutschrift and Mahnung. Deciding this per column is how
+  a codebase ends up bilingual.
 - **Table row actions go in one vertical-ellipsis dropdown.** Never a row of
   buttons. Filament's `ActionGroup` already defaults to that trigger.
 - **Simplicity over density in the interface.** Where a screen could show more
@@ -83,9 +97,12 @@ changing fonts, the base image, or the WeasyPrint version.
 
 Deliberately parked, so they are not mistaken for oversights:
 
-- `User::canAccessPanel()` returns `true` for every authenticated user. Safe today
-  (no registration; one hand-made account), and must become a real check when
-  tenancy lands.
+- `User::canAccessPanel()` returns `true` for every authenticated user. This is
+  no longer a gap waiting on tenancy — tenancy has landed, and the boundary it
+  was standing in for is `canAccessTenant()`, which checks the join table and
+  makes Filament abort with 404 on a mismatch. `canAccessPanel()` stays
+  permissive because there is still no registration and no user state to gate
+  on; inventing a condition for it would be theatre, not a check.
 - `config/database.php` and `config/queue.php` still default to `sqlite`. Nothing
   reaches those defaults — `phpunit.xml` and `.env.example` both set `pgsql` — but
   they read badly here and are worth changing.
@@ -93,6 +110,18 @@ Deliberately parked, so they are not mistaken for oversights:
   improvements on a Boost upgrade. See the maintenance doc below. (Two of the
   eight files there — `documentation/` and `rector/` — are additions rather
   than forks, and have no upstream to drift from.)
+- `Company::canBeArchived()` followed by `archive()`'s save is check-then-act
+  with no row locking: two concurrent archives against a two-company state
+  could both pass the guard before either writes, leaving zero active
+  companies. Same shape as the TOCTOU risk this file already notes for invoice
+  numbering. Harmless while the application has a single writer; it needs a
+  lock when that stops being true.
+- `company_user`'s only index is its composite primary key `(company_id,
+  user_id)`. `User::getTenants()` filters on `user_id` alone — the trailing
+  column of that composite — so it has no usable index path, while
+  `canAccessTenant()`, which filters on both columns, does. Irrelevant at one
+  user and a handful of companies; a one-line `$table->index('user_id')` when
+  it isn't.
 
 ## Where things are written down
 

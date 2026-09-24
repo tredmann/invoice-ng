@@ -104,6 +104,16 @@ company-scoped screen lives under the company's slug — `/{company}/invoices`,
 `/{company}/customers`, `/{company}/settings` — and the slug is derived from
 the company name, unique, and stable once issued.
 
+> **Corrected 2026-09-24.** The companies-and-tenancy wave built this behind
+> Filament's `/admin` prefix rather than at the root, so the real paths are
+> `/admin/{company}/invoices`, `/admin/{company}/customers`,
+> `/admin/{company}/settings`. The property this section argues for is that
+> the company sits in the path rather than in session state, and the prefix
+> does not weaken that — it just means the path has one more fixed segment.
+> Keeping the prefix also leaves the root free for a real 404 instead of every
+> unrecognised top-level segment being read as a company slug. See
+> `docs/superpowers/specs/2026-09-24-companies-and-tenancy-design.md` §5.2.
+
 This is what makes a link mean one thing. With the company held only in
 session state, the same URL shows different companies to the same person
 depending on what they last clicked, so a bookmarked or shared link is
@@ -533,7 +543,9 @@ coverage.
 | Decision | Choice |
 |---|---|
 | Primary keys | UUID on every model; the UUID is the key, not a column beside a bigint |
-| Company in the URL | Every company-scoped screen lives under the company slug, e.g. `/{company}/invoices` |
+| Company in the URL | Every company-scoped screen lives under the company slug, e.g. `/admin/{company}/invoices` — corrected 2026-09-24, see §3.2 |
+| Panel path | Keeps Filament's `/admin` prefix; company-scoped screens are `/admin/{company}/…` |
+| Identifier language | English, except legal designations that print verbatim |
 | Table row actions | A single vertical-ellipsis button opening a dropdown; never a row of buttons |
 | Audience | Single user now; multi-user kept possible, not built |
 | Document model | One table, three classes with their own rules |
