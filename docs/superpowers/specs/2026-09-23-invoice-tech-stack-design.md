@@ -46,7 +46,7 @@ Four requirements do most of the choosing:
 | File storage | DigitalOcean Spaces, versioning enabled |
 | PDF rendering | `spatie/laravel-pdf` with the WeasyPrint driver |
 | e-Rechnung | `horstoeko/zugferd` |
-| Document types | `tighten/parental` (single table inheritance) |
+| Document types | `tightenco/parental` (single table inheritance) |
 | Money | `brick/money` |
 | Tests | Pest, run inside the Docker image, against Postgres |
 | Static analysis | Larastan, level 8 |
@@ -81,20 +81,36 @@ The alternatives on Laravel Cloud were each worse:
 
 ### 5.1 The image
 
-One Dockerfile, used for local development, CI and production.
+One Dockerfile, used for local development and CI.
+
+It carries the toolchain only — it has no `COPY` of application code and no
+production entrypoint, because the local and CI workflows bind-mount the
+source. The production stage that adds those is part of the deployment plan,
+not this one. What the shared base guarantees is that the renderer, its fonts
+and the PHP extensions are identical everywhere.
 
 Base: `dunglas/frankenphp` on PHP 8.4. On top:
 
 - PHP extensions: `pdo_pgsql`, `intl`, `bcmath`, `zip`, `gd`
 - WeasyPrint and its native stack (pango, cairo, harfbuzz)
-- A pinned font set with full German coverage
+- Fonts with full German coverage, from Debian stable (see §5.1 on pinning)
 
 **The image will be large.** WeasyPrint's dependency tree adds a few
 hundred megabytes over a plain PHP image. This is the price of the chosen
 renderer, paid once at build time.
 
-**Fonts are pinned.** An invoice that renders differently after a base
-image update no longer matches its stored PDF.
+**What is pinned, and what is not.** The WeasyPrint version and its full
+Python dependency set are pinned (`docker/requirements.txt`), because those
+change layout and font *embedding* — `fontTools`, which subsets and embeds
+the fonts, is in that set. PyPI never removes versions, so this pins safely.
+
+**Fonts are deliberately NOT apt-version-pinned.** Exact apt pins break the
+build when Debian point releases rotate old versions off the mirror, and they
+buy less than they appear to: document immutability comes from freezing each
+PDF *with its fonts embedded* and recording its SHA-256 (§4, §7.3), not from
+build reproducibility. A font update therefore cannot alter a document already
+issued — only ones issued afterwards. Fonts come from Debian stable, which is
+effectively frozen for the release.
 
 ### 5.2 Local
 
@@ -170,7 +186,7 @@ this is not.
 
 ### 6.5 Document types
 
-`tighten/parental`. `Document` carries a `type` column; `Invoice`,
+`tightenco/parental`. `Document` carries a `type` column; `Invoice`,
 `Storno` and `Gutschrift` are child classes.
 
 `Document::query()` returns all three as their proper classes.
@@ -314,15 +330,18 @@ document.
 
 ### 10.1 Runtime
 
+Beyond Laravel and Filament:
+
 | Package | For |
 | --- | --- |
-| `filament/filament` ^5 | The entire user interface |
-| `tighten/parental` | Three document classes over one table |
+| `tightenco/parental` | Three document classes over one table |
 | `brick/money` | Money arithmetic and rounding |
 | `spatie/laravel-pdf` | HTML to PDF via the WeasyPrint driver |
+| `pontedilana/php-weasyprint` | The PHP wrapper that driver requires |
 | `horstoeko/zugferd` | EN16931 XML and PDF/A-3 embedding |
 
-Five runtime dependencies beyond Laravel and Filament.
+Five runtime dependencies. `filament/filament` and `laravel/framework` are the
+platform, not additions to that budget.
 
 Development: `pestphp/pest`, `larastan/larastan`, `laravel/pint`.
 
@@ -355,7 +374,7 @@ cannot run per invoice:
 ### 11.1 Tests run inside the Docker image
 
 Not against a PHP installed by a CI action. The image carries WeasyPrint
-and the exact pinned fonts; testing against anything else tests a
+and the same fonts as production; testing against anything else tests a
 renderer that is not shipped. CI builds the Dockerfile and runs Pest
 inside it, making local, CI and production the same environment by
 construction.
@@ -373,7 +392,8 @@ Asserting that the query log contains `for update` proves nothing.
 
 The real test forks two processes that both call `DrawNextNumber` against
 the same range and asserts they receive distinct, consecutive values with
-no gap. `pcntl_fork` is available in the Linux container.
+no gap. `pcntl` is installed in the image for this purpose, and
+`docker/verify-image.sh` asserts its presence so it cannot silently vanish.
 
 It is the most awkward test in the suite and the one that actually
 protects the guarantee.
@@ -457,7 +477,7 @@ recurring job will call.
 | PDF renderer | WeasyPrint via `spatie/laravel-pdf` |
 | e-Rechnung | `horstoeko/zugferd` |
 | XML validation | XSD at runtime; KoSIT validator in CI |
-| Document classes | `tighten/parental` |
+| Document classes | `tightenco/parental` |
 | Money | `brick/money` |
 | Snapshot block | `jsonb` + custom cast, no package |
 | Tenancy | Filament native + `BelongsToCompany` trait |
