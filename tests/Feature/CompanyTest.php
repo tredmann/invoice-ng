@@ -167,6 +167,11 @@ it('unarchives a company', function (): void {
 });
 
 it('reports an already-archived company as not archivable again', function (): void {
+    // Two active companies, so the count rule on its own would permit
+    // archiving. That leaves the already-archived guard as the only thing
+    // that can make this false — which is what gives the test something to
+    // fail against if that guard is ever removed.
+    Company::factory()->create();
     Company::factory()->create();
     $archived = Company::factory()->archived()->create();
 
