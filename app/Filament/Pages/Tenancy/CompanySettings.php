@@ -142,13 +142,7 @@ class CompanySettings extends EditTenantProfile
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $legalForm = $data['legal_form'] ?? null;
-
-        if (! $legalForm instanceof LegalForm) {
-            $legalForm = LegalForm::tryFrom((string) $legalForm);
-        }
-
-        if ($legalForm?->isRegistered() === true) {
+        if ($this->legalFormIsRegistered($data['legal_form'] ?? null)) {
             return $data;
         }
 
@@ -165,12 +159,27 @@ class CompanySettings extends EditTenantProfile
 
     private function isRegisteredForm(Get $get): bool
     {
-        $legalForm = $get('legal_form');
+        return $this->legalFormIsRegistered($get('legal_form'));
+    }
 
-        if (! $legalForm instanceof LegalForm) {
-            $legalForm = LegalForm::tryFrom((string) $legalForm);
+    /**
+     * Coerces a loose value — the enum, its backing string, or null — to
+     * whether it names a legal form entered in the commercial register.
+     *
+     * Used by both `isRegisteredForm()`, which decides whether the register
+     * fields are rendered and validated, and `mutateFormDataBeforeSave()`,
+     * which decides whether they are nulled. The two must agree: if they
+     * diverge, a legal form can render as unregistered while saving as
+     * registered (or the reverse), which either strands a stale HRB number on
+     * a sole proprietorship or silently wipes a valid one from a GmbH — data
+     * that prints on a statutory document.
+     */
+    private function legalFormIsRegistered(mixed $value): bool
+    {
+        if (! $value instanceof LegalForm) {
+            $value = LegalForm::tryFrom((string) $value);
         }
 
-        return $legalForm?->isRegistered() ?? false;
+        return $value?->isRegistered() ?? false;
     }
 }
