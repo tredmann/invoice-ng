@@ -17,4 +17,18 @@ return [
     'errors' => [
         'iban' => 'Diese IBAN ist ungültig.',
     ],
+
+    'register' => [
+        'title' => 'Neue Firma',
+        'name_help' => 'Der vollständige rechtliche Name. Er erscheint auf der Rechnung.',
+    ],
+
+    'settings' => [
+        'title' => 'Firmendaten',
+    ],
+
+    'fields' => [
+        'name' => 'Name',
+        'legal_form' => 'Rechtsform',
+    ],
 ];

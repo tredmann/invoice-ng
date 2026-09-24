@@ -2,10 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Enums\LegalForm;
+use App\Filament\Pages\Tenancy\RegisterCompany;
 use App\Models\Company;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
+use Tests\TestCase;
 
 it('carries uuids through both company_user foreign keys', function (): void {
     // The half that silently rots: companies.id can be a uuid while
@@ -72,4 +76,82 @@ it('orders tenants by name, so the default company is deterministic', function (
 
     expect($user->getTenants(Filament::getPanel('admin'))->pluck('name')->all())
         ->toBe(['Alpha GmbH', 'Zeta GmbH']);
+});
+
+it('sends a user with no company to company registration', function (): void {
+    /** @var TestCase $this */
+    // This is how the first company gets created. There is no seeder and no
+    // signup, so if this redirect does not happen the application is
+    // unusable from a clean database.
+    $this->actingAs(User::factory()->create())
+        ->get('/admin')
+        ->assertRedirect('/admin/new');
+});
+
+it('lands a user on their company, addressed by slug', function (): void {
+    /** @var TestCase $this */
+    // Exercises Filament's URL generation end to end: getUrl() builds this
+    // with route(..., ['tenant' => $company]), which calls getRouteKey(). If
+    // the model did not route by slug this would redirect to /admin/{uuid},
+    // which the tenant middleware then cannot resolve.
+    $user = User::factory()->create();
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+    $user->companies()->attach($company);
+
+    $this->actingAs($user)
+        ->get('/admin')
+        ->assertRedirect('/admin/acme-gmbh');
+});
+
+it('serves the company registration page', function (): void {
+    /** @var TestCase $this */
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/new')
+        ->assertOk();
+});
+
+it('creates a company, links the user to it, and lands on its settings', function (): void {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(RegisterCompany::class)
+        ->fillForm([
+            'name' => 'Ölmühle Müller GmbH',
+            'legal_form' => LegalForm::SoleProprietorship->value,
+        ])
+        ->call('register')
+        ->assertHasNoFormErrors()
+        ->assertRedirect('/admin/olmuhle-muller-gmbh/settings');
+
+    $company = Company::query()->where('slug', 'olmuhle-muller-gmbh')->sole();
+
+    // The attach is the part that is easy to forget, and without it the user
+    // creates a company they immediately cannot reach.
+    expect($company->name)->toBe('Ölmühle Müller GmbH')
+        ->and($company->legal_form)->toBe(LegalForm::SoleProprietorship)
+        ->and($user->fresh()?->companies)->toHaveCount(1);
+});
+
+it('refuses a company registration with no name', function (): void {
+    Livewire::actingAs(User::factory()->create())
+        ->test(RegisterCompany::class)
+        ->fillForm(['name' => '', 'legal_form' => LegalForm::GmbH->value])
+        ->call('register')
+        ->assertHasFormErrors(['name']);
+});
+
+it('hides one company behind a 404 from a user who is not linked to it', function (): void {
+    /** @var TestCase $this */
+    // The characteristic failure of a multi-company invoicing system is one
+    // company's data appearing under another's URL. Filament aborts with 404
+    // rather than 403, so that an outsider cannot even confirm the company
+    // exists.
+    $user = User::factory()->create();
+    $mine = Company::factory()->create(['name' => 'Mine GmbH']);
+    $theirs = Company::factory()->create(['name' => 'Theirs GmbH']);
+    $user->companies()->attach($mine);
+
+    $this->actingAs($user)
+        ->get('/admin/theirs-gmbh')
+        ->assertNotFound();
 });

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Tenancy\CompanySettings;
+use App\Filament\Pages\Tenancy\RegisterCompany;
+use App\Models\Company;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -30,6 +33,13 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // The current company lives in the URL, not only in the session:
+            // every company-scoped screen sits under /admin/{company}. Held in
+            // session alone, one URL would show different companies to the
+            // same person and a second tab would fight the first.
+            ->tenant(Company::class, slugAttribute: 'slug')
+            ->tenantRegistration(RegisterCompany::class)
+            ->tenantProfile(CompanySettings::class)
             ->colors([
                 'primary' => Color::Amber,
             ])
