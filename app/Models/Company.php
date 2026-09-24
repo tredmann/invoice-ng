@@ -10,6 +10,7 @@ use App\Exceptions\CannotArchiveLastCompany;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -81,6 +82,21 @@ class Company extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    /**
+     * Stored without spaces and upper-cased, so the same account is one value
+     * however it was typed.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function iban(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value === null
+                ? null
+                : mb_strtoupper((string) preg_replace('/\s+/', '', $value)),
+        );
     }
 
     /**

@@ -13,4 +13,8 @@ return [
         'standard' => 'Regelbesteuerung',
         'small_business' => 'Kleinunternehmer (§19 UStG)',
     ],
+
+    'errors' => [
+        'iban' => 'Diese IBAN ist ungültig.',
+    ],
 ];
