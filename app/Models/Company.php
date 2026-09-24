@@ -31,6 +31,10 @@ use Illuminate\Support\Str;
     'iban',
     'bic',
 ])]
+// Filament builds tenant URLs with `route(..., ['tenant' => $company])`,
+// which calls `getRouteKey()`. The panel identifies a tenant by querying the
+// `slug` column, so generation has to agree with resolution or every link in
+// the switcher points at a URL that 404s.
 #[RouteKey('slug')]
 class Company extends Model
 {
