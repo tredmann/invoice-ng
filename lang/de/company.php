@@ -27,8 +27,32 @@ return [
         'title' => 'Firmendaten',
     ],
 
+    'sections' => [
+        'identity' => 'Firma',
+        'address' => 'Adresse',
+        'tax' => 'Steuer',
+        'register' => 'Handelsregister',
+        'management' => 'Geschäftsführung',
+        'bank' => 'Bankverbindung',
+    ],
+
     'fields' => [
         'name' => 'Name',
         'legal_form' => 'Rechtsform',
+        'slug' => 'Kurzname (URL)',
+        'slug_help' => 'Wird einmal aus dem Namen gebildet und ändert sich nie.',
+        'street' => 'Straße und Hausnummer',
+        'postal_code' => 'PLZ',
+        'city' => 'Ort',
+        'vat_scheme' => 'Besteuerung',
+        'tax_number' => 'Steuernummer',
+        'vat_id' => 'USt-IdNr.',
+        'register_court' => 'Registergericht',
+        'register_number' => 'Registernummer',
+        'managing_directors' => 'Geschäftsführer',
+        'managing_directors_help' => 'Mehrere durch Komma trennen. Erscheint so auf der Rechnung.',
+        'bank_name' => 'Bank',
+        'iban' => 'IBAN',
+        'bic' => 'BIC',
     ],
 ];
