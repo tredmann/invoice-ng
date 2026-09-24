@@ -9,6 +9,8 @@ use App\Filament\Resources\Companies\Tables\CompaniesTable;
 use App\Models\Company;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * The companies list.
@@ -39,6 +41,22 @@ class CompanyResource extends Resource
 
     #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
+
+    /**
+     * Companies are what the tenant is, so this resource opts out of tenant
+     * scoping — otherwise the list would show the single company the user is
+     * already inside and switching would be impossible. Opting out of tenant
+     * scoping is not opting out of all scoping: without this override the
+     * query is `select * from companies`, and because Filament resolves row
+     * actions through it, a user could archive a company they have no
+     * membership in. The join table is the boundary everywhere else in this
+     * wave, and it is the boundary here too.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('users', fn (Builder $query): Builder => $query->whereKey(Auth::id()));
+    }
 
     public static function getModelLabel(): string
     {

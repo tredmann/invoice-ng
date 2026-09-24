@@ -31,6 +31,31 @@ it('lists companies other than the one being viewed', function (): void {
         ->assertCanSeeTableRecords([$current, $other]);
 });
 
+it('keeps a company the user is not linked to off the list', function (): void {
+    // The companion to the test above, and the one that matters. That test
+    // attaches both companies, so it cannot tell tenant-unscoped from
+    // unscoped-entirely. This one attaches only the first, so it fails unless
+    // the resource scopes its query to the acting user's companies.
+    //
+    // The action assertion is the important half: Filament resolves a row
+    // action's record through the same query as the table, so an unscoped list
+    // is not merely a disclosure — it is an archive button on someone else's
+    // company.
+    $mine = Company::factory()->create(['name' => 'Mine GmbH']);
+    $theirs = Company::factory()->create(['name' => 'Theirs GmbH']);
+
+    $user = User::factory()->create();
+    $user->companies()->attach($mine);
+
+    Livewire::actingAs($user);
+
+    Filament::setTenant($mine);
+
+    Livewire::test(ListCompanies::class)
+        ->assertCanSeeTableRecords([$mine])
+        ->assertCanNotSeeTableRecords([$theirs]);
+});
+
 it('archives a company from the row actions', function (): void {
     $current = Company::factory()->create(['name' => 'Erste GmbH']);
     $other = Company::factory()->create(['name' => 'Zweite GmbH']);
