@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\LegalForm;
 use App\Enums\VatScheme;
 use App\Exceptions\CannotArchiveLastCompany;
+use App\Rules\Iban;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -86,7 +88,8 @@ class Company extends Model
 
     /**
      * Stored without spaces and upper-cased, so the same account is one value
-     * however it was typed.
+     * however it was typed. Normalized through `Iban::normalize()`, shared
+     * with the validation rule so storage and validation cannot drift apart.
      *
      * @return Attribute<string|null, string|null>
      */
@@ -95,38 +98,78 @@ class Company extends Model
         return Attribute::make(
             set: fn (?string $value): ?string => $value === null
                 ? null
-                : mb_strtoupper((string) preg_replace('/\s+/', '', $value)),
+                : Iban::normalize($value),
         );
     }
 
     /**
      * Whether this company may be archived.
      *
-     * An active company can be archived only while another active one remains.
-     * The last one is refused because archiving it strands the owner: Filament
-     * redirects a user with no tenants to registration, and every screen that
-     * could restore a company sits behind the tenant prefix.
+     * An active company can be archived only while another of the given
+     * user's active companies remains. The last one is refused because
+     * archiving it strands the owner: Filament redirects a user with no
+     * tenants to registration, and every screen that could restore a company
+     * sits behind the tenant prefix.
      *
-     * The count is global rather than per user. With one user those are the
-     * same thing, and making it per user would be the only place in this wave
-     * that pretends there are several.
+     * The count is per user, through the join table, like every other
+     * boundary in this wave. A global count would let one user's company
+     * keep another user's last company archivable, or the reverse — two users
+     * with one company each would give a global count of 2, and either could
+     * archive their only company.
      */
-    public function canBeArchived(): bool
+    public function canBeArchived(User $user): bool
     {
         if ($this->isArchived()) {
             return false;
         }
 
-        return self::query()->whereNull('archived_at')->count() > 1;
+        return $this->activeCompanyCountFor($user) > 1;
     }
 
-    public function archive(): void
+    /**
+     * Archives the company, guarded and locked against a concurrent archive
+     * of the user's other company racing this one.
+     *
+     * The guard is check-then-act, so the counting query takes a row lock:
+     * without it, two concurrent archives against a two-company state could
+     * both read "2 active" before either writes, and both proceed, leaving
+     * zero. The transaction is what makes that lock hold for the count *and*
+     * the save.
+     */
+    public function archive(User $user): void
     {
-        throw_unless($this->canBeArchived(), CannotArchiveLastCompany::class, $this);
+        DB::transaction(function () use ($user): void {
+            $isArchivable = ! $this->isArchived()
+                && $this->activeCompanyCountFor($user, lock: true) > 1;
 
-        // forceFill because archived_at is deliberately not fillable: it is
-        // state, changed through these two methods and nowhere else.
-        $this->forceFill(['archived_at' => now()])->save();
+            throw_unless($isArchivable, CannotArchiveLastCompany::class, $this);
+
+            // forceFill because archived_at is deliberately not fillable: it
+            // is state, changed through these two methods and nowhere else.
+            $this->forceFill(['archived_at' => now()])->save();
+        });
+    }
+
+    /**
+     * The number of the given user's companies that are not archived,
+     * counted through the join table so the boundary matches every other one
+     * in this wave.
+     *
+     * The locked path counts a fetched collection rather than `count()`,
+     * because PostgreSQL rejects `FOR UPDATE` combined with an aggregate
+     * function ("FOR UPDATE is not allowed with aggregate functions"). Fetching
+     * the rows still takes the row lock the guard needs; only the counting
+     * moves from SQL to PHP.
+     */
+    private function activeCompanyCountFor(User $user, bool $lock = false): int
+    {
+        $query = $user->companies()->whereNull('archived_at');
+
+        if ($lock) {
+            return count($query->lockForUpdate()->get());
+        }
+
+        return $query->count();
     }
 
     public function unarchive(): void

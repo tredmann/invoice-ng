@@ -22,6 +22,17 @@ it('accepts an iban as it is printed on a statement', function (): void {
         ->and(ibanPasses('de89370400440532013000'))->toBeTrue();
 });
 
+it('accepts an iban separated by non-breaking spaces', function (): void {
+    // An IBAN copied off an online-banking page carries U+00A0, not the plain
+    // space U+0020 the "printed on a statement" case above covers. `\s`
+    // without the `/u` modifier does not match it, so this fails without
+    // that modifier even though the equivalent plain-space input passes.
+    $nonBreakingSpace = "\u{00A0}";
+    $iban = implode($nonBreakingSpace, ['DE89', '3704', '0044', '0532', '0130', '00']);
+
+    expect(ibanPasses($iban))->toBeTrue();
+});
+
 it('rejects an iban with two digits transposed', function (): void {
     // DE98… is DE89… with the check digits swapped. mod-97 detects every
     // transposition of adjacent digits, which is the realistic typing error,

@@ -6,6 +6,7 @@ use App\Enums\LegalForm;
 use App\Enums\VatScheme;
 use App\Exceptions\CannotArchiveLastCompany;
 use App\Models\Company;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -129,7 +130,10 @@ it('archives a company while another active one remains', function (): void {
     $keep = Company::factory()->create();
     $company = Company::factory()->create();
 
-    $company->archive();
+    $user = User::factory()->create();
+    $user->companies()->attach([$keep->getKey(), $company->getKey()]);
+
+    $company->archive($user);
 
     expect($company->fresh()?->isArchived())->toBeTrue()
         ->and($keep->fresh()?->isArchived())->toBeFalse();
@@ -142,8 +146,11 @@ it('refuses to archive the last active company', function (): void {
     // restore anything.
     $only = Company::factory()->create();
 
-    expect(function () use ($only): void {
-        $only->archive();
+    $user = User::factory()->create();
+    $user->companies()->attach($only);
+
+    expect(function () use ($only, $user): void {
+        $only->archive($user);
     })->toThrow(CannotArchiveLastCompany::class);
 
     expect($only->fresh()?->isArchived())->toBeFalse();
@@ -152,10 +159,13 @@ it('refuses to archive the last active company', function (): void {
 it('does not count already-archived companies as the ones keeping the lights on', function (): void {
     // Two rows, one already archived: archiving the survivor is still the
     // dead end the guard exists to prevent.
-    Company::factory()->archived()->create();
+    $archived = Company::factory()->archived()->create();
     $survivor = Company::factory()->create();
 
-    expect($survivor->canBeArchived())->toBeFalse();
+    $user = User::factory()->create();
+    $user->companies()->attach([$archived->getKey(), $survivor->getKey()]);
+
+    expect($survivor->canBeArchived($user))->toBeFalse();
 });
 
 it('unarchives a company', function (): void {
@@ -171,9 +181,12 @@ it('reports an already-archived company as not archivable again', function (): v
     // archiving. That leaves the already-archived guard as the only thing
     // that can make this false — which is what gives the test something to
     // fail against if that guard is ever removed.
-    Company::factory()->create();
-    Company::factory()->create();
+    $first = Company::factory()->create();
+    $second = Company::factory()->create();
     $archived = Company::factory()->archived()->create();
 
-    expect($archived->canBeArchived())->toBeFalse();
+    $user = User::factory()->create();
+    $user->companies()->attach([$first->getKey(), $second->getKey(), $archived->getKey()]);
+
+    expect($archived->canBeArchived($user))->toBeFalse();
 });

@@ -6,11 +6,13 @@ namespace App\Filament\Resources\Companies\Tables;
 
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Models\Company;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class CompaniesTable
 {
@@ -55,8 +57,8 @@ class CompaniesTable
                         // Hidden rather than disabled: the model throws on the
                         // last active company, and an action the user cannot
                         // take is not worth showing.
-                        ->visible(fn (Company $record): bool => $record->canBeArchived())
-                        ->action(fn (Company $record) => $record->archive()),
+                        ->visible(fn (Company $record): bool => $record->canBeArchived(self::actingUser()))
+                        ->action(fn (Company $record) => $record->archive(self::actingUser())),
                     Action::make('unarchive')
                         ->label(__('company.actions.unarchive'))
                         ->icon(Heroicon::OutlinedArrowUturnLeft)
@@ -65,5 +67,18 @@ class CompaniesTable
                 ]),
             ])
             ->emptyStateHeading(__('company.list.empty'));
+    }
+
+    /**
+     * The signed-in user, for the per-user archive guard. This table only
+     * ever renders inside the admin panel, behind authentication, so the
+     * cast is the one unchecked assumption rather than two.
+     */
+    private static function actingUser(): User
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        return $user;
     }
 }

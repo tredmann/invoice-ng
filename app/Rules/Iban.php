@@ -37,7 +37,7 @@ class Iban implements ValidationRule
             return;
         }
 
-        $iban = mb_strtoupper((string) preg_replace('/\s+/', '', $value));
+        $iban = self::normalize($value);
 
         if (preg_match('/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/', $iban) !== 1) {
             $fail('company.errors.iban')->translate();
@@ -48,6 +48,20 @@ class Iban implements ValidationRule
         if ($this->remainderOf($iban) !== 1) {
             $fail('company.errors.iban')->translate();
         }
+    }
+
+    /**
+     * Strips whitespace and upper-cases, so the same account reads the same
+     * however it was typed or pasted.
+     *
+     * Shared with `Company::iban()`'s mutator, which stores by the same rule
+     * this validates against — one place means the two cannot drift apart.
+     * The `/u` modifier matters: without it `\s` does not match U+00A0, the
+     * non-breaking space an IBAN copied off an online-banking page carries.
+     */
+    public static function normalize(string $value): string
+    {
+        return mb_strtoupper((string) preg_replace('/\s+/u', '', $value));
     }
 
     /**
