@@ -1,4 +1,24 @@
 <laravel-boost-guidelines>
+=== .ai/documentation/core rules ===
+
+# Keeping the documentation true
+
+This project's documentation lives in five places, and one change to the stack or to behaviour usually makes more than one of them wrong. **After any such change, work this list and correct what you falsified** — a stale doc is read as current and is worse than no doc.
+
+- `README.md` — the first-run sequence and the day-to-day command list. Update when a command, service, or setup step changes.
+- `CLAUDE.md` — the non-negotiable decisions and the container command block. Update when a decision is made or reversed; a new one is worth recording with the reason that forced it.
+- `docs/superpowers/specs/` — **the authority** on what the system does and what it is built from. When reality moves away from something a spec claims, correct the claim in place and say what changed, rather than leaving the old reasoning to mislead.
+- **Outline** — the collection "Invoice" at https://heimdall.tail1ec8f7.ts.net/collection/invoice-BgP8lxR8dF mirrors those specs as many small linked pages. **Nothing syncs it automatically**, so a repo-only edit leaves the copy people actually read quietly wrong. Search the collection for the terms you changed. Use the `outline` MCP server, and `update_document` with `editMode: "patch"` so the page's rich formatting survives a full-document replace. Fetch a collection by its id, not its URL.
+- `AGENTS.md` — **never edit this file directly.** It is generated, and `boost:install` silently replaces the whole block. Edit the matching file under `.ai/guidelines/` and regenerate:
+
+```sh
+docker compose run --rm app php artisan boost:install --guidelines --no-interaction
+```
+
+  Then diff `AGENTS.md` to confirm the change landed and nothing else moved. `docs/agents-md-maintenance.md` explains the trap in full.
+
+Dated plan and task documents — in the repo and in Outline — record what was built on a given date. **Do not update them when the stack moves.** They are history, not current state.
+
 === .ai/rector/core rules ===
 
 # Rector

@@ -32,20 +32,28 @@ Six vendor guidelines are currently forked:
 To correct something that has no override yet, create one at the same relative
 path Boost uses internally — mirror `vendor/laravel/boost/.ai/<path>`.
 
-## One file there is not a fork
+## Two files there are not forks
 
 ```
+.ai/guidelines/documentation/core.blade.php
 .ai/guidelines/rector/core.blade.php
 ```
 
-Boost ships no Rector guideline. This one was added, not overridden, and
-`GuidelineComposer` picks it up anyway — a directory under `.ai/guidelines/`
-composes whether or not a vendor counterpart exists. It sorts ahead of the
-foundation section in the generated file.
+Boost ships no counterpart to either. They were **added**, not overridden.
 
-It follows that **the upgrade trap below does not apply to it**: there is no
+`GuidelineComposer::getUserGuidelines()` scans the whole of `.ai/guidelines/`
+and merges what it finds *ahead of* the vendor set, dropping only entries whose
+path a base guideline already claims. So a directory there composes on its own
+name — it does not need a vendor file, and it does not need to match an
+installed package. Both of these sort ahead of the foundation section.
+
+It follows that **the upgrade trap below does not apply to them**: there is no
 vendor original to diff against, and no upstream change can silently discard
-it. Do not go looking for one.
+them. Do not go looking for one.
+
+`documentation/core.blade.php` is the one that says which documents have to be
+updated after a change — including the Outline collection, which nothing syncs
+automatically.
 
 Verify a change with:
 
