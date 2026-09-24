@@ -6,15 +6,18 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Filament\Pages\Tenancy\RegisterCompany;
+use App\Filament\Resources\Companies\CompanyResource;
 use App\Models\Company;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\MenuItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -40,6 +43,14 @@ class AdminPanelProvider extends PanelProvider
             ->tenant(Company::class, slugAttribute: 'slug')
             ->tenantRegistration(RegisterCompany::class)
             ->tenantProfile(CompanySettings::class)
+            ->tenantMenuItems([
+                MenuItem::make()
+                    ->label(fn (): string => __('company.actions.manage'))
+                    ->icon(Heroicon::OutlinedBuildingOffice2)
+                    // A closure so the URL is built when the menu renders and
+                    // a tenant is in the route.
+                    ->url(fn (): string => CompanyResource::getUrl('index')),
+            ])
             ->colors([
                 'primary' => Color::Amber,
             ])
