@@ -75,12 +75,30 @@ Deliberately parked, so they are not mistaken for oversights:
   reaches those defaults — `phpunit.xml` and `.env.example` both set `pgsql` — but
   they read badly here and are worth changing.
 - The six forked files under `.ai/guidelines/` silently discard upstream
-  improvements on a Boost upgrade. See the maintenance doc below.
+  improvements on a Boost upgrade. See the maintenance doc below. (Two of the
+  eight files there — `documentation/` and `rector/` — are additions rather
+  than forks, and have no upstream to drift from.)
 
 ## Where things are written down
 
 - `docs/superpowers/specs/2026-09-23-invoice-system-design.md` — what the system does
 - `docs/superpowers/specs/2026-09-23-invoice-tech-stack-design.md` — what it is built from
 - `docs/agents-md-maintenance.md` — read before editing `AGENTS.md`; it is generated
+- The Outline collection **Invoice** — <https://heimdall.tail1ec8f7.ts.net/collection/invoice-BgP8lxR8dF>
 
 The specs are the authority. Read the relevant one before changing behaviour.
+
+## A change usually makes more than one document wrong
+
+The specs above are mirrored in Outline as many small linked pages, and
+**nothing syncs the two**. A repo-only edit leaves the copy people actually
+read quietly wrong — that is how one false claim about font subsetting
+survived in three places at once.
+
+So after changing the stack or behaviour, correct what the change falsified:
+`README.md`, this file, the specs, and the Outline collection. `AGENTS.md`
+carries the same list in full, including how to search and patch Outline —
+and it is generated, so change it through `.ai/guidelines/`, never directly.
+
+Dated plan and task documents are history, not current state. Do not update
+them when the stack moves.
