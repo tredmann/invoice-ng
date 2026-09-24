@@ -22,6 +22,15 @@ class Iban implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
+        // A null IBAN is an absent one, and bank details are optional until a
+        // document needs them (spec §7). Laravel only skips this rule for a
+        // string that trims to empty, so null reaches us and has to be let
+        // through explicitly — otherwise a blank optional field on the
+        // settings form is rejected.
+        if ($value === null) {
+            return;
+        }
+
         if (! is_string($value)) {
             $fail('company.errors.iban')->translate();
 

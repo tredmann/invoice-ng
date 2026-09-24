@@ -63,5 +63,6 @@ it('leaves an absent iban alone, because bank details are optional', function ()
     // non-implicit rule for an empty value, which is exactly what the settings
     // form needs — it carries this rule without required(). This test fails if
     // the rule is ever made implicit.
-    expect(ibanPasses(''))->toBeTrue();
+    expect(ibanPasses(''))->toBeTrue()
+        ->and(ibanPasses(null))->toBeTrue();
 });
