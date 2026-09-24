@@ -4,8 +4,13 @@
 # these here is safe: it will not break a future build when a mirror rotates
 # old versions out.
 #
-# fontTools in particular is the library WeasyPrint uses to subset and embed
-# fonts; an unpinned upgrade could silently change how invoice PDFs render.
+# What this pin buys is WeasyPrint's own version, which decides layout.
+#
+# It used to be justified by fontTools instead, on the grounds that fontTools
+# subsets and embeds the fonts. That stopped being true when libharfbuzz-subset0
+# was added to the image: WeasyPrint subsets with HarfBuzz whenever it is present
+# and only falls back to fontTools when it is not. The subsetter is now an apt
+# package, unpinned like the fonts, for the reasons given in the Dockerfile.
 #
 # Regenerate with:
 #   docker compose run --rm --no-deps --entrypoint sh app -c 'pip3 freeze'
