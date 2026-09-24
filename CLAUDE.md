@@ -110,12 +110,13 @@ Deliberately parked, so they are not mistaken for oversights:
   improvements on a Boost upgrade. See the maintenance doc below. (Two of the
   eight files there — `documentation/` and `rector/` — are additions rather
   than forks, and have no upstream to drift from.)
-- `Company::canBeArchived()` followed by `archive()`'s save is check-then-act
-  with no row locking: two concurrent archives against a two-company state
-  could both pass the guard before either writes, leaving zero active
-  companies. Same shape as the TOCTOU risk this file already notes for invoice
-  numbering. Harmless while the application has a single writer; it needs a
-  lock when that stops being true.
+- A company created through registration has only a name and a legal form; its
+  identity block — address, tax identifier, and for a registered legal form its
+  register entry — is incomplete until the settings page has been saved once.
+  Safe today because nothing in the application can issue a document yet. It
+  stops being safe the moment the invoicing wave can: issuing from a company
+  whose identity block is incomplete would not satisfy §14 UStG, so that wave
+  must refuse to issue from one until it checks out complete.
 - `company_user`'s only index is its composite primary key `(company_id,
   user_id)`. `User::getTenants()` filters on `user_id` alone — the trailing
   column of that composite — so it has no usable index path, while
