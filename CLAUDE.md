@@ -1,6 +1,6 @@
 # Invoice
 
-A multi-company German invoicing application. Laravel 13 + Filament 5, PHP 8.4.
+A multi-company German invoicing application. Laravel 13 + Filament 5, PHP 8.5.
 
 **Current state: the development environment only.** No domain model exists yet —
 no companies, customers, documents, numbering or money handling. If you are looking
@@ -18,6 +18,7 @@ docker compose run --rm app composer <command>
 docker compose run --rm app ./vendor/bin/pest
 docker compose run --rm app ./vendor/bin/pint
 docker compose run --rm app ./vendor/bin/phpstan analyse --memory-limit=512M
+docker compose run --rm app ./vendor/bin/rector process
 ```
 
 `README.md` carries the first-run sequence and the full command list. The app
@@ -35,6 +36,10 @@ Each was expensive to reach. Read the reason before changing one.
 - **DigitalOcean App Platform, not Laravel Cloud.** Laravel Cloud cannot run
   WeasyPrint, which renders the invoices.
 - **Larastan stays at level 8.** Fix findings, or baseline them with a reason.
+- **Rector covers `app/` and `tests/` only.** `config/` and `bootstrap/` ship with
+  Laravel and are replaced wholesale by framework upgrades; rewriting them turns
+  every future skeleton diff into a merge conflict. Run Rector *before* Pint —
+  Rector's output is not Pint-formatted, and the pair only settles in that order.
 
 ## Write assertions that can fail
 

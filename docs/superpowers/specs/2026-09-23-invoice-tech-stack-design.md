@@ -37,7 +37,7 @@ Four requirements do most of the choosing:
 
 | Layer | Choice |
 | --- | --- |
-| Language / framework | PHP 8.4, Laravel, Filament 5 |
+| Language / framework | PHP 8.5, Laravel, Filament 5 |
 | Web runtime | FrankenPHP, plain mode (no Octane) |
 | Local development | Docker Compose, hand-written Dockerfile (not Sail) |
 | Production | DigitalOcean App Platform, same Dockerfile |
@@ -89,7 +89,7 @@ source. The production stage that adds those is part of the deployment plan,
 not this one. What the shared base guarantees is that the renderer, its fonts
 and the PHP extensions are identical everywhere.
 
-Base: `dunglas/frankenphp` on PHP 8.4. On top:
+Base: `dunglas/frankenphp` on PHP 8.5. On top:
 
 - PHP extensions: `pdo_pgsql`, `intl`, `bcmath`, `zip`, `gd`
 - WeasyPrint and its native stack (pango, cairo, harfbuzz)

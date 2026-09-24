@@ -10,8 +10,8 @@ docker compose run --rm --no-deps --entrypoint sh app -c '
   done
   echo "ok: php extensions"
 
-  php -r "exit(version_compare(PHP_VERSION, \"8.4\", \">=\") ? 0 : 1);" \
-    || { echo "FAIL: PHP 8.4+ required, found $(php -r "echo PHP_VERSION;")"; exit 1; }
+  php -r "exit(version_compare(PHP_VERSION, \"8.5\", \">=\") ? 0 : 1);" \
+    || { echo "FAIL: PHP 8.5+ required, found $(php -r "echo PHP_VERSION;")"; exit 1; }
   echo "ok: php $(php -r "echo PHP_VERSION;")"
 
   weasyprint --version || { echo "FAIL: weasyprint not runnable"; exit 1; }
