@@ -1,4 +1,15 @@
 <laravel-boost-guidelines>
+=== .ai/rector/core rules ===
+
+# Rector
+
+This project has no PHP on the host — always run Rector through the container.
+
+- Rector is scoped to `app/` and `tests/`. `config/` and `bootstrap/` are excluded on purpose: they ship with Laravel and are replaced wholesale by framework upgrades.
+- If you have modified any PHP files under those paths, run `docker compose run --rm app ./vendor/bin/rector process` before Pint.
+- **Order matters: Rector, then Pint.** Rector's output is not Pint-formatted, and the two only reach a fixed point in that order.
+- Preview without writing using `docker compose run --rm app ./vendor/bin/rector process --dry-run`.
+
 === foundation rules ===
 
 # Laravel Boost Guidelines
@@ -7,7 +18,7 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 
 ## Foundational Context
 
-This application is a Laravel application running on PHP 8.4. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
+This application is a Laravel application running on PHP 8.5. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
 
 Before relying on a package's API, confirm its installed version:
 - PHP packages: run `docker compose run --rm app composer show --direct` to list direct dependencies with versions, or `docker compose run --rm app composer show <vendor/package>` for a single package.

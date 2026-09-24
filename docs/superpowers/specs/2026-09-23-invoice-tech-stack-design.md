@@ -37,7 +37,7 @@ Four requirements do most of the choosing:
 
 | Layer | Choice |
 | --- | --- |
-| Language / framework | PHP 8.4, Laravel, Filament 5 |
+| Language / framework | PHP 8.5, Laravel, Filament 5 |
 | Web runtime | FrankenPHP, plain mode (no Octane) |
 | Local development | Docker Compose, hand-written Dockerfile (not Sail) |
 | Production | DigitalOcean App Platform, same Dockerfile |
@@ -51,6 +51,7 @@ Four requirements do most of the choosing:
 | Tests | Pest, run inside the Docker image, against Postgres |
 | Static analysis | Larastan, level 8 |
 | Formatting | Pint, Laravel preset |
+| Automated refactoring | Rector, `app/` and `tests/` only; runs before Pint |
 | CI | GitHub Actions |
 
 ## 4. Why DigitalOcean App Platform and not Laravel Cloud
@@ -89,10 +90,12 @@ source. The production stage that adds those is part of the deployment plan,
 not this one. What the shared base guarantees is that the renderer, its fonts
 and the PHP extensions are identical everywhere.
 
-Base: `dunglas/frankenphp` on PHP 8.4. On top:
+Base: `dunglas/frankenphp` on PHP 8.5. On top:
 
-- PHP extensions: `pdo_pgsql`, `intl`, `bcmath`, `zip`, `gd`
-- WeasyPrint and its native stack (pango, cairo, harfbuzz)
+- PHP extensions: `pdo_pgsql`, `intl`, `bcmath`, `zip`, `gd`, `opcache`, `pcntl`
+- WeasyPrint and its native stack (pango, cairo, harfbuzz — including
+  `libharfbuzz-subset0`, a separate package and the one WeasyPrint subsets
+  fonts with)
 - Fonts with full German coverage, from Debian stable (see §5.1 on pinning)
 
 **The image will be large.** WeasyPrint's dependency tree adds a few
@@ -100,9 +103,16 @@ hundred megabytes over a plain PHP image. This is the price of the chosen
 renderer, paid once at build time.
 
 **What is pinned, and what is not.** The WeasyPrint version and its full
-Python dependency set are pinned (`docker/requirements.txt`), because those
-change layout and font *embedding* — `fontTools`, which subsets and embeds
-the fonts, is in that set. PyPI never removes versions, so this pins safely.
+Python dependency set are pinned (`docker/requirements.txt`), because the
+renderer's own version decides layout. PyPI never removes versions, so this
+pins safely.
+
+This paragraph used to rest the argument on `fontTools`, on the grounds that
+it subsets and embeds the fonts and is in the pinned set. That stopped being
+true when `libharfbuzz-subset0` was added: WeasyPrint subsets with HarfBuzz
+whenever it is present, and falls back to fontTools only when it is not. The
+subsetter is now an apt package, unpinned like the fonts — and covered by the
+same reasoning below.
 
 **Fonts are deliberately NOT apt-version-pinned.** Exact apt pins break the
 build when Debian point releases rotate old versions off the mirror, and they
@@ -343,7 +353,8 @@ Beyond Laravel and Filament:
 Five runtime dependencies. `filament/filament` and `laravel/framework` are the
 platform, not additions to that budget.
 
-Development: `pestphp/pest`, `larastan/larastan`, `laravel/pint`.
+Development: `pestphp/pest`, `larastan/larastan`, `laravel/pint`,
+`rector/rector`, `driftingly/rector-laravel`.
 
 ### 10.2 Two levels of XML validation
 
@@ -422,12 +433,23 @@ Larastan at **level 8** with `treatPhpDocTypesAsCertain`, raised toward
 max as the code settles. Pint with the Laravel preset, enforced as
 `pint --test`.
 
+Rector, scoped to `app/` and `tests/`, enforced as `rector process
+--dry-run`. Rule sets: PHP up-to-8.5, dead code, code quality, type
+declarations, and the Laravel upgrade and idiom sets. `config/` and
+`bootstrap/` are excluded on purpose — they ship with Laravel and are
+replaced wholesale by framework upgrades, so rewriting them would turn every
+future skeleton diff into a merge conflict.
+
+**Rector runs before Pint.** Rector's output is not Pint-formatted, and the
+two only reach a fixed point in that order.
+
 ### 11.7 CI jobs on push
 
-1. Pint
-2. Larastan
-3. Pest, in-image, against Postgres
-4. The ZUGFeRD validator
+1. Rector, `--dry-run`, so a missed refactor fails rather than rewrites
+2. Pint
+3. Larastan
+4. Pest, in-image, against Postgres
+5. The ZUGFeRD validator
 
 ## 12. Code organization
 
@@ -487,4 +509,5 @@ recurring job will call.
 | Tests | Pest, in-image, real Postgres |
 | Static analysis | Larastan level 8 |
 | Formatting | Pint, Laravel preset |
+| Automated refactoring | Rector, `app/` and `tests/` only; runs before Pint |
 | Code layout | Plain Laravel, with `app/Actions` |

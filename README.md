@@ -24,7 +24,7 @@ docker compose up -d
 
 What each step does:
 
-1. `docker compose build` — builds the `app` image (FrankenPHP, PHP 8.4, the
+1. `docker compose build` — builds the `app` image (FrankenPHP, PHP 8.5, the
    PostgreSQL client extension, and WeasyPrint's native rendering stack).
 2. `cp .env.example .env` — copies the environment template. The default
    database credentials already match `compose.yaml`'s `db` service, so no
@@ -54,6 +54,8 @@ docker compose run --rm app ./vendor/bin/pest             # run tests
 docker compose run --rm app ./vendor/bin/pint             # fix formatting
 docker compose run --rm app ./vendor/bin/pint --test      # check formatting
 docker compose run --rm app ./vendor/bin/phpstan analyse --memory-limit=512M  # static analysis
+docker compose run --rm app ./vendor/bin/rector process         # apply automated refactors
+docker compose run --rm app ./vendor/bin/rector process --dry-run  # preview them
 ./docker/verify-image.sh                                  # verify the built image has the required toolchain
 ```
 

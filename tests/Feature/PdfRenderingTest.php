@@ -3,11 +3,11 @@
 use Illuminate\Support\Facades\Process;
 use Spatie\LaravelPdf\Facades\Pdf;
 
-it('has the weasyprint binary available', function () {
+it('has the weasyprint binary available', function (): void {
     expect(Process::run('weasyprint --version')->successful())->toBeTrue();
 });
 
-it('renders a pdf containing german characters', function () {
+it('renders a pdf containing german characters', function (): void {
     $path = storage_path('app/testing/render-smoke.pdf');
 
     if (! is_dir(dirname($path))) {

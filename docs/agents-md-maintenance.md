@@ -18,7 +18,7 @@ same-path override of each vendor guideline **before** falling back to its
 bundled copy (`vendor/laravel/boost/src/Install/GuidelineComposer.php`,
 `guidelinePath()`). Overrides therefore survive regeneration.
 
-Six are currently forked:
+Six vendor guidelines are currently forked:
 
 ```
 .ai/guidelines/foundation.blade.php
@@ -31,6 +31,21 @@ Six are currently forked:
 
 To correct something that has no override yet, create one at the same relative
 path Boost uses internally — mirror `vendor/laravel/boost/.ai/<path>`.
+
+## One file there is not a fork
+
+```
+.ai/guidelines/rector/core.blade.php
+```
+
+Boost ships no Rector guideline. This one was added, not overridden, and
+`GuidelineComposer` picks it up anyway — a directory under `.ai/guidelines/`
+composes whether or not a vendor counterpart exists. It sorts ahead of the
+foundation section in the generated file.
+
+It follows that **the upgrade trap below does not apply to it**: there is no
+vendor original to diff against, and no upstream change can silently discard
+it. Do not go looking for one.
 
 Verify a change with:
 
