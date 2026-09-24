@@ -36,6 +36,20 @@ Each was expensive to reach. Read the reason before changing one.
 - **DigitalOcean App Platform, not Laravel Cloud.** Laravel Cloud cannot run
   WeasyPrint, which renders the invoices.
 - **Larastan stays at level 8.** Fix findings, or baseline them with a reason.
+- **UUID primary keys on every model.** The UUID *is* the key — not a column
+  beside a bigint. Identifiers here end up in URLs that get bookmarked and
+  shared, and a sequential key tells the holder how many customers exist and
+  lets them walk to a neighbour's. Unrelated to invoice numbers, which are
+  sequential by law. See §3.1 of the system design spec.
+- **The current company lives in the URL, not only the session.** Every
+  company-scoped screen sits under the company's slug — `/{company}/invoices`,
+  `/{company}/settings`. Held in session alone, one URL shows different
+  companies to the same person and a second tab fights the first. See §3.2.
+- **Table row actions go in one vertical-ellipsis dropdown.** Never a row of
+  buttons. Filament's `ActionGroup` already defaults to that trigger.
+- **Simplicity over density in the interface.** Where a screen could show more
+  or less, show less; add an affordance when a task needs it, not in advance.
+  `.ai/guidelines/ui/core.blade.php` carries both UI rules in full.
 - **Rector covers `app/` and `tests/` only.** `config/` and `bootstrap/` ship with
   Laravel and are replaced wholesale by framework upgrades; rewriting them turns
   every future skeleton diff into a merge conflict. Run Rector *before* Pint —

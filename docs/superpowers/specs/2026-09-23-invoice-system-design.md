@@ -59,7 +59,27 @@ interface is translatable; the invoice document is not.
 
 ## 3. Domain model
 
-### 3.1 Tenancy
+### 3.1 Identifiers
+
+**Every model uses a UUID as its primary key.** Not a bigint with a UUID
+beside it — the UUID *is* the key, and foreign keys carry UUIDs.
+
+The reason is that identifiers on this system leak. They appear in URLs the
+user bookmarks and sends, and a sequential key tells anyone holding one how
+many companies, customers or documents exist, and lets them walk to a
+neighbour's. That is a disclosure problem in a system holding other
+businesses' books.
+
+The costs are taken knowingly: wider keys and indexes, and no natural
+insertion order. Neither is load-bearing at this volume. Where creation order
+matters, `created_at` answers it — a primary key was never a safe proxy for
+it anyway.
+
+Note that this is **unrelated to document numbers**. Invoice numbers are
+gapless, sequential and legally mandated (§5); they are not identifiers of
+rows and are never used as keys.
+
+### 3.2 Tenancy
 
 A user is linked to companies through a join table, not by direct
 ownership. Today that table holds one user and carries no roles. It is
@@ -69,6 +89,21 @@ collaborators becomes a column, not a migration of everything.
 A current company is selected on login and can be switched. All data the
 user sees belongs to that company. There are no cross-company views.
 
+**The current company is in the URL, not only in the session.** Every
+company-scoped screen lives under the company's slug — `/{company}/invoices`,
+`/{company}/customers`, `/{company}/settings` — and the slug is derived from
+the company name, unique, and stable once issued.
+
+This is what makes a link mean one thing. With the company held only in
+session state, the same URL shows different companies to the same person
+depending on what they last clicked, so a bookmarked or shared link is
+ambiguous and a second browser tab silently fights the first. Putting the
+company in the path also gives the tenancy boundary something to check
+against rather than infer.
+
+The slug is a routing convenience, not an identifier: the key is still the
+UUID of §3.1.
+
 The tenancy boundary is enforced globally at the data layer, not
 remembered at each query site. Every tenant-owned record carries its
 company and reads are automatically constrained to the current one. The
@@ -76,7 +111,7 @@ characteristic failure of a multi-company invoicing system is one
 company's number sequence or customer leaking into another's; this is
 prevented structurally.
 
-### 3.2 Master data
+### 3.3 Master data
 
 **Per company, configured once:**
 
@@ -110,7 +145,7 @@ each invoice and reference nothing. If a catalog is ever added it will be
 a convenience that writes values into line items, never something line
 items depend on.
 
-### 3.3 Archiving
+### 3.4 Archiving
 
 Nothing referenced by an issued document is ever deleted. Customers, tax
 rates and companies are deactivated: they disappear from pickers and
@@ -119,7 +154,7 @@ remain intact on every document that references them.
 Drafts are the exception — they never received a number and can be
 deleted outright.
 
-### 3.4 Documents
+### 3.5 Documents
 
 One documents table holds all three types. Type-specific behaviour lives
 in three distinct classes rather than in conditionals spread through the
@@ -151,12 +186,12 @@ Status: `draft` → `issued` → `sent` → `paid`, plus `cancelled`. A
 (§10, Later); it is unreachable in v1, where a payment always settles the
 full open amount.
 
-### 3.5 Line items
+### 3.6 Line items
 
 Position, title, description, quantity, unit, unit price, tax rate, line
 net. Plain values; they reference no master data.
 
-### 3.6 Payments
+### 3.7 Payments
 
 Rows against a document: date, amount, note.
 
@@ -164,7 +199,7 @@ In v1 the interface offers "mark as paid", writing a single row for the
 full open amount. Because it is a row rather than a flag, enabling
 partial payments later is a user-interface change with no data migration.
 
-### 3.7 Audit timeline
+### 3.8 Audit timeline
 
 Append-only rows: subject, event, timestamp, actor, details. Nothing ever
 updates or deletes an entry.
@@ -487,6 +522,9 @@ coverage.
 
 | Decision | Choice |
 |---|---|
+| Primary keys | UUID on every model; the UUID is the key, not a column beside a bigint |
+| Company in the URL | Every company-scoped screen lives under the company slug, e.g. `/{company}/invoices` |
+| Table row actions | A single vertical-ellipsis button opening a dropdown; never a row of buttons |
 | Audience | Single user now; multi-user kept possible, not built |
 | Document model | One table, three classes with their own rules |
 | Storno vs Gutschrift | Storno = full reversal; Gutschrift = partial credit |
