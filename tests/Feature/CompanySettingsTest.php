@@ -228,6 +228,30 @@ it('accepts a company with only a steuernummer', function (): void {
     expect($company->fresh()?->vat_id)->toBeNull();
 });
 
+it('accepts a company with only a vat id', function (): void {
+    // The mirror of the test above, and not redundant with it: with only the
+    // steuernummer case covered, making tax_number unconditionally required
+    // would go unnoticed, because every other test either leaves it empty or
+    // always supplies it. A company on the standard VAT scheme commonly holds
+    // the USt-IdNr and not the Steuernummer.
+    $company = Company::factory()->create();
+    $user = userOf([$company]);
+
+    // Livewire::actingAs() authenticates immediately as a side effect; it
+    // has to run before Filament::setTenant(), because the tenant-set event
+    // requires an already-authenticated user.
+    Livewire::actingAs($user);
+
+    Filament::setTenant($company);
+
+    Livewire::test(CompanySettings::class)
+        ->fillForm(['tax_number' => '', 'vat_id' => 'DE123456789'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($company->fresh()?->tax_number)->toBeNull();
+});
+
 it('rejects an invalid iban on the settings form', function (): void {
     $company = Company::factory()->create();
     $user = userOf([$company]);
