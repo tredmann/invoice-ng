@@ -91,7 +91,7 @@ it('round-trips umlauts through the settings form', function (): void {
 
     expect($company->fresh()?->street)->toBe('Grünstraße 7');
 
-    $this->actingAs($user)
+    $response = $this->actingAs($user)
         ->get('/admin/olmuhle-muller-gmbh/settings')
         ->assertOk();
 
@@ -104,6 +104,16 @@ it('round-trips umlauts through the settings form', function (): void {
     // proves the character survived the round trip intact.
     Livewire::test(CompanySettings::class)
         ->assertSet('data.street', 'Grünstraße 7');
+
+    // The signature of UTF-8 bytes served as Latin-1 — the exact corruption
+    // this repository has shipped before. It is encoding-agnostic about where
+    // the value appears on the page, so it survives Livewire escaping the
+    // snapshot JSON, and it cannot produce a false failure on correct output.
+    $response->assertDontSee('Ã');
+
+    // The company's own name, which the panel chrome renders as HTML text
+    // rather than as snapshot JSON.
+    $response->assertSee('Ölmühle Müller GmbH');
 });
 
 it('requires the register fields of a company that is in the handelsregister', function (): void {
