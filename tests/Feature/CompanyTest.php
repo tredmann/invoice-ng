@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\LegalForm;
 use App\Enums\VatScheme;
+use App\Exceptions\CannotArchiveLastCompany;
 use App\Models\Company;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -122,4 +123,51 @@ it('resolves a german label for every enum case', function (): void {
 it('reports a fresh company as not archived', function (): void {
     expect(Company::factory()->create()->isArchived())->toBeFalse()
         ->and(Company::factory()->archived()->create()->isArchived())->toBeTrue();
+});
+
+it('archives a company while another active one remains', function (): void {
+    $keep = Company::factory()->create();
+    $company = Company::factory()->create();
+
+    $company->archive();
+
+    expect($company->fresh()?->isArchived())->toBeTrue()
+        ->and($keep->fresh()?->isArchived())->toBeFalse();
+});
+
+it('refuses to archive the last active company', function (): void {
+    // Archiving it is a dead end: with no tenants left, Filament redirects to
+    // company registration, and the companies list is itself a screen behind
+    // the tenant prefix — so there would be no route left from which to
+    // restore anything.
+    $only = Company::factory()->create();
+
+    expect(fn (): mixed => $only->archive())
+        ->toThrow(CannotArchiveLastCompany::class);
+
+    expect($only->fresh()?->isArchived())->toBeFalse();
+});
+
+it('does not count already-archived companies as the ones keeping the lights on', function (): void {
+    // Two rows, one already archived: archiving the survivor is still the
+    // dead end the guard exists to prevent.
+    Company::factory()->archived()->create();
+    $survivor = Company::factory()->create();
+
+    expect($survivor->canBeArchived())->toBeFalse();
+});
+
+it('unarchives a company', function (): void {
+    $company = Company::factory()->archived()->create();
+
+    $company->unarchive();
+
+    expect($company->fresh()?->isArchived())->toBeFalse();
+});
+
+it('reports an already-archived company as not archivable again', function (): void {
+    Company::factory()->create();
+    $archived = Company::factory()->archived()->create();
+
+    expect($archived->canBeArchived())->toBeFalse();
 });

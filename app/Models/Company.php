@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\LegalForm;
 use App\Enums\VatScheme;
+use App\Exceptions\CannotArchiveLastCompany;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -80,6 +81,41 @@ class Company extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    /**
+     * Whether this company may be archived.
+     *
+     * An active company can be archived only while another active one remains.
+     * The last one is refused because archiving it strands the owner: Filament
+     * redirects a user with no tenants to registration, and every screen that
+     * could restore a company sits behind the tenant prefix.
+     *
+     * The count is global rather than per user. With one user those are the
+     * same thing, and making it per user would be the only place in this wave
+     * that pretends there are several.
+     */
+    public function canBeArchived(): bool
+    {
+        if ($this->isArchived()) {
+            return false;
+        }
+
+        return self::query()->whereNull('archived_at')->count() > 1;
+    }
+
+    public function archive(): void
+    {
+        throw_unless($this->canBeArchived(), CannotArchiveLastCompany::class, $this);
+
+        // forceFill because archived_at is deliberately not fillable: it is
+        // state, changed through these two methods and nowhere else.
+        $this->forceFill(['archived_at' => now()])->save();
+    }
+
+    public function unarchive(): void
+    {
+        $this->forceFill(['archived_at' => null])->save();
     }
 
     /**
