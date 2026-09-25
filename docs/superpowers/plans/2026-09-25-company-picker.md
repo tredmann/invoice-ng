@@ -759,7 +759,7 @@ it('answers a global search on /admin without a company', function (): void {
 });
 ```
 
-Run it. Then, per the spike finding:
+Run it — expected FAIL with `UrlGenerationException: Missing required parameter for [Route: filament.admin.resources.companies.index]` (the spike found exactly this). Then apply **B**:
 - **A — search worked in the spike:** the test passes; nothing else.
 - **B — a result URL needed a tenant:** add to `CompanyResource`:
 
@@ -877,7 +877,7 @@ Expected: the two placeholder-menu tests FAIL (no `data-company-picker-menu`); t
 
 - [ ] **Step 3: Create the menu view**
 
-`resources/views/filament/company-picker-menu.blade.php` — the version Task 1 recorded under "Spike findings", extended with the company list. Baseline:
+`resources/views/filament/company-picker-menu.blade.php` (the spike's version, extended with the company list):
 
 ```blade
 {{--
@@ -889,7 +889,12 @@ Expected: the two placeholder-menu tests FAIL (no `data-company-picker-menu`); t
     <x-filament::dropdown placement="bottom-start" size class="fi-tenant-menu">
         <x-slot name="trigger">
             <button type="button" class="fi-tenant-menu-trigger">
-                <x-filament::icon icon="heroicon-o-building-office-2" class="fi-tenant-avatar" />
+                {{-- An avatar-sized box, like Filament's tenant avatar. Inline
+                     style because the trigger's .fi-icon rule pushes a bare
+                     icon to the end with margin-inline-start: auto. --}}
+                <span class="fi-avatar fi-tenant-avatar" style="display: flex; align-items: center; justify-content: center; background: var(--gray-100)">
+                    <x-filament::icon icon="heroicon-o-building-office-2" style="margin: 0" />
+                </span>
                 <span class="fi-tenant-menu-trigger-text">
                     <span class="fi-tenant-menu-trigger-tenant-name">{{ __('company.picker.title') }}</span>
                 </span>
@@ -918,11 +923,14 @@ Expected: the two placeholder-menu tests FAIL (no `data-company-picker-menu`); t
 
 - [ ] **Step 4: Register the render hook**
 
-In `AdminPanelProvider::panel()`, after the `->navigation(...)` call from Task 3 (hook name per Task 1's finding):
+In `AdminPanelProvider::panel()`, after the `->navigation(...)` call from Task 3 (`SIDEBAR_START`, per the spike findings):
 
 ```php
+            // SIDEBAR_START, not SIDEBAR_NAV_START: inside the nav the menu
+            // inherits the nav's padding and scrollbar gutter. Here it lands in
+            // the exact box Filament's own company menu occupies on desktop.
             ->renderHook(
-                PanelsRenderHook::SIDEBAR_NAV_START,
+                PanelsRenderHook::SIDEBAR_START,
                 fn (): string => Filament::getTenant() === null
                     ? view('filament.company-picker-menu', ['companies' => SelectCompany::getCompanies()])->render()
                     : '',
@@ -1203,3 +1211,13 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - [ ] **Step 8: Development database**
 
 Run: `docker compose run --rm app php artisan migrate` — expected "Nothing to migrate" (this change adds none; run anyway, per `CLAUDE.md`). Then `curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/admin/login` → `200`.
+
+---
+
+## Spike findings (Task 1, 2026-09-25)
+
+Screenshots in the session scratchpad: `spike-*.png`, `spike2-*.png`, `mobile-*.png`.
+
+1. **Placement (§4.1).** `SIDEBAR_NAV_START` put the menu inside the nav: x 24 / y 96 / width 257 against Filament's x 0 / y 64 / width 320 — the nav's 24px padding and 15px scrollbar gutter. `SIDEBAR_START` with the `fi-sidebar-header-controls` wrapper measures **identical** to Filament's menu on desktop (controls 0/64/320×73, trigger 16/76/288×48, avatar 24/84/32×32). A bare heroicon as the avatar was pushed right by `.fi-tenant-menu-trigger .fi-icon { margin-inline-start: auto }`; an avatar-sized `fi-avatar` span holding the icon fixes it. Deviation: on a phone-width drawer, `SIDEBAR_START` renders the menu *above* the sidebar header (logo), where Filament's menu sits below it. The sidebar header is `display: none` on desktop with a top bar, so desktop is unaffected. `Ruling` in the ledger.
+2. **Navigation (§4.2).** `->navigation(fn () => Filament::getTenant() === null ? new NavigationBuilder : true)` works: at `/admin` the sidebar frame stays and has no items; inside a company "Dashboard" is still there. The top bar's open-sidebar button stays (it keys off `hasNavigation()`, which a builder satisfies).
+3. **Search (§4.3).** Typing "Demo" at `/admin` → 500, `Illuminate\Routing\Exceptions\UrlGenerationException: Missing required parameter for [Route: filament.admin.resources.companies.index] [URI: admin/{tenant}/companies] [Missing parameter: tenant]`. Outcome **B**: `CompanyResource::getGlobalSearchResultUrl()` passes the record as the tenant (Task 3 Step 7).
