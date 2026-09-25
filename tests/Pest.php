@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Company;
+use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /*
@@ -32,3 +36,37 @@ pest()->extend(TestCase::class)
 */
 
 expect()->extend('toBeOne', fn () => $this->toBe(1));
+
+/**
+ * A user linked to every company passed in.
+ */
+function memberOf(Company ...$companies): User
+{
+    $user = User::factory()->create();
+    $user->companies()->attach(array_map(fn (Company $company): string => $company->getKey(), $companies));
+
+    return $user;
+}
+
+/**
+ * Signs in a member of $company and makes it the current tenant, for Livewire
+ * tests of company-scoped pages.
+ *
+ * The panel is booted too, because that is when Filament registers the tenant
+ * scope on Customer. Without the boot a component test runs unscoped — and
+ * passes against exactly the leak it exists to catch.
+ */
+function actInCompany(Company $company): User
+{
+    $user = memberOf($company);
+
+    // Livewire::actingAs() authenticates immediately; it has to run before
+    // Filament::setTenant(), whose event requires an authenticated user.
+    Livewire::actingAs($user);
+
+    Filament::setCurrentPanel('admin');
+    Filament::setTenant($company);
+    Filament::bootCurrentPanel();
+
+    return $user;
+}
