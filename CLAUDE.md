@@ -93,6 +93,15 @@ populated whether or not the font contains the glyph — so a missing font yield
 valid PDF full of empty boxes and a green suite. Look at the rendered page after
 changing fonts, the base image, or the WeasyPrint version.
 
+**A green suite says nothing about the development database.** Pest runs against
+`invoice_test`, and `RefreshDatabase` rebuilds that schema on every run — so the
+suite structurally cannot notice that `invoice`, the database the application at
+<http://localhost:8080> actually uses, is missing a migration. A wave that adds
+one is not usable in the browser until `php artisan migrate` has been run again,
+and the symptom is `Undefined table` on the first page that touches the new
+model, not a failing test. This has already happened once: companies shipped
+with 73 passing tests and a development environment that could not load `/admin`.
+
 ## Known gaps
 
 Deliberately parked, so they are not mistaken for oversights:
