@@ -77,9 +77,9 @@ it('finds customers by name, email and city, case-insensitively', function (stri
 })->with(['bauer', 'RECHNUNG@', 'münchen']);
 
 it('keeps a search inside the company', function (): void {
-    // Beta's customer matches "bau" by city only. A search that ORs its
-    // conditions onto the tenant scope without grouping them reads
-    // "company = alpha AND name ILIKE x OR city ILIKE x" and lists it.
+    // Beta's customer matches "bau" by city only. Fails if the search ever
+    // runs on a query the tenant scope has been removed from — e.g. a
+    // withoutGlobalScope(s) call or an unscoped subquery in the search path.
     $alpha = Company::factory()->create();
     $beta = Company::factory()->create();
     $mine = Customer::factory()->for($alpha)->create(['name' => 'Bauer GmbH', 'city' => 'Landshut']);

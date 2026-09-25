@@ -88,9 +88,11 @@ class CustomersTable
      *
      * The number matches exactly on the parsed integer — "4" finds customer 4
      * and not 14 — and the text columns as case-insensitive substrings with
-     * LIKE wildcards escaped. Every condition sits inside one group: an OR
-     * left at the top level would escape the tenant scope Filament adds to the
-     * same query, and list another company's customers.
+     * LIKE wildcards escaped. Every condition sits inside one group so the
+     * search stays self-contained — defence in depth for any query where
+     * tenancy is a plain `where` rather than a global scope; Laravel already
+     * isolates ORs added here from a tenant condition added later by a global
+     * scope, which is how Filament scopes this query.
      *
      * @param  Builder<Customer>  $query
      */

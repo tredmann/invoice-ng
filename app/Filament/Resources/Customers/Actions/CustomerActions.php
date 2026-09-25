@@ -21,6 +21,7 @@ final class CustomerActions
         return Action::make('archive')
             ->label(__('customer.actions.archive'))
             ->icon(Heroicon::OutlinedArchiveBox)
+            ->color('gray')
             ->hidden(fn (Customer $record): bool => $record->isArchived())
             ->action(fn (Customer $record) => $record->archive());
     }
@@ -30,6 +31,7 @@ final class CustomerActions
         return Action::make('unarchive')
             ->label(__('customer.actions.unarchive'))
             ->icon(Heroicon::OutlinedArrowUturnLeft)
+            ->color('gray')
             ->visible(fn (Customer $record): bool => $record->isArchived())
             ->action(fn (Customer $record) => $record->unarchive());
     }
