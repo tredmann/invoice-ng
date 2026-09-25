@@ -2,6 +2,41 @@
 
 A multi-company German invoicing application, built on Laravel 13 and Filament 5.
 
+## What it does today
+
+From the point of view of someone using it, rather than building it:
+
+- **Several companies from one login.** Set up more than one company and switch
+  between them from the company menu in the panel. Every company-scoped screen
+  lives under that company's own slug — `/admin/acme-gmbh/settings` — so a
+  bookmarked or shared link always shows the same company, and a second browser
+  tab cannot quietly switch the first one out from under you.
+- **Company master data, kept per company.** Legal name and legal form, address,
+  Steuernummer and/or USt-IdNr, bank details, and whether the company invoices
+  under the standard VAT scheme or as a Kleinunternehmer (§19 UStG). An IBAN is
+  checked against its mod-97 checksum, so a pair of transposed digits is caught
+  as you type it rather than when a payment goes missing. It can be pasted
+  straight from online banking — spaces and lower case are fine.
+- **Each legal form is asked only for what applies to it.** A GmbH or UG states
+  its Registergericht, Registernummer and Geschäftsführer; an Einzelunternehmen
+  is never asked for them. Change a company's legal form to one with no register
+  entry and the old entry is cleared, rather than left behind to print on a
+  later document.
+- **Companies are deactivated, never deleted.** An archived company drops out of
+  the company menu but keeps its URL, so everything it is attached to stays
+  readable. Archiving the last company you still have active is refused — it
+  would leave you with nowhere to go.
+- **German throughout.** The interface is German, and the application runs with
+  the `de` locale and `Europe/Berlin`.
+
+### Not built yet
+
+Customers, and the entire document side: ZUGFeRD invoice PDFs, gapless invoice
+numbering, Storno and Gutschrift, recording payments, sending email, reminders,
+recurring invoices, the period export for the tax advisor, and dashboard
+reporting. `docs/superpowers/specs/2026-09-23-invoice-system-design.md`
+describes all of it. None of it exists yet.
+
 ## Prerequisites
 
 **Docker Desktop only.** Nothing else needs to be installed on the host — not

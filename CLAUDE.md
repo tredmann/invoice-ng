@@ -154,5 +154,14 @@ So after changing the stack or behaviour, correct what the change falsified:
 carries the same list in full, including how to search and patch Outline —
 and it is generated, so change it through `.ai/guidelines/`, never directly.
 
+**A wave that adds something a user can see also owes `README.md` a feature
+entry.** Its "What it does today" section is the only thing here written for
+someone who wants to use the application rather than build it, so add the
+behaviour there and delete the matching line from "Not built yet". Describe what
+it does and what it is for, not the classes that implement it. Correcting a
+falsified claim and recording a new capability are two different obligations;
+this is the second one, and it is the one that gets forgotten, because nothing
+breaks when a working feature goes unmentioned.
+
 Dated plan and task documents are history, not current state. Do not update
 them when the stack moves.
