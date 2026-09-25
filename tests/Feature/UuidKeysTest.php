@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\Company;
+use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,4 +59,27 @@ it('round-trips a user by its uuid', function (): void {
     $found = User::query()->whereKey($user->getKey())->first();
 
     expect($found?->email)->toBe($user->email);
+});
+
+it('gives customers a uuid key and a uuid company foreign key', function (): void {
+    // Both halves, because the foreign key is the one that silently stays
+    // bigint while the primary key is migrated.
+    $columns = DB::select(
+        'select column_name, data_type from information_schema.columns
+         where table_name = ? and column_name in (?, ?)',
+        ['customers', 'id', 'company_id']
+    );
+
+    expect($columns)->toHaveCount(2);
+
+    foreach ($columns as $column) {
+        expect($column->data_type)->toBe('uuid');
+    }
+});
+
+it('generates version 7 uuids for customers', function (): void {
+    // The version nibble is the only thing that separates v7 from v4.
+    $customer = Customer::factory()->for(Company::factory())->create();
+
+    expect($customer->getKey()[14])->toBe('7');
 });

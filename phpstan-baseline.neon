@@ -5,3 +5,15 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: config/filesystems.php
+
+		-
+			message: '#^Cannot call method equalTo\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Feature/CustomerTest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function expect$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Feature/CustomerTest.php
