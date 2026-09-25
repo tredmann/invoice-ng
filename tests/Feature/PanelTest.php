@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Company;
 use App\Models\User;
 use Tests\TestCase;
 
@@ -18,16 +19,22 @@ it('serves the login page', function (): void {
     $this->get('/admin/login')->assertOk();
 });
 
-it('shows the dashboard to an authenticated user', function (): void {
+it('shows the dashboard of the users company', function (): void {
     /** @var TestCase $this */
+    // Tenancy means the dashboard now lives under the company's slug, and a
+    // user with no company is redirected to registration instead — so this
+    // test needs a company to have anything to show.
+    //
+    // Asserting on the user's name rather than on the word "Dashboard": the
+    // app runs with locale=de and Filament ships German translations, so any
+    // chrome string is a translation change away from breaking. The name is
+    // data, and its presence proves the panel chrome rendered.
     $user = User::factory()->create();
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+    $user->companies()->attach($company);
 
-    // Asserting on the user's name rather than on the word "Dashboard":
-    // the app runs with locale=de and Filament ships German translations,
-    // so any chrome string is a translation change away from breaking.
-    // The name is data, and its presence proves the panel chrome rendered.
     $this->actingAs($user)
-        ->get('/admin')
+        ->get('/admin/acme-gmbh')
         ->assertOk()
         ->assertSee($user->name);
 });
