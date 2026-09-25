@@ -6,6 +6,7 @@ use App\Enums\CustomerType;
 use App\Models\Company;
 use App\Models\Customer;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -160,8 +161,8 @@ it('archives and restores a customer, keeping the first archive date', function 
     $freshArchivedAt = $customer->fresh()?->archived_at;
     expect($archivedAt)->not->toBeNull();
     expect($freshArchivedAt)->not->toBeNull();
-    /** @var \Illuminate\Support\Carbon $archivedAt */
-    /** @var \Illuminate\Support\Carbon $freshArchivedAt */
+    /** @var Carbon $archivedAt */
+    /** @var Carbon $freshArchivedAt */
     expect($freshArchivedAt->equalTo($archivedAt))->toBeTrue();
 
     $customer->unarchive();
