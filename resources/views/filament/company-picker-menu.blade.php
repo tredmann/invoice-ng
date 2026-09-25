@@ -10,7 +10,7 @@
                 {{-- An avatar-sized box, like Filament's tenant avatar. Inline
                      style because the trigger's .fi-icon rule pushes a bare
                      icon to the end with margin-inline-start: auto. --}}
-                <span class="fi-avatar fi-tenant-avatar" style="display: flex; align-items: center; justify-content: center; background: var(--gray-100)">
+                <span class="fi-avatar fi-tenant-avatar" style="display: flex; align-items: center; justify-content: center; background: color-mix(in oklab, currentColor 8%, transparent)">
                     <x-filament::icon icon="heroicon-o-building-office-2" style="margin: 0" />
                 </span>
                 <span class="fi-tenant-menu-trigger-text">
