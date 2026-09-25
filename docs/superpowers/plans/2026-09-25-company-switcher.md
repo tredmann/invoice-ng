@@ -241,9 +241,12 @@ it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', f
     The company switcher in the top bar. It only switches: its dropdown lists
     the user's active companies and nothing else (company-picker spec §2.1).
 
-    Rendered twice — once after the brand (desktop; its container is hidden
-    below 64rem by Filament's CSS) and once at the top-bar start with
-    lg:fi-hidden (phones). $variant says which.
+    Rendered twice (spike findings): after the brand for desktop — Filament
+    hides that whole area below 64rem — and before the user menu for phones,
+    hidden from 64rem by the one CSS rule the panel adds (STYLES_AFTER). The
+    phone copy leaves out the fi-tenant-menu class, which Filament hides in
+    the top bar below 64rem, and shows only the avatar: a name there wraps
+    into several lines beside the user menu.
 --}}
 @php
     /** @var \Illuminate\Support\Collection<int, \App\Models\Company> $companies */
@@ -251,10 +254,10 @@ it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', f
 @endphp
 
 @if ($current !== null || $companies->isNotEmpty())
-    <div data-company-switcher @class(['lg:fi-hidden' => $variant === 'phone'])>
-        <x-filament::dropdown placement="bottom-start" size class="fi-tenant-menu">
+    <div data-company-switcher="{{ $variant }}">
+        <x-filament::dropdown placement="bottom-start" size @class(['fi-tenant-menu' => $variant === 'desktop'])>
             <x-slot name="trigger">
-                <button type="button" class="fi-tenant-menu-trigger">
+                <button type="button" class="fi-tenant-menu-trigger" aria-label="{{ $current?->name ?? __('company.picker.title') }}">
                     @if ($current)
                         <x-filament-panels::avatar.tenant :tenant="$current" />
                     @else
@@ -264,11 +267,13 @@ it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', f
                             <x-filament::icon icon="heroicon-o-building-office-2" style="margin: 0" />
                         </span>
                     @endif
-                    <span class="fi-tenant-menu-trigger-text">
-                        <span class="fi-tenant-menu-trigger-tenant-name">
-                            {{ $current?->name ?? __('company.picker.title') }}
+                    @if ($variant === 'desktop')
+                        <span class="fi-tenant-menu-trigger-text">
+                            <span class="fi-tenant-menu-trigger-tenant-name">
+                                {{ $current?->name ?? __('company.picker.title') }}
+                            </span>
                         </span>
-                    </span>
+                    @endif
                     <x-filament::icon icon="heroicon-m-chevron-down" />
                 </button>
             </x-slot>
@@ -282,7 +287,7 @@ it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', f
                             :href="filament()->getUrl($company)"
                             :image="filament()->getTenantAvatarUrl($company)"
                             :color="$isCurrent ? 'primary' : 'gray'"
-                            @if ($isCurrent) data-current-company @endif
+                            :data-current-company="$isCurrent"
                         >
                             {{ $company->name }}
                         </x-filament::dropdown.list.item>
@@ -313,10 +318,13 @@ Delete `resources/views/filament/company-picker-menu.blade.php`.
                     ->isActiveWhen(fn (): bool => request()->routeIs(CompanySettings::getRouteName()))
                     ->sort(2),
             ])
-            // Once after the brand for desktop, once at the top-bar start for
-            // phones, where Filament hides the brand area (spike findings).
+            // Once after the brand for desktop, once before the user menu for
+            // phones, where Filament hides the brand area; the phone copy is
+            // hidden from 64rem by the one rule below — Filament's shipped CSS
+            // has no global responsive-hide class (spike findings).
             ->renderHook(PanelsRenderHook::TOPBAR_LOGO_AFTER, fn (): string => self::switcher('desktop'))
-            ->renderHook(PanelsRenderHook::TOPBAR_START, fn (): string => self::switcher('phone'))
+            ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_BEFORE, fn (): string => self::switcher('phone'))
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn (): string => '<style>@media (min-width: 64rem) { [data-company-switcher="phone"] { display: none } }</style>')
 ```
 
 and the method:
@@ -393,16 +401,10 @@ it('cannot archive or restore another users company', function (): void {
 
     $page = Livewire::actingAs($user)->test(SelectCompany::class);
 
-    try {
-        $page->callAction(TestAction::make('archive')->schemaComponent("company-{$theirs->getKey()}"));
-    } catch (Throwable) {
-        // Filament may throw on an unknown component; either way nothing changes.
-    }
-
-    try {
-        $page->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$theirsArchived->getKey()}"));
-    } catch (Throwable) {
-    }
+    expect(fn () => $page->callAction(TestAction::make('archive')->schemaComponent("company-{$theirs->getKey()}")))
+        ->toThrow(ActionNotResolvableException::class);
+    expect(fn () => $page->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$theirsArchived->getKey()}")))
+        ->toThrow(ActionNotResolvableException::class);
 
     expect($theirs->fresh()?->isArchived())->toBeFalse()
         ->and($theirsArchived->fresh()?->isArchived())->toBeTrue();
@@ -433,7 +435,7 @@ it('shows the Deaktiviert section beside the empty state', function (): void {
 });
 ```
 
-Imports: `App\Filament\Pages\Tenancy\SelectCompany`, `Filament\Actions\Testing\TestAction`. In `shows the empty state to a user whose companies are all archived`, the archived name now legitimately appears in the Deaktiviert section, so replace `->assertDontSee('Gone GmbH')` with `->assertDontSee('href="'.url('/admin/gone-gmbh').'"', escape: false)` — archived rows carry no link, so any link to it would be a tile. Delete `lets a long single-word company name wrap inside its tile` and replace with:
+Imports: `App\Filament\Pages\Tenancy\SelectCompany`, `Filament\Actions\Testing\TestAction`, `Filament\Actions\Exceptions\ActionNotResolvableException`. In `shows the empty state to a user whose companies are all archived`, the archived name now legitimately appears in the Deaktiviert section, so replace `->assertDontSee('Gone GmbH')` with `->assertDontSee('href="'.url('/admin/gone-gmbh').'"', escape: false)` — archived rows carry no link, so any link to it would be a tile. Delete `lets a long single-word company name wrap inside its tile` and replace with:
 
 ```php
 it('lets a long single-word company name wrap inside its tile', function (): void {
@@ -617,3 +619,13 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - [ ] **Step 3:** Spec: append the spike findings in one paragraph under §4.
 - [ ] **Step 4: Outline** "Running It Locally" (`f5e5c024-bd44-4e73-b627-ccee8ac78d01`): patch "Once you're in" — switcher next to the logo; sidebar Dashboard + Firmendaten inside a company; archiving via ⋮ and Deaktiviert on the start page; update the test count. Search the collection for "Firmen verwalten", "Alle Firmen", "company menu", "switcher" and patch stale hits.
 - [ ] **Step 5:** Full check; commit `docs: describe the top-bar switcher and archiving on the picker`. Run `php artisan migrate` (expect nothing) and `curl` `/admin/login` → 200.
+
+---
+
+## Spike findings (Task 1, 2026-09-25)
+
+Screenshots: session scratchpad `right-*.png`.
+
+1. **Desktop:** `TOPBAR_LOGO_AFTER` places the switcher right after the brand, vertically centred; dropdown lists the companies with avatars, current one in primary colour. Works as written.
+2. **Phones:** Filament hides `.fi-topbar-start` (brand area) below 64rem, and also `.fi-topbar .fi-tenant-menu` below 64rem (its own top-nav mode moves the tenant menu into the drawer on phones). `lg:fi-hidden` exists in the shipped CSS only scoped to tables and one sidebar toggle — not as a global utility — so it did nothing. `TOPBAR_START` copy was therefore visible on desktop and hidden on phones: the opposite of intended. **Working:** phone copy at `GLOBAL_SEARCH_BEFORE` (right side, before the user menu), without the `fi-tenant-menu` class, hidden from 64rem by one rule injected via `STYLES_AFTER`. At 390 px the full name wrapped into three lines beside the search box, so the phone trigger shows the avatar only, the name as `aria-label`. `@if` inside a component tag's attributes is a Blade parse error; `:data-current-company="$isCurrent"` replaces it (Blade drops a `false` attribute).
+3. **Actions on repeated sections:** `callAction(TestAction::make('archive')->schemaComponent("company-{$id}"))` archives exactly that company with two tiles on the page; the ActionGroup needs no addressing. A key for a company not on the page throws `Filament\Actions\Exceptions\ActionNotResolvableException` ("Action [archive] not found in schema at [content.company-…]") and changes nothing — Task 3's forged-call test asserts that exception.
