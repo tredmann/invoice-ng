@@ -82,7 +82,10 @@ class SelectCompany extends Page
                                 ->label(__('company.actions.unarchive'))
                                 ->icon(Heroicon::OutlinedArrowUturnLeft)
                                 ->link()
-                                ->action(fn () => $company->unarchive()),
+                                ->action(function () use ($company): void {
+                                    $company->unarchive();
+                                    $this->refreshAfterChange();
+                                }),
                         ])->alignEnd(),
                     ])->key("archived-company-{$company->getKey()}"))->all()),
             ]),
@@ -110,7 +113,10 @@ class SelectCompany extends Page
                         ->label(__('company.actions.archive'))
                         ->icon(Heroicon::OutlinedArchiveBox)
                         ->requiresConfirmation()
-                        ->action(fn () => $company->archive()),
+                        ->action(function () use ($company): void {
+                            $company->archive();
+                            $this->refreshAfterChange();
+                        }),
                 ]),
             ])
             ->key("company-{$company->getKey()}");
@@ -138,6 +144,23 @@ class SelectCompany extends Page
         // With no company the empty state carries this action; showing it in
         // the header as well would put the same button on the page twice.
         return static::getCompanies()->isEmpty() ? [] : [$this->createCompanyAction()];
+    }
+
+    /**
+     * Brings the page and the top-bar switcher up to date after archiving or
+     * restoring.
+     *
+     * Filament cached the content schema earlier in this request — it built it
+     * to find the action being called, before the action changed which
+     * companies are archived — so it is dropped and the render rebuilds it.
+     * The switcher lives in Filament's separate top-bar component, which
+     * re-renders only on its refresh event.
+     */
+    private function refreshAfterChange(): void
+    {
+        unset($this->cachedSchemas['content']);
+
+        $this->dispatch('refresh-topbar');
     }
 
     private function createCompanyAction(): Action

@@ -348,3 +348,36 @@ it('renders no search box while nothing is searchable', function (): void {
 
     $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->assertDontSeeHtml('fi-global-search');
 });
+
+it('redraws the picker after archiving and restoring', function (): void {
+    // Asserting the database alone missed this: the actions worked, but the
+    // page rendered the schema it had built — to find the action — before the
+    // action ran, so the tile stayed and the Deaktiviert count lagged.
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+    $user = User::factory()->create();
+    $user->companies()->attach([$company->getKey(), Company::factory()->create(['name' => 'Beta GmbH'])->getKey()]);
+
+    $page = Livewire::actingAs($user)->test(SelectCompany::class)
+        ->assertDontSee('Deaktiviert (')
+        ->callAction(TestAction::make('archive')->schemaComponent("company-{$company->getKey()}"))
+        ->assertSee('Deaktiviert (1)')
+        ->assertDontSeeHtml('href="'.url('/admin/acme-gmbh').'"')
+        // The switcher lives in Filament's separate top-bar component, which
+        // only re-renders on this event.
+        ->assertDispatched('refresh-topbar');
+
+    $page->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$company->getKey()}"))
+        ->assertDontSee('Deaktiviert (')
+        ->assertSeeHtml('href="'.url('/admin/acme-gmbh').'"');
+});
+
+it('turns to the empty state when the last active company is archived', function (): void {
+    $only = Company::factory()->create(['name' => 'Only GmbH']);
+    $user = User::factory()->create();
+    $user->companies()->attach($only);
+
+    Livewire::actingAs($user)->test(SelectCompany::class)
+        ->callAction(TestAction::make('archive')->schemaComponent("company-{$only->getKey()}"))
+        ->assertSee('Noch keine Firma angelegt.')
+        ->assertSee('Deaktiviert (1)');
+});
