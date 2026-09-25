@@ -155,3 +155,57 @@ it('answers a global search on /admin without a company', function (): void {
         ->assertOk()
         ->assertSee('Acme GmbH');
 });
+
+it('shows the placeholder company menu on /admin, listing the companies', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $response = $this->actingAs($user)->get('/admin')->assertOk();
+
+    // Scoped to the menu's own markup, so the tile's copy of the name and link
+    // cannot satisfy these on its own.
+    expect((string) $response->getContent())->toContain('data-company-picker-menu');
+
+    $menu = str((string) $response->getContent())->after('data-company-picker-menu')->before('</nav>');
+
+    expect((string) $menu)
+        ->toContain('Firma wählen')
+        ->toContain('Acme GmbH')
+        ->toContain('href="'.url('/admin/acme-gmbh').'"')
+        ->toContain('href="'.url('/admin/new').'"');
+});
+
+it('shows Filament company menu, not the placeholder, inside a company', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $this->actingAs($user)
+        ->get('/admin/acme-gmbh')->assertOk()->assertDontSeeHtml('data-company-picker-menu')->assertSeeHtml('fi-tenant-menu');
+});
+
+it('escapes company names in the placeholder menu', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Müller & Söhne <b>GmbH</b>']));
+
+    $content = (string) $this->actingAs($user)->get('/admin')->assertOk()->getContent();
+    expect($content)->toContain('data-company-picker-menu');
+
+    $menu = (string) str($content)->after('data-company-picker-menu')->before('</nav>');
+
+    expect($menu)->toContain('Müller &amp; Söhne &lt;b&gt;GmbH&lt;/b&gt;');
+    expect($menu)->not->toContain('<b>GmbH</b>');
+});
+
+it('builds no navigation links on /admin, but does inside a company', function (): void {
+    /** @var TestCase $this */
+    // Both halves: without the second, an empty sidebar everywhere would pass.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $this->actingAs($user)->get('/admin')->assertOk()->assertDontSeeHtml('fi-sidebar-item');
+
+    $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->assertSeeHtml('fi-sidebar-item');
+});

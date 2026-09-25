@@ -6,6 +6,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Filament\Pages\Tenancy\RegisterCompany;
+use App\Filament\Pages\Tenancy\SelectCompany;
 use App\Filament\Resources\Companies\CompanyResource;
 use App\Models\Company;
 use Filament\Facades\Filament;
@@ -20,6 +21,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -68,6 +70,15 @@ class AdminPanelProvider extends PanelProvider
             ->navigation(fn (): NavigationBuilder|bool => Filament::getTenant() === null
                 ? new NavigationBuilder
                 : true)
+            // SIDEBAR_START, not SIDEBAR_NAV_START: inside the nav the menu
+            // inherits the nav's padding and scrollbar gutter. Here it lands in
+            // the exact box Filament's own company menu occupies on desktop.
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_START,
+                fn (): string => Filament::getTenant() === null
+                    ? view('filament.company-picker-menu', ['companies' => SelectCompany::getCompanies()])->render()
+                    : '',
+            )
             ->colors([
                 'primary' => Color::Amber,
             ])
