@@ -8,7 +8,6 @@ use App\Models\User;
 use Filament\Actions\Exceptions\ActionNotResolvableException;
 use Filament\Actions\Testing\TestAction;
 use Filament\Auth\Pages\Login;
-use Filament\Livewire\GlobalSearch;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -129,19 +128,6 @@ it('still sends a login to the page the user was on the way to', function (): vo
         ->fillForm(['email' => 'user@example.com', 'password' => 'secret-password'])
         ->call('authenticate')
         ->assertRedirect(url('/admin/acme-gmbh/settings'));
-});
-
-it('answers a global search on /admin without a company', function (): void {
-    // Review focus 4: the companies resource is globally searchable, and every
-    // result needs a URL — which, inside a company, is built from that company.
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
-
-    Livewire::actingAs($user)
-        ->test(GlobalSearch::class)
-        ->set('search', 'Acme')
-        ->assertOk()
-        ->assertSee('Acme GmbH');
 });
 
 it('points the brand logo at the picker, not at the first company', function (): void {
@@ -343,4 +329,22 @@ it('lets a long single-word company name wrap inside its tile', function (): voi
     $user->companies()->attach(Company::factory()->create(['name' => 'Grundstücksverwaltungsgesellschaft mbH']));
 
     $this->actingAs($user)->get('/admin')->assertOk()->assertSeeHtml('overflow-wrap: anywhere');
+});
+
+it('no longer serves the companies list', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $this->actingAs($user)->get('/admin/acme-gmbh/companies')->assertNotFound();
+});
+
+it('renders no search box while nothing is searchable', function (): void {
+    /** @var TestCase $this */
+    // Filament shows the box only while some resource is globally searchable;
+    // the companies list was the only one. It returns with customers.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->assertDontSeeHtml('fi-global-search');
 });

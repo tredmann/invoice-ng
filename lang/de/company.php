@@ -38,21 +38,10 @@ return [
         'title' => 'Firmendaten',
     ],
 
-    'resource' => [
-        'label' => 'Firma',
-        'plural_label' => 'Firmen',
-    ],
-
     'actions' => [
-        'open' => 'Öffnen',
         'archive' => 'Deaktivieren',
         'unarchive' => 'Wieder aktivieren',
         'create' => 'Neue Firma',
-        'manage' => 'Firmen verwalten',
-    ],
-
-    'list' => [
-        'empty' => 'Noch keine Firma angelegt.',
     ],
 
     'sections' => [
