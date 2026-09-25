@@ -28,6 +28,11 @@ return [
         'empty' => 'Noch keine Firma angelegt.',
     ],
 
+    'dashboard' => [
+        'empty' => 'Noch keine Inhalte.',
+        'complete_settings' => 'Firmendaten vervollständigen',
+    ],
+
     'settings' => [
         'title' => 'Firmendaten',
     ],

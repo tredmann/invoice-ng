@@ -25,10 +25,8 @@ it('shows the dashboard of the users company', function (): void {
     // user with no company is redirected to registration instead — so this
     // test needs a company to have anything to show.
     //
-    // Asserting on the user's name rather than on the word "Dashboard": the
-    // app runs with locale=de and Filament ships German translations, so any
-    // chrome string is a translation change away from breaking. The name is
-    // data, and its presence proves the panel chrome rendered.
+    // Asserting on the dashboard's own hint: the account widget that used to
+    // print the user's name is gone.
     $user = User::factory()->create();
     $company = Company::factory()->create(['name' => 'Acme GmbH']);
     $user->companies()->attach($company);
@@ -36,5 +34,5 @@ it('shows the dashboard of the users company', function (): void {
     $this->actingAs($user)
         ->get('/admin/acme-gmbh')
         ->assertOk()
-        ->assertSee($user->name);
+        ->assertSee('Noch keine Inhalte.');
 });
