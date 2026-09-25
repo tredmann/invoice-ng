@@ -264,20 +264,6 @@ company-scoped work that arrives in the next wave.
 **The switcher** is Filament's tenant menu: non-archived companies, plus "New
 company" and "Manage companies".
 
-> **Corrected 2026-09-25 — a fifth surface, the company picker.** `/admin` no
-> longer redirects into the user's default company. `SelectCompany`, a
-> `SimplePage` outside any company, shows one tile per company from
-> `getTenants()` — name, and legal form beneath it — linking to
-> `/admin/{company}`, plus a single "New company" button to registration. It is
-> shown even with one company, so `/admin` always means the same thing. Login
-> lands there (a custom `LoginResponse`; a link the user was on the way to
-> still wins), and the switcher gains an "All companies" entry back to it. A
-> user with no non-archived company is still sent to registration.
->
-> Filament registers `GET /admin` itself, after any application route, so the
-> picker takes it over by binding Filament's `RedirectToTenantController` to the
-> page in the container rather than by declaring a competing route.
-
 ## 7. Validation
 
 The creation form requires `name` and `legal_form`. Nothing else, because

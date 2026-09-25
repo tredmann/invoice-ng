@@ -12,9 +12,11 @@ From the point of view of someone using it, rather than building it:
   bookmarked or shared link always shows the same company, and a second browser
   tab cannot quietly switch the first one out from under you.
 - **A start page with all your companies.** After logging in you land on
-  `/admin`, which shows one tile per active company — its name and legal form —
-  and a button to set up a new one. Click a tile to work in that company; from
-  inside a company, "Alle Firmen" in the company menu brings you back.
+  `/admin`, laid out like every other screen, with one tile per active company
+  — its name and legal form — and a button to set up a new one. Click a tile to
+  work in that company; from inside a company, "Alle Firmen" in the company menu
+  brings you back. With no company yet, the page says so and offers to create
+  one — nothing makes you.
 - **Company master data, kept per company.** Legal name and legal form, address,
   Steuernummer and/or USt-IdNr, bank details, and whether the company invoices
   under the standard VAT scheme or as a Kleinunternehmer (§19 UStG). An IBAN is
@@ -28,8 +30,8 @@ From the point of view of someone using it, rather than building it:
   later document.
 - **Companies are deactivated, never deleted.** An archived company drops out of
   the company menu but keeps its URL, so everything it is attached to stays
-  readable. Archiving the last company you still have active is refused — it
-  would leave you with nowhere to go.
+  readable. Archiving your last active company is allowed; you land back on the
+  start page.
 - **German throughout.** The interface is German, and the application runs with
   the `de` locale and `Europe/Berlin`.
 
@@ -79,8 +81,8 @@ What each step does:
 7. `docker compose up -d` — starts the stack in the background. The app
    serves at <http://localhost:8080>, and the admin panel is at
    <http://localhost:8080/admin>. A freshly created user belongs to no
-   company yet, so the first login lands on company registration rather than
-   the company picker — that is expected, not a broken login.
+   company yet, so the first login shows an empty start page with a button to
+   create the first company.
 
 ## Day-to-day commands
 

@@ -33,6 +33,8 @@ The full panel layout, identical in structure to `/admin/{company}`:
   sidebar belongs to a company, and none is chosen.
 - **Content:** page heading "Firma wählen", a **"Neue Firma"** header action at
   the top right (Filament's place for page actions), and a grid of **tiles**.
+  With no company, the header action is not shown — the empty state carries
+  the same action, and the page would otherwise show it twice.
 - **Tile:** company name, and beneath it the legal form as its German label
   (`GmbH`, `Einzelunternehmen`). Styled as Filament's section card — the same
   card the dashboard widgets use. The whole tile is a link to `/admin/{slug}`.
@@ -87,8 +89,10 @@ a company, so with none active it is reachable only through an archived
 company's URL, which keeps working because `canAccessTenant()` is unchanged.
 That is accepted for now; §7 records it.
 
-`canBeArchived()` still refuses a company that is already archived. Only the
-last-company condition, its row lock, and `CannotArchiveLastCompany` go.
+An already archived company offers no archive action, and archiving it again
+leaves its archive date alone. `canBeArchived()`, which existed only to carry
+the last-company condition, goes with it, as do its row lock and
+`CannotArchiveLastCompany`.
 
 ## 3. Components
 
@@ -163,6 +167,20 @@ returns nothing when there is no tenant; per-page `shouldRegisterNavigation()`.
 
 Does the top-bar search work at `/admin`? If it errors, it is hidden on this one
 page, and that is recorded in this spec as a deviation from "identical layout".
+
+### 4.4 What the spike found (2026-09-25)
+
+- **Placement:** the `SIDEBAR_START` render hook, wrapped in
+  `fi-sidebar-header-controls`, lands in the exact box Filament's company menu
+  occupies on desktop; `SIDEBAR_NAV_START` inherits the nav's padding and
+  scrollbar gutter. One deviation: in the phone-width drawer the menu sits above
+  the sidebar's logo header rather than below it.
+- **Navigation:** a navigation closure returning an empty `NavigationBuilder`
+  when there is no tenant keeps the sidebar and drops its links.
+- **Search:** it errored — a company result linked to the companies list, whose
+  route needs a tenant. Not hidden: a company result now links to that
+  company's settings with the company as the tenant, so search works on
+  `/admin` as everywhere else.
 
 ## 5. Testing
 
