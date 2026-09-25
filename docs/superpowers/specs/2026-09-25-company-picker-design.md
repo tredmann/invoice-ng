@@ -151,7 +151,25 @@ question goes back to the owner.
 3. **Actions on repeated sections:** do ⋮ actions on one section per company
    resolve the right company?
 
-### 4.1 Findings of the first round (sidebar placement), kept for reference
+### 4.1 What the spike found (revision)
+
+- **Placement:** after the brand (`TOPBAR_LOGO_AFTER`) the switcher sits as
+  designed on desktop.
+- **Phones:** Filament hides the brand area and any `.fi-topbar .fi-tenant-menu`
+  below 64rem, and its shipped CSS has no global responsive-hide class. The
+  phone copy therefore sits before the user menu (`GLOBAL_SEARCH_BEFORE`),
+  without the `fi-tenant-menu` class, hidden from 64rem by one CSS rule the
+  panel injects (`STYLES_AFTER`). It shows the avatar only; a name there wrapped
+  onto three lines.
+- **Actions on repeated sections:** a ⋮ action on each company's section
+  resolves that company; a call naming a company not on the page throws
+  Filament's `ActionNotResolvableException` and changes nothing.
+- **Found while checking it in the browser:** after archiving or restoring,
+  Filament rendered the schema it had cached while resolving the action, and
+  the switcher — a separate top-bar component — did not re-render. The page
+  now drops that cached schema and dispatches Filament's `refresh-topbar`.
+
+### 4.2 Findings of the first round (sidebar placement), kept for reference
 
 The first version's spike found: a sidebar render hook at `SIDEBAR_START`
 matched Filament's menu box exactly on desktop; an empty `NavigationBuilder`
