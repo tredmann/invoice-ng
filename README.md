@@ -7,10 +7,17 @@ A multi-company German invoicing application, built on Laravel 13 and Filament 5
 From the point of view of someone using it, rather than building it:
 
 - **Several companies from one login.** Set up more than one company and switch
-  between them from the company menu in the panel. Every company-scoped screen
+  between them with the switcher in the header. Every company-scoped screen
   lives under that company's own slug — `/admin/acme-gmbh/settings` — so a
   bookmarked or shared link always shows the same company, and a second browser
   tab cannot quietly switch the first one out from under you.
+- **A start page with all your companies, and a switcher in the header.**
+  After logging in you land on `/admin`: one tile per active company — its name
+  and legal form — and a button to set up a new one. The company switcher next
+  to the logo moves you between companies from any screen; the logo itself
+  brings you back to the start page. Inside a company the sidebar holds its
+  dashboard and its company data (Firmendaten). With no company yet, the start
+  page says so and offers to create one — nothing makes you.
 - **Company master data, kept per company.** Legal name and legal form, address,
   Steuernummer and/or USt-IdNr, bank details, and whether the company invoices
   under the standard VAT scheme or as a Kleinunternehmer (§19 UStG). An IBAN is
@@ -23,9 +30,9 @@ From the point of view of someone using it, rather than building it:
   entry and the old entry is cleared, rather than left behind to print on a
   later document.
 - **Companies are deactivated, never deleted.** An archived company drops out of
-  the company menu but keeps its URL, so everything it is attached to stays
-  readable. Archiving the last company you still have active is refused — it
-  would leave you with nowhere to go.
+  the switcher but keeps its URL, so everything it is attached to stays
+  readable. Archive and restore from the ⋮ menu on its tile and the
+  "Deaktiviert" section of the start page — your last active company included.
 - **German throughout.** The interface is German, and the application runs with
   the `de` locale and `Europe/Berlin`.
 
@@ -75,8 +82,8 @@ What each step does:
 7. `docker compose up -d` — starts the stack in the background. The app
    serves at <http://localhost:8080>, and the admin panel is at
    <http://localhost:8080/admin>. A freshly created user belongs to no
-   company yet, so the first login lands on company registration rather than
-   a dashboard — that is expected, not a broken login.
+   company yet, so the first login shows an empty start page with a button to
+   create the first company.
 
 ## Day-to-day commands
 

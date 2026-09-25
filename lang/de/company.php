@@ -23,25 +23,25 @@ return [
         'name_help' => 'Der vollständige rechtliche Name. Er erscheint auf der Rechnung.',
     ],
 
+    'picker' => [
+        'title' => 'Firma wählen',
+        'empty' => 'Noch keine Firma angelegt.',
+        'archived' => 'Deaktiviert (:count)',
+    ],
+
+    'dashboard' => [
+        'empty' => 'Noch keine Inhalte.',
+        'complete_settings' => 'Firmendaten vervollständigen',
+    ],
+
     'settings' => [
         'title' => 'Firmendaten',
     ],
 
-    'resource' => [
-        'label' => 'Firma',
-        'plural_label' => 'Firmen',
-    ],
-
     'actions' => [
-        'open' => 'Öffnen',
         'archive' => 'Deaktivieren',
         'unarchive' => 'Wieder aktivieren',
         'create' => 'Neue Firma',
-        'manage' => 'Firmen verwalten',
-    ],
-
-    'list' => [
-        'empty' => 'Noch keine Firma angelegt.',
     ],
 
     'sections' => [

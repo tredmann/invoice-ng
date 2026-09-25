@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Enums\LegalForm;
 use App\Enums\VatScheme;
-use App\Exceptions\CannotArchiveLastCompany;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -130,42 +129,38 @@ it('archives a company while another active one remains', function (): void {
     $keep = Company::factory()->create();
     $company = Company::factory()->create();
 
-    $user = User::factory()->create();
-    $user->companies()->attach([$keep->getKey(), $company->getKey()]);
-
-    $company->archive($user);
+    $company->archive();
 
     expect($company->fresh()?->isArchived())->toBeTrue()
         ->and($keep->fresh()?->isArchived())->toBeFalse();
 });
 
-it('refuses to archive the last active company', function (): void {
-    // Archiving it is a dead end: with no tenants left, Filament redirects to
-    // company registration, and the companies list is itself a screen behind
-    // the tenant prefix — so there would be no route left from which to
-    // restore anything.
+it('archives the last active company', function (): void {
+    // This used to be refused: with no active company left, Filament forced
+    // every request into registration and nothing outside a company existed to
+    // recover from. /admin now renders without a company and never forces
+    // registration, so the dead end the guard prevented is gone.
     $only = Company::factory()->create();
 
     $user = User::factory()->create();
     $user->companies()->attach($only);
 
-    expect(function () use ($only, $user): void {
-        $only->archive($user);
-    })->toThrow(CannotArchiveLastCompany::class);
+    $only->archive();
 
-    expect($only->fresh()?->isArchived())->toBeFalse();
+    expect($only->fresh()?->isArchived())->toBeTrue();
 });
 
-it('does not count already-archived companies as the ones keeping the lights on', function (): void {
-    // Two rows, one already archived: archiving the survivor is still the
-    // dead end the guard exists to prevent.
-    $archived = Company::factory()->archived()->create();
-    $survivor = Company::factory()->create();
+it('leaves the archive date of an already archived company alone', function (): void {
+    // Archiving twice must not move the date: it records when the company went
+    // out of use, and a second click is not that moment.
+    $company = Company::factory()->create(['archived_at' => now()->subYear()]);
+    $stored = fn (): mixed => DB::table('companies')->where('id', $company->getKey())->value('archived_at');
+    $original = $stored();
 
-    $user = User::factory()->create();
-    $user->companies()->attach([$archived->getKey(), $survivor->getKey()]);
+    $company->archive();
 
-    expect($survivor->canBeArchived($user))->toBeFalse();
+    expect($original)->not->toBeNull()
+        ->and($stored())->toBe($original);
 });
 
 it('unarchives a company', function (): void {
@@ -174,19 +169,4 @@ it('unarchives a company', function (): void {
     $company->unarchive();
 
     expect($company->fresh()?->isArchived())->toBeFalse();
-});
-
-it('reports an already-archived company as not archivable again', function (): void {
-    // Two active companies, so the count rule on its own would permit
-    // archiving. That leaves the already-archived guard as the only thing
-    // that can make this false — which is what gives the test something to
-    // fail against if that guard is ever removed.
-    $first = Company::factory()->create();
-    $second = Company::factory()->create();
-    $archived = Company::factory()->archived()->create();
-
-    $user = User::factory()->create();
-    $user->companies()->attach([$first->getKey(), $second->getKey(), $archived->getKey()]);
-
-    expect($archived->canBeArchived($user))->toBeFalse();
 });

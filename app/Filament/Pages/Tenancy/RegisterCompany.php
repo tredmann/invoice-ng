@@ -17,10 +17,10 @@ use Illuminate\Support\Facades\DB;
  * The only place a company is created.
  *
  * It asks for the two things a company needs in order to exist and be
- * routable, and then lands the user on its settings page for the rest. Being
- * Filament's tenant-registration page, it is also where a user with no
- * companies is sent — which is how the first company comes into being, with no
- * seeder and no signup.
+ * routable, and then lands the user on its settings page for the rest. It is
+ * reached by choice — "Neue Firma" on the company picker at /admin or in the
+ * company menu — never forced on a user with no companies. With no seeder and
+ * no signup, that is also how the first company comes into being.
  */
 class RegisterCompany extends RegisterTenant
 {
