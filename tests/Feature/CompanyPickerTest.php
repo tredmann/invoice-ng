@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Filament\Pages\Tenancy\SelectCompany;
 use App\Models\Company;
 use App\Models\User;
+use Filament\Actions\Exceptions\ActionNotResolvableException;
+use Filament\Actions\Testing\TestAction;
 use Filament\Auth\Pages\Login;
 use Filament\Livewire\GlobalSearch;
 use Livewire\Livewire;
@@ -55,9 +58,7 @@ it('leaves archived companies and other users companies off the picker', functio
 
     $this->actingAs($user)
         ->get('/admin')
-        ->assertOk()
-        ->assertSee('Mine GmbH')
-        ->assertDontSee('Archived GmbH')
+        ->assertOk()->assertSee('Mine GmbH')->assertDontSeeHtml('href="'.url('/admin/archived-gmbh').'"')
         ->assertDontSee('Theirs GmbH');
 });
 
@@ -102,9 +103,7 @@ it('shows the empty state to a user whose companies are all archived', function 
 
     $this->actingAs($user)
         ->get('/admin')
-        ->assertOk()
-        ->assertSee('Noch keine Firma angelegt.')
-        ->assertDontSee('Gone GmbH');
+        ->assertOk()->assertSee('Noch keine Firma angelegt.')->assertDontSeeHtml('href="'.url('/admin/gone-gmbh').'"');
 });
 
 it('lands on the picker after login, not inside a company', function (): void {
@@ -177,18 +176,6 @@ it('sends an already signed-in visit to the login page to the picker', function 
     $this->actingAs($user)
         ->get('/admin/login')
         ->assertRedirect(url('/admin'));
-});
-
-it('lets a long single-word company name wrap inside its tile', function (): void {
-    /** @var TestCase $this */
-    // Filament's section heading has no overflow-wrap, and a flex item will not
-    // shrink below its longest word — so a German compound ran past the card.
-    // Pure CSS, so this pins the rule; the screenshot is what shows it works.
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create(['name' => 'Grundstücksverwaltungsgesellschaft mbH']));
-
-    $this->actingAs($user)
-        ->get('/admin')->assertOk()->assertSeeHtml('overflow-wrap: anywhere');
 });
 
 it('shows the switcher in the top bar on /admin, listing the active companies', function (): void {
@@ -281,4 +268,79 @@ it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', f
     expect($sidebar)->toContain('Dashboard')
         ->toContain('Firmendaten')
         ->toContain('href="'.url('/admin/acme-gmbh/settings').'"');
+});
+
+it('archives a company from its tile', function (): void {
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+    $user = User::factory()->create();
+    $user->companies()->attach($company);
+
+    Livewire::actingAs($user)
+        ->test(SelectCompany::class)
+        ->callAction(TestAction::make('archive')->schemaComponent("company-{$company->getKey()}"));
+
+    expect($company->fresh()?->isArchived())->toBeTrue();
+});
+
+it('restores an archived company from the Deaktiviert section', function (): void {
+    $company = Company::factory()->archived()->create(['name' => 'Gone GmbH']);
+    $user = User::factory()->create();
+    $user->companies()->attach($company);
+
+    Livewire::actingAs($user)
+        ->test(SelectCompany::class)
+        ->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$company->getKey()}"));
+
+    expect($company->fresh()?->isArchived())->toBeFalse();
+});
+
+it('cannot archive or restore another users company', function (): void {
+    // Review focus 3: the actions exist only on components built from the
+    // acting user's own companies, so a forged key finds nothing to act on.
+    $theirs = Company::factory()->create(['name' => 'Theirs GmbH']);
+    $theirsArchived = Company::factory()->archived()->create(['name' => 'Theirs Old GmbH']);
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create());
+
+    $page = Livewire::actingAs($user)->test(SelectCompany::class);
+
+    expect(fn () => $page->callAction(TestAction::make('archive')->schemaComponent("company-{$theirs->getKey()}")))
+        ->toThrow(ActionNotResolvableException::class);
+    expect(fn () => $page->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$theirsArchived->getKey()}")))
+        ->toThrow(ActionNotResolvableException::class);
+
+    expect($theirs->fresh()?->isArchived())->toBeFalse()
+        ->and($theirsArchived->fresh()?->isArchived())->toBeTrue();
+});
+
+it('shows the Deaktiviert section only when the user has an archived company', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $this->actingAs($user)->get('/admin')->assertOk()->assertDontSee('Deaktiviert (');
+
+    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+
+    $this->actingAs($user)->get('/admin')->assertOk()
+        ->assertSee('Deaktiviert (1)')
+        ->assertSee('Gone GmbH');
+});
+
+it('shows the Deaktiviert section beside the empty state', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+
+    $this->actingAs($user)->get('/admin')->assertOk()
+        ->assertSee('Noch keine Firma angelegt.')
+        ->assertSee('Deaktiviert (1)');
+});
+
+it('lets a long single-word company name wrap inside its tile', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Grundstücksverwaltungsgesellschaft mbH']));
+
+    $this->actingAs($user)->get('/admin')->assertOk()->assertSeeHtml('overflow-wrap: anywhere');
 });
