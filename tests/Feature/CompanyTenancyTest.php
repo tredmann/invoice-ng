@@ -67,9 +67,9 @@ it('keeps the user out of a company they are not linked to', function (): void {
 });
 
 it('orders tenants by name, so the default company is deterministic', function (): void {
-    // Filament picks the user's default tenant off the front of this list and
-    // redirects /admin to it. Unordered, which company you land on depends on
-    // insertion order.
+    // Filament picks the user's default tenant off the front of this list, and
+    // the company picker at /admin shows its tiles in this order. Unordered,
+    // both depend on insertion order.
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create(['name' => 'Zeta GmbH']));
     $user->companies()->attach(Company::factory()->create(['name' => 'Alpha GmbH']));
@@ -86,21 +86,6 @@ it('sends a user with no company to company registration', function (): void {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertRedirect('/admin/new');
-});
-
-it('lands a user on their company, addressed by slug', function (): void {
-    /** @var TestCase $this */
-    // Exercises Filament's URL generation end to end: getUrl() builds this
-    // with route(..., ['tenant' => $company]), which calls getRouteKey(). If
-    // the model did not route by slug this would redirect to /admin/{uuid},
-    // which the tenant middleware then cannot resolve.
-    $user = User::factory()->create();
-    $company = Company::factory()->create(['name' => 'Acme GmbH']);
-    $user->companies()->attach($company);
-
-    $this->actingAs($user)
-        ->get('/admin')
-        ->assertRedirect('/admin/acme-gmbh');
 });
 
 it('serves the company registration page', function (): void {

@@ -11,6 +11,10 @@ From the point of view of someone using it, rather than building it:
   lives under that company's own slug — `/admin/acme-gmbh/settings` — so a
   bookmarked or shared link always shows the same company, and a second browser
   tab cannot quietly switch the first one out from under you.
+- **A start page with all your companies.** After logging in you land on
+  `/admin`, which shows one tile per active company — its name and legal form —
+  and a button to set up a new one. Click a tile to work in that company; from
+  inside a company, "Alle Firmen" in the company menu brings you back.
 - **Company master data, kept per company.** Legal name and legal form, address,
   Steuernummer and/or USt-IdNr, bank details, and whether the company invoices
   under the standard VAT scheme or as a Kleinunternehmer (§19 UStG). An IBAN is
@@ -76,7 +80,7 @@ What each step does:
    serves at <http://localhost:8080>, and the admin panel is at
    <http://localhost:8080/admin>. A freshly created user belongs to no
    company yet, so the first login lands on company registration rather than
-   a dashboard — that is expected, not a broken login.
+   the company picker — that is expected, not a broken login.
 
 ## Day-to-day commands
 

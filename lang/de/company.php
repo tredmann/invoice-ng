@@ -23,6 +23,10 @@ return [
         'name_help' => 'Der vollständige rechtliche Name. Er erscheint auf der Rechnung.',
     ],
 
+    'picker' => [
+        'title' => 'Firma wählen',
+    ],
+
     'settings' => [
         'title' => 'Firmendaten',
     ],
@@ -38,6 +42,7 @@ return [
         'unarchive' => 'Wieder aktivieren',
         'create' => 'Neue Firma',
         'manage' => 'Firmen verwalten',
+        'all' => 'Alle Firmen',
     ],
 
     'list' => [

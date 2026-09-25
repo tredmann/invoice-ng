@@ -45,6 +45,11 @@ class AdminPanelProvider extends PanelProvider
             ->tenantProfile(CompanySettings::class)
             ->tenantMenuItems([
                 MenuItem::make()
+                    ->label(fn (): string => __('company.actions.all'))
+                    ->icon(Heroicon::OutlinedSquares2x2)
+                    // The company picker, which has taken over /admin.
+                    ->url(fn (): string => url($panel->getPath())),
+                MenuItem::make()
                     ->label(fn (): string => __('company.actions.manage'))
                     ->icon(Heroicon::OutlinedBuildingOffice2)
                     // A closure so the URL is built when the menu renders and

@@ -41,9 +41,9 @@ class User extends Authenticatable implements FilamentUser, HasTenants
      * `canAccessTenant()`: they are out of use, so they leave the switcher,
      * while their URL keeps working because their documents stay readable.
      *
-     * Ordered by name so that the company Filament picks as the user's default
-     * — and therefore where `/admin` lands — does not depend on insertion
-     * order.
+     * Ordered by name so that the company Filament picks as the user's
+     * default, and the order of the tiles on the company picker at `/admin`,
+     * do not depend on insertion order.
      *
      * @return Collection<int, Company>
      */

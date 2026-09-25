@@ -99,6 +99,13 @@ collaborators becomes a column, not a migration of everything.
 A current company is selected on login and can be switched. All data the
 user sees belongs to that company. There are no cross-company views.
 
+> **Corrected 2026-09-25.** "Selected on login" is now literal: login lands on
+> a company picker at `/admin` — one tile per non-archived company the user
+> belongs to — instead of redirecting straight into a default company. The
+> picker shows which companies exist, not any of their data, so it is not a
+> cross-company view. See
+> `docs/superpowers/specs/2026-09-24-companies-and-tenancy-design.md` §6.
+
 **The current company is in the URL, not only in the session.** Every
 company-scoped screen lives under the company's slug — `/{company}/invoices`,
 `/{company}/customers`, `/{company}/settings` — and the slug is derived from
