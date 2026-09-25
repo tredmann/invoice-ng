@@ -89,6 +89,15 @@ Note that this is **unrelated to document numbers**. Invoice numbers are
 gapless, sequential and legally mandated (§5); they are not identifiers of
 rows and are never used as keys.
 
+> **Added 2026-09-25.** Customer URLs carry the customer number rather than the
+> UUID — `/admin/{company}/customers/K-0004`. This does not breach the argument
+> above. Every customer under a company's slug is one its viewer may already
+> see, so there is no neighbour to walk to; and the number prints on every
+> invoice the customer receives, so it discloses nothing the document does not.
+> The UUID remains the key and every foreign key carries it; the number is a
+> routing convenience, like the slug. See
+> `docs/superpowers/specs/2026-09-25-customers-design.md` §3.4.
+
 ### 3.2 Tenancy
 
 A user is linked to companies through a join table, not by direct
@@ -161,6 +170,13 @@ prevented structurally.
   or a **private person**. Both carry a customer number, billing address,
   billing email, and a default payment term. The type is visible on the
   invoice.
+
+> **Corrected 2026-09-25.** The customers wave built customers without the
+> default payment term: payment terms do not exist yet, and a per-customer
+> default arrives with them. Customer numbers are assigned per company on
+> creation (`K-0001`, `K-0002`, …), never edited, and may have gaps — only
+> invoice numbers must be gapless. See
+> `docs/superpowers/specs/2026-09-25-customers-design.md` §3.
 
 **Global, shared:**
 
@@ -580,3 +596,5 @@ coverage.
 | Deletion | Archive only; drafts deletable |
 | Scheduled price changes | Dropped |
 | Migration | None |
+| Customer number | Assigned per company on creation, never editable; gaps allowed — added 2026-09-25 |
+| Customer URL | Carries the customer number (`K-0004`), not the UUID; the UUID stays the key — added 2026-09-25, see §3.1 |

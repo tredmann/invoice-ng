@@ -16,8 +16,9 @@ From the point of view of someone using it, rather than building it:
   and legal form — and a button to set up a new one. The company switcher next
   to the logo moves you between companies from any screen; the logo itself
   brings you back to the start page. Inside a company the sidebar holds its
-  dashboard and its company data (Firmendaten). With no company yet, the start
-  page says so and offers to create one — nothing makes you.
+  dashboard, its customers (Kunden) and its company data (Firmendaten). With no
+  company yet, the start page says so and offers to create one — nothing makes
+  you.
 - **Company master data, kept per company.** Legal name and legal form, address,
   Steuernummer and/or USt-IdNr, bank details, and whether the company invoices
   under the standard VAT scheme or as a Kleinunternehmer (§19 UStG). An IBAN is
@@ -29,6 +30,16 @@ From the point of view of someone using it, rather than building it:
   is never asked for them. Change a company's legal form to one with no register
   entry and the old entry is cleared, rather than left behind to print on a
   later document.
+- **Customers, kept per company.** Under Kunden, each company keeps its own
+  customers — a Firma, with an optional contact person and USt-IdNr., or a
+  Privatperson — with billing address and billing email. Every new customer
+  gets its company's next customer number (K-0001, K-0002, …) automatically,
+  and that number is its address: `/admin/acme-gmbh/customers/K-0004` always
+  opens the same customer. One search box finds customers by number, name,
+  email or city. A customer of one company never appears under another.
+- **Customers are deactivated, never deleted.** A deactivated customer stays in
+  the list, greyed and marked "Deaktiviert", keeps its page and its number, and
+  can be reactivated from its ⋮ menu or its page.
 - **Companies are deactivated, never deleted.** An archived company drops out of
   the switcher but keeps its URL, so everything it is attached to stays
   readable. Archive and restore from the ⋮ menu on its tile and the
@@ -38,7 +49,7 @@ From the point of view of someone using it, rather than building it:
 
 ### Not built yet
 
-Customers, and the entire document side: ZUGFeRD invoice PDFs, gapless invoice
+The entire document side: ZUGFeRD invoice PDFs, gapless invoice
 numbering, Storno and Gutschrift, recording payments, sending email, reminders,
 recurring invoices, the period export for the tax advisor, and dashboard
 reporting. `docs/superpowers/specs/2026-09-23-invoice-system-design.md`
