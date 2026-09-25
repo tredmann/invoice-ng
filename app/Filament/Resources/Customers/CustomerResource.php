@@ -17,6 +17,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 
 /**
  * A company's customers, at /admin/{company}/customers.
@@ -54,6 +56,36 @@ class CustomerResource extends Resource
     public static function getPluralModelLabel(): string
     {
         return __('customer.plural_label');
+    }
+
+    /**
+     * The name, followed by a Deaktiviert badge when it applies. Used by the
+     * list's name column and the view page's heading, so the two mark a
+     * deactivated customer the same way.
+     *
+     * The name is escaped here, once, because an HtmlString is rendered as
+     * is: "Bauer & <Söhne> GmbH" must print as text, not as markup and not as
+     * "&amp;amp;".
+     */
+    public static function nameWithStatus(Customer $customer): HtmlString
+    {
+        $name = e($customer->name);
+
+        if (! $customer->isArchived()) {
+            return new HtmlString($name);
+        }
+
+        $badge = Blade::render(
+            '<x-filament::badge color="gray" size="sm">{{ $label }}</x-filament::badge>',
+            ['label' => __('customer.status.archived')],
+        );
+
+        // Inline style rather than utility classes: Filament's pre-built CSS
+        // carries only the classes Filament itself uses, and there is no build
+        // step here to add more.
+        return new HtmlString(
+            '<span style="display: inline-flex; align-items: center; gap: 0.5rem">'.$name.$badge.'</span>'
+        );
     }
 
     public static function form(Schema $schema): Schema

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Customers\Pages;
 
+use App\Filament\Resources\Customers\Actions\CustomerActions;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Customer;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Contracts\Support\Htmlable;
 
 /**
  * Read-only today, and largely a repeat of the form. It exists because the
@@ -23,6 +25,15 @@ class ViewCustomer extends ViewRecord
     public function getTitle(): string
     {
         return $this->customer()->name;
+    }
+
+    /**
+     * The heading carries the Deaktiviert badge; the title stays plain text,
+     * because it also ends up in the browser tab.
+     */
+    public function getHeading(): Htmlable
+    {
+        return CustomerResource::nameWithStatus($this->customer());
     }
 
     protected function customer(): Customer
@@ -41,6 +52,8 @@ class ViewCustomer extends ViewRecord
     {
         return [
             EditAction::make()->label(__('customer.actions.edit')),
+            CustomerActions::archive(),
+            CustomerActions::unarchive(),
         ];
     }
 }
