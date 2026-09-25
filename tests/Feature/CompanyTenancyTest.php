@@ -78,14 +78,13 @@ it('orders tenants by name, so the default company is deterministic', function (
         ->toBe(['Alpha GmbH', 'Zeta GmbH']);
 });
 
-it('sends a user with no company to company registration', function (): void {
+it('does not force a user with no company into registration', function (): void {
     /** @var TestCase $this */
-    // This is how the first company gets created. There is no seeder and no
-    // signup, so if this redirect does not happen the application is
-    // unusable from a clean database.
+    // The first company used to come into being by Filament redirecting /admin
+    // to registration. The user now creates it by choice, from /admin.
     $this->actingAs(User::factory()->create())
         ->get('/admin')
-        ->assertRedirect('/admin/new');
+        ->assertOk();
 });
 
 it('serves the company registration page', function (): void {

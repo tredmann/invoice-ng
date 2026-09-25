@@ -91,6 +91,11 @@ it('archives the last active company from the list, and /admin still renders', f
         ->callTableAction('archive', $only);
 
     expect($only->fresh()?->isArchived())->toBeTrue();
+
+    $this->actingAs($user)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('Noch keine Firma angelegt.');
 });
 
 it('hides the archive action on an archived company', function (): void {

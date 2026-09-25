@@ -17,6 +17,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
+/**
+ * Declared because Larastan types `legal_form` as a string despite the enum
+ * cast in casts(), and calling getLabel() on it then fails analysis.
+ *
+ * @property LegalForm $legal_form
+ */
 #[Fillable([
     'name',
     'legal_form',

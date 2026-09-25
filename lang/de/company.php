@@ -25,6 +25,7 @@ return [
 
     'picker' => [
         'title' => 'Firma wählen',
+        'empty' => 'Noch keine Firma angelegt.',
     ],
 
     'settings' => [

@@ -8,11 +8,13 @@ use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Filament\Pages\Tenancy\RegisterCompany;
 use App\Filament\Resources\Companies\CompanyResource;
 use App\Models\Company;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\MenuItem;
+use Filament\Navigation\NavigationBuilder;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -56,6 +58,16 @@ class AdminPanelProvider extends PanelProvider
                     // a tenant is in the route.
                     ->url(fn (): string => CompanyResource::getUrl('index')),
             ])
+            // With no company in the URL — only on /admin — Filament's company
+            // menu cannot render: it passes the null tenant to getTenantName().
+            // A placeholder menu takes its place.
+            ->tenantMenu(fn (): bool => Filament::getTenant() !== null)
+            // Every navigation URL needs a company. An empty builder keeps the
+            // sidebar and drops its links; navigation(false) would drop the
+            // sidebar itself.
+            ->navigation(fn (): NavigationBuilder|bool => Filament::getTenant() === null
+                ? new NavigationBuilder
+                : true)
             ->colors([
                 'primary' => Color::Amber,
             ])

@@ -6,36 +6,31 @@ namespace App\Filament\Pages\Tenancy;
 
 use App\Models\Company;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
-use Filament\Pages\SimplePage;
-use Filament\Support\Enums\Width;
+use Filament\Pages\Page;
+use Filament\Schemas\Components\EmptyState;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * The page at /admin: one tile per company the user can switch to.
  *
- * Filament's tenancy would otherwise redirect /admin straight into the user's
- * default company, which leaves nowhere to see every company side by side.
- * This page takes over that route — AppServiceProvider binds Filament's
- * RedirectToTenantController to it — so it sits outside any company, which is
- * why it is a simple page with no company navigation.
+ * It sits outside any company but in the full panel layout, so it looks like
+ * every other screen (company-picker spec §1). Filament would otherwise
+ * redirect /admin into the default company, or into registration when there is
+ * none; AppServiceProvider binds Filament's RedirectToTenantController to this
+ * page instead, so it is served on Filament's own route. It never redirects.
  *
- * It is not discovered as a panel page: discovery only picks up tenant-scoped
- * `Page` subclasses, and a `SimplePage` is not one.
+ * Not discovered: discovery would also register it under every company.
  */
-class SelectCompany extends SimplePage
+class SelectCompany extends Page
 {
     #[\Override]
-    protected string $view = 'filament.pages.select-company';
-
-    public function mount(): void
-    {
-        // Nothing to pick from: the first company still comes into being
-        // through registration, as it did before this page existed.
-        if ($this->getCompanies()->isEmpty()) {
-            $this->redirect(Filament::getTenantRegistrationUrl());
-        }
-    }
+    protected static bool $isDiscovered = false;
 
     public function getTitle(): string
     {
@@ -43,12 +38,12 @@ class SelectCompany extends SimplePage
     }
 
     /**
-     * The same list as the company menu, so the two cannot disagree about
-     * which companies exist — archived ones stay out of both.
+     * The same list as the company menu, so the two cannot disagree — archived
+     * companies stay out of both.
      *
      * @return Collection<int, Company>
      */
-    public function getCompanies(): Collection
+    public static function getCompanies(): Collection
     {
         /** @var User $user */
         $user = Filament::auth()->user();
@@ -56,18 +51,47 @@ class SelectCompany extends SimplePage
         return $user->getTenants(Filament::getDefaultPanel());
     }
 
-    public function getCompanyUrl(Company $company): string
+    public function content(Schema $schema): Schema
     {
-        return Filament::getDefaultPanel()->getUrl($company) ?? '';
+        $companies = static::getCompanies();
+
+        if ($companies->isEmpty()) {
+            return $schema->components([
+                EmptyState::make(__('company.picker.empty'))
+                    ->icon(Heroicon::OutlinedBuildingOffice2)
+                    ->footer([$this->createCompanyAction()]),
+            ]);
+        }
+
+        return $schema->components([
+            Grid::make(['default' => 1, 'md' => 2, 'xl' => 3])
+                ->schema($companies
+                    ->map(fn (Company $company): View => View::make('filament.pages.company-tile')
+                        ->key("company-{$company->getKey()}")
+                        ->viewData([
+                            'name' => $company->name,
+                            'legalForm' => $company->legal_form->getLabel(),
+                            'url' => Filament::getDefaultPanel()->getUrl($company),
+                        ]))
+                    ->all()),
+        ]);
     }
 
-    public function getRegistrationUrl(): string
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
     {
-        return Filament::getTenantRegistrationUrl() ?? '';
+        // With no company the empty state carries this action; showing it in
+        // the header as well would put the same button on the page twice.
+        return static::getCompanies()->isEmpty() ? [] : [$this->createCompanyAction()];
     }
 
-    public function getMaxWidth(): Width
+    private function createCompanyAction(): Action
     {
-        return Width::ThreeExtraLarge;
+        return Action::make('createCompany')
+            ->label(__('company.actions.create'))
+            ->icon(Heroicon::OutlinedPlus)
+            ->url(Filament::getTenantRegistrationUrl());
     }
 }

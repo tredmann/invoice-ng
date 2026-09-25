@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Companies;
 
+use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Filament\Resources\Companies\Pages\ListCompanies;
 use App\Filament\Resources\Companies\Tables\CompaniesTable;
 use App\Models\Company;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -41,6 +43,17 @@ class CompanyResource extends Resource
 
     #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
+
+    /**
+     * A company's search result opens that company's settings, with the
+     * company itself as the tenant — so the URL builds on /admin too, where no
+     * company is current yet. Filament's default points at this resource's
+     * list, whose route needs the current tenant.
+     */
+    public static function getGlobalSearchResultUrl(Model $record): string
+    {
+        return route(CompanySettings::getRouteName(), ['tenant' => $record]);
+    }
 
     /**
      * Companies are what the tenant is, so this resource opts out of tenant
