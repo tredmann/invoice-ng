@@ -9,15 +9,13 @@ use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Filament\Pages\Tenancy\RegisterCompany;
 use App\Filament\Pages\Tenancy\SelectCompany;
-use App\Filament\Resources\Companies\CompanyResource;
 use App\Models\Company;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\MenuItem;
-use Filament\Navigation\NavigationBuilder;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -50,38 +48,27 @@ class AdminPanelProvider extends PanelProvider
             ->tenant(Company::class, slugAttribute: 'slug')
             ->tenantRegistration(RegisterCompany::class)
             ->tenantProfile(CompanySettings::class)
-            ->tenantMenuItems([
-                MenuItem::make()
-                    ->label(fn (): string => __('company.actions.all'))
-                    ->icon(Heroicon::OutlinedSquares2x2)
-                    // The company picker, which has taken over /admin.
-                    ->url(fn (): string => url($panel->getPath())),
-                MenuItem::make()
-                    ->label(fn (): string => __('company.actions.manage'))
-                    ->icon(Heroicon::OutlinedBuildingOffice2)
-                    // A closure so the URL is built when the menu renders and
-                    // a tenant is in the route.
-                    ->url(fn (): string => CompanyResource::getUrl('index')),
+            // Switching companies happens in the top-bar switcher, which does
+            // nothing else (company-picker spec §2.1). Filament's own company
+            // menu — with its settings, registration and custom entries — is off.
+            ->tenantMenu(false)
+            // The sidebar exists only inside a company: every entry belongs to
+            // one, and /admin has none (spec §2.3).
+            ->navigation(fn (): bool => Filament::getTenant() !== null)
+            ->navigationItems([
+                NavigationItem::make(fn (): string => __('company.settings.title'))
+                    ->icon(Heroicon::OutlinedCog6Tooth)
+                    ->url(fn (): string => route(CompanySettings::getRouteName(), ['tenant' => Filament::getTenant()]))
+                    ->isActiveWhen(fn (): bool => request()->routeIs(CompanySettings::getRouteName()))
+                    ->sort(2),
             ])
-            // With no company in the URL — only on /admin — Filament's company
-            // menu cannot render: it passes the null tenant to getTenantName().
-            // A placeholder menu takes its place.
-            ->tenantMenu(fn (): bool => Filament::getTenant() !== null)
-            // Every navigation URL needs a company. An empty builder keeps the
-            // sidebar and drops its links; navigation(false) would drop the
-            // sidebar itself.
-            ->navigation(fn (): NavigationBuilder|bool => Filament::getTenant() === null
-                ? new NavigationBuilder
-                : true)
-            // SIDEBAR_START, not SIDEBAR_NAV_START: inside the nav the menu
-            // inherits the nav's padding and scrollbar gutter. Here it lands in
-            // the exact box Filament's own company menu occupies on desktop.
-            ->renderHook(
-                PanelsRenderHook::SIDEBAR_START,
-                fn (): string => Filament::getTenant() === null
-                    ? view('filament.company-picker-menu', ['companies' => SelectCompany::getCompanies()])->render()
-                    : '',
-            )
+            // Once after the brand for desktop, once before the user menu for
+            // phones, where Filament hides the brand area; the phone copy is
+            // hidden from 64rem by the one rule below — Filament's shipped CSS
+            // has no global responsive-hide class (spike findings).
+            ->renderHook(PanelsRenderHook::TOPBAR_LOGO_AFTER, fn (): string => $this->switcher('desktop'))
+            ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_BEFORE, fn (): string => $this->switcher('phone'))
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn (): string => '<style>@media (min-width: 64rem) { [data-company-switcher="phone"] { display: none } }</style>')
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -105,5 +92,14 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    private function switcher(string $variant): string
+    {
+        return view('filament.company-switcher', [
+            'companies' => SelectCompany::getCompanies(),
+            'current' => Filament::getTenant(),
+            'variant' => $variant,
+        ])->render();
     }
 }

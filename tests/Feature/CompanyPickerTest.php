@@ -9,17 +9,17 @@ use Filament\Livewire\GlobalSearch;
 use Livewire\Livewire;
 use Tests\TestCase;
 
-it('renders /admin in the full panel layout', function (): void {
-    /** @var TestCase $this */
-    // The first attempt used the simple layout — the centred card login uses —
-    // which has neither of these. The spec's success criterion is that /admin
-    // looks like every other panel screen.
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create());
+/**
+ * The markup of the first switcher instance, so assertions about the dropdown
+ * cannot be satisfied by a tile or a heading elsewhere on the page.
+ */
+function switcherMarkup(string $html): string
+{
+    // The element, not the CSS rule in <head> that selects it.
+    expect($html)->toContain('<div data-company-switcher="desktop"');
 
-    $this->actingAs($user)
-        ->get('/admin')->assertOk()->assertSeeHtml('fi-sidebar')->assertSeeHtml('fi-topbar');
-});
+    return (string) str($html)->after('<div data-company-switcher="desktop"')->before('</nav>');
+}
 
 it('shows the companies of the user as tiles, in name order, with the legal form', function (): void {
     /** @var TestCase $this */
@@ -132,17 +132,6 @@ it('still sends a login to the page the user was on the way to', function (): vo
         ->assertRedirect(url('/admin/acme-gmbh/settings'));
 });
 
-it('offers the way back to the picker from inside a company', function (): void {
-    /** @var TestCase $this */
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
-
-    $this->actingAs($user)
-        ->get('/admin/acme-gmbh')
-        ->assertOk()
-        ->assertSee('Alle Firmen');
-});
-
 it('answers a global search on /admin without a company', function (): void {
     // Review focus 4: the companies resource is globally searchable, and every
     // result needs a URL — which, inside a company, is built from that company.
@@ -154,60 +143,6 @@ it('answers a global search on /admin without a company', function (): void {
         ->set('search', 'Acme')
         ->assertOk()
         ->assertSee('Acme GmbH');
-});
-
-it('shows the placeholder company menu on /admin, listing the companies', function (): void {
-    /** @var TestCase $this */
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
-
-    $response = $this->actingAs($user)->get('/admin')->assertOk();
-
-    // Scoped to the menu's own markup, so the tile's copy of the name and link
-    // cannot satisfy these on its own.
-    expect((string) $response->getContent())->toContain('data-company-picker-menu');
-
-    $menu = str((string) $response->getContent())->after('data-company-picker-menu')->before('</nav>');
-
-    expect((string) $menu)
-        ->toContain('Firma wählen')
-        ->toContain('Acme GmbH')
-        ->toContain('href="'.url('/admin/acme-gmbh').'"')
-        ->toContain('href="'.url('/admin/new').'"');
-});
-
-it('shows Filament company menu, not the placeholder, inside a company', function (): void {
-    /** @var TestCase $this */
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
-
-    $this->actingAs($user)
-        ->get('/admin/acme-gmbh')->assertOk()->assertDontSeeHtml('data-company-picker-menu')->assertSeeHtml('fi-tenant-menu');
-});
-
-it('escapes company names in the placeholder menu', function (): void {
-    /** @var TestCase $this */
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create(['name' => 'Müller & Söhne <b>GmbH</b>']));
-
-    $content = (string) $this->actingAs($user)->get('/admin')->assertOk()->getContent();
-    expect($content)->toContain('data-company-picker-menu');
-
-    $menu = (string) str($content)->after('data-company-picker-menu')->before('</nav>');
-
-    expect($menu)->toContain('Müller &amp; Söhne &lt;b&gt;GmbH&lt;/b&gt;');
-    expect($menu)->not->toContain('<b>GmbH</b>');
-});
-
-it('builds no navigation links on /admin, but does inside a company', function (): void {
-    /** @var TestCase $this */
-    // Both halves: without the second, an empty sidebar everywhere would pass.
-    $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
-
-    $this->actingAs($user)->get('/admin')->assertOk()->assertDontSeeHtml('fi-sidebar-item');
-
-    $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->assertSeeHtml('fi-sidebar-item');
 });
 
 it('points the brand logo at the picker, not at the first company', function (): void {
@@ -254,4 +189,96 @@ it('lets a long single-word company name wrap inside its tile', function (): voi
 
     $this->actingAs($user)
         ->get('/admin')->assertOk()->assertSeeHtml('overflow-wrap: anywhere');
+});
+
+it('shows the switcher in the top bar on /admin, listing the active companies', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Alpha GmbH']));
+    $user->companies()->attach(Company::factory()->create(['name' => 'Zeta GmbH']));
+    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+    Company::factory()->create(['name' => 'Theirs GmbH']);
+
+    $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin')->assertOk()->getContent());
+
+    expect($switcher)->toContain('Firma wählen')
+        ->toContain('href="'.url('/admin/alpha-gmbh').'"')
+        ->toContain('href="'.url('/admin/zeta-gmbh').'"');
+    expect($switcher)->not->toContain('Gone GmbH');
+    expect($switcher)->not->toContain('Theirs GmbH');
+    // Only switches: none of the old menu entries.
+    expect($switcher)->not->toContain('Neue Firma');
+    expect($switcher)->not->toContain('Firmendaten');
+});
+
+it('shows the current company in the switcher inside a company, and lists it marked', function (): void {
+    /** @var TestCase $this */
+    // Review focus 1: with a single company the dropdown still lists it.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->getContent());
+
+    expect($switcher)->toContain('Acme GmbH')
+        ->toContain('href="'.url('/admin/acme-gmbh').'"')
+        ->toContain('data-current-company');
+});
+
+it('names an archived company opened by URL in the trigger but does not list it', function (): void {
+    /** @var TestCase $this */
+    // Review focus 2.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Active GmbH']));
+    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+
+    $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin/gone-gmbh')->assertOk()->getContent());
+
+    expect($switcher)->toContain('Gone GmbH');
+    expect($switcher)->not->toContain('href="'.url('/admin/gone-gmbh').'"');
+});
+
+it('hides the switcher from a user with no active company', function (): void {
+    /** @var TestCase $this */
+    $this->actingAs(User::factory()->create())
+        ->get('/admin')->assertOk()
+        // The element's opening tag: the CSS rule in <head> names the
+        // attribute too.
+        ->assertDontSeeHtml('<div data-company-switcher=');
+});
+
+it('escapes company names in the switcher', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Müller & Söhne <b>GmbH</b>']));
+
+    $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin')->assertOk()->getContent());
+
+    expect($switcher)->toContain('Müller &amp; Söhne &lt;b&gt;GmbH&lt;/b&gt;');
+    expect($switcher)->not->toContain('<b>GmbH</b>');
+});
+
+it('never renders Filament company menu', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    foreach (['/admin', '/admin/acme-gmbh'] as $path) {
+        $this->actingAs($user)->get($path)->assertOk()->assertDontSeeHtml('fi-sidebar-header-controls');
+    }
+});
+
+it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
+
+    $this->actingAs($user)->get('/admin')->assertOk()->assertDontSeeHtml('id="fi-main-sidebar"');
+
+    $inside = (string) $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->getContent();
+    $sidebar = (string) str($inside)->after('id="fi-main-sidebar"')->before('</aside>');
+
+    expect($inside)->toContain('id="fi-main-sidebar"');
+    expect($sidebar)->toContain('Dashboard')
+        ->toContain('Firmendaten')
+        ->toContain('href="'.url('/admin/acme-gmbh/settings').'"');
 });

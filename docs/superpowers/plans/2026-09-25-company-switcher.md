@@ -129,9 +129,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
  */
 function switcherMarkup(string $html): string
 {
-    expect($html)->toContain('data-company-switcher');
+    // The element, not the CSS rule in <head> that selects it.
+    expect($html)->toContain('<div data-company-switcher="desktop"');
 
-    return (string) str($html)->after('data-company-switcher')->before('</header>');
+    return (string) str($html)->after('<div data-company-switcher="desktop"')->before('</nav>');
 }
 
 it('shows the switcher in the top bar on /admin, listing the active companies', function (): void {
@@ -185,7 +186,9 @@ it('hides the switcher from a user with no active company', function (): void {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertDontSee('data-company-switcher', escape: false);
+        // The element's opening tag: the CSS rule in <head> names the
+        // attribute too.
+        ->assertDontSee('<div data-company-switcher=', escape: false);
 });
 
 it('escapes company names in the switcher', function (): void {

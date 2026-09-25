@@ -48,7 +48,6 @@ return [
         'unarchive' => 'Wieder aktivieren',
         'create' => 'Neue Firma',
         'manage' => 'Firmen verwalten',
-        'all' => 'Alle Firmen',
     ],
 
     'list' => [
