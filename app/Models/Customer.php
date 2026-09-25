@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -21,6 +22,7 @@ use LogicException;
  *
  * @property CustomerType $type
  * @property int $number
+ * @property Carbon|null $archived_at
  */
 #[Fillable([
     'type',
@@ -88,12 +90,6 @@ class Customer extends Model
      * argues why that does not breach §3.1 of the system design. The UUID is
      * still the key; this is only what a URL shows.
      */
-    #[\Override]
-    public function getRouteKeyName(): string
-    {
-        return 'number';
-    }
-
     #[\Override]
     public function getRouteKey(): string
     {

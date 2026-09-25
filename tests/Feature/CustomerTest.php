@@ -157,7 +157,12 @@ it('archives and restores a customer, keeping the first archive date', function 
 
     $customer->archive();
 
-    expect($customer->fresh()?->archived_at?->equalTo($archivedAt))->toBeTrue();
+    $freshArchivedAt = $customer->fresh()?->archived_at;
+    expect($archivedAt)->not->toBeNull();
+    expect($freshArchivedAt)->not->toBeNull();
+    /** @var \Illuminate\Support\Carbon $archivedAt */
+    /** @var \Illuminate\Support\Carbon $freshArchivedAt */
+    expect($freshArchivedAt->equalTo($archivedAt))->toBeTrue();
 
     $customer->unarchive();
 
