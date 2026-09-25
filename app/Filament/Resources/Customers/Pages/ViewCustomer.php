@@ -6,6 +6,8 @@ namespace App\Filament\Resources\Customers\Pages;
 
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Customer;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -30,5 +32,15 @@ class ViewCustomer extends ViewRecord
         assert($record instanceof Customer);
 
         return $record;
+    }
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            EditAction::make()->label(__('customer.actions.edit')),
+        ];
     }
 }
