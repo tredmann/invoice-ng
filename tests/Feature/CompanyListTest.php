@@ -73,10 +73,11 @@ it('archives a company from the row actions', function (): void {
     expect($other->fresh()?->isArchived())->toBeTrue();
 });
 
-it('hides the archive action on the last active company', function (): void {
-    // The guard lives on the model, which throws. Hiding the action is what
-    // keeps the user from meeting that exception as a 500.
-    $only = Company::factory()->create();
+it('archives the last active company from the list, and /admin still renders', function (): void {
+    /** @var TestCase $this */
+    // End to end, the reason the guard could go: after archiving the only
+    // company, /admin is a page, not a redirect into registration.
+    $only = Company::factory()->create(['name' => 'Only GmbH']);
 
     $user = User::factory()->create();
     $user->companies()->attach($only);
@@ -86,7 +87,25 @@ it('hides the archive action on the last active company', function (): void {
     Filament::setTenant($only);
 
     Livewire::test(ListCompanies::class)
-        ->assertTableActionHidden('archive', $only);
+        ->assertTableActionVisible('archive', $only)
+        ->callTableAction('archive', $only);
+
+    expect($only->fresh()?->isArchived())->toBeTrue();
+});
+
+it('hides the archive action on an archived company', function (): void {
+    $active = Company::factory()->create();
+    $archived = Company::factory()->archived()->create();
+
+    $user = User::factory()->create();
+    $user->companies()->attach([$active->getKey(), $archived->getKey()]);
+
+    Livewire::actingAs($user);
+
+    Filament::setTenant($active);
+
+    Livewire::test(ListCompanies::class)
+        ->assertTableActionHidden('archive', $archived);
 });
 
 it('offers unarchive only on an archived company', function (): void {
