@@ -209,3 +209,49 @@ it('builds no navigation links on /admin, but does inside a company', function (
 
     $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->assertSeeHtml('fi-sidebar-item');
 });
+
+it('points the brand logo at the picker, not at the first company', function (): void {
+    /** @var TestCase $this */
+    // Filament's default home URL resolves to the user's default tenant — the
+    // first company by name — so from inside Zeta the logo led into Alpha, and
+    // on the picker it made the choice the page exists to offer.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Alpha GmbH']));
+    $user->companies()->attach(Company::factory()->create(['name' => 'Zeta GmbH']));
+
+    foreach (['/admin', '/admin/zeta-gmbh'] as $path) {
+        $content = (string) $this->actingAs($user)->get($path)->assertOk()->getContent();
+
+        expect($content)->toContain('fi-topbar-start');
+
+        $logoLink = (string) str($content)->after('fi-topbar-start')->before('fi-logo');
+
+        expect($logoLink)->toContain('href="'.url('/admin').'"');
+        expect($logoLink)->not->toContain('alpha-gmbh');
+    }
+});
+
+it('sends an already signed-in visit to the login page to the picker', function (): void {
+    /** @var TestCase $this */
+    // Filament's Login::mount() redirects a signed-in user to Filament::getUrl(),
+    // the default company — a separate path from the login response. Through
+    // the real route, so the test exercises whichever login page the panel uses.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Alpha GmbH']));
+
+    $this->actingAs($user)
+        ->get('/admin/login')
+        ->assertRedirect(url('/admin'));
+});
+
+it('lets a long single-word company name wrap inside its tile', function (): void {
+    /** @var TestCase $this */
+    // Filament's section heading has no overflow-wrap, and a flex item will not
+    // shrink below its longest word — so a German compound ran past the card.
+    // Pure CSS, so this pins the rule; the screenshot is what shows it works.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Grundstücksverwaltungsgesellschaft mbH']));
+
+    $this->actingAs($user)
+        ->get('/admin')->assertOk()->assertSeeHtml('overflow-wrap: anywhere');
+});

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Filament\Pages\Tenancy\RegisterCompany;
@@ -37,7 +38,11 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
+            // The brand logo leads to the company picker. Filament's default
+            // home is the user's default tenant — the first company by name —
+            // which would make the choice the picker exists to offer.
+            ->homeUrl(fn (): string => url($panel->getPath()))
             // The current company lives in the URL, not only in the session:
             // every company-scoped screen sits under /admin/{company}. Held in
             // session alone, one URL would show different companies to the
