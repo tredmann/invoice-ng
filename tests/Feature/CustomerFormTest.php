@@ -52,8 +52,9 @@ it('creates the customer in the current company with its next number', function 
 });
 
 it('ignores a customer number smuggled into the create form', function (): void {
-    // Fails if the number field is dehydrated on create or `number` becomes
-    // fillable and the hook stops overwriting it.
+    // Guards the form path end to end: a number submitted through the create
+    // form must never land. The model test "assigns the number even when one
+    // is supplied" pins the creating hook itself.
     $company = Company::factory()->create();
     actInCompany($company);
 
@@ -170,6 +171,29 @@ it('keeps number and deactivation when a deactivated customer is edited', functi
     expect($customer->city)->toBe('Regensburg')
         ->and($customer->number)->toBe(1)
         ->and($customer->isArchived())->toBeTrue();
+});
+
+it('edits only the current company\'s customer when numbers collide', function (): void {
+    // Fails if the edit page's record lookup ignores the tenant: K-0001 exists
+    // in both companies, so an unscoped lookup could load or save Beta's row
+    // while acting in Alpha.
+    $alpha = Company::factory()->create();
+    $beta = Company::factory()->create();
+    // Beta's customer is created first, so an unscoped "number = 1" lookup
+    // would resolve to it rather than to Alpha's — an accident of insertion
+    // order that would otherwise mask a missing tenant filter.
+    $theirs = Customer::factory()->for($beta)->create(['name' => 'Weber Haustechnik e.K.', 'city' => 'Hamburg']);
+    $mine = Customer::factory()->for($alpha)->create(['name' => 'Bauer & Kollegen GmbH', 'city' => 'München']);
+    actInCompany($alpha);
+
+    Livewire::test(EditCustomer::class, ['record' => 'K-0001'])
+        ->assertFormSet(['name' => 'Bauer & Kollegen GmbH'])
+        ->fillForm(['city' => 'Regensburg'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($mine->fresh()?->city)->toBe('Regensburg')
+        ->and($theirs->fresh()?->city)->toBe('Hamburg');
 });
 
 it('clears contact person and vat id when the form switches a Firma to a Privatperson', function (): void {

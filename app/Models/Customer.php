@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /**
@@ -24,6 +23,16 @@ use LogicException;
  * @property int $number
  * @property Carbon|null $archived_at
  */
+// `number`, `company_id` and `archived_at` are absent from the list below: the
+// number is assigned here, the company is the tenant, and `archived_at`
+// changes only through archive() and unarchive().
+//
+// Filament's tenancy hooks `creating` too, to associate a new record with the
+// current tenant. When the next wave creates a customer for a company other
+// than the one the panel request is scoped to — copying a customer to another
+// company, say — that hook still fires and re-attaches company_id to the
+// current tenant, so the customer would be numbered in one company and stored
+// under another unless that wave accounts for it.
 #[Fillable([
     'type',
     'name',
@@ -41,9 +50,7 @@ class Customer extends Model
     use HasFactory, HasUuids;
 
     /**
-     * `number`, `company_id` and `archived_at` are absent from the fillable
-     * list above: the number is assigned here, the company is the tenant, and
-     * `archived_at` changes only through archive() and unarchive().
+     * Defaults to a business customer, the more common case.
      *
      * @var array<string, mixed>
      */
@@ -156,6 +163,11 @@ class Customer extends Model
      * transaction this nests as a savepoint and the lock lasts until the
      * outer commit.
      *
+     * Uses the model's own connection rather than DB::transaction(), which
+     * always uses the default connection — the lock and the INSERT would
+     * otherwise run on different connections whenever this model does not
+     * use the default one.
+     *
      * @param  array<string, mixed>  $options
      */
     #[\Override]
@@ -165,7 +177,7 @@ class Customer extends Model
             return parent::save($options);
         }
 
-        return DB::transaction(fn (): bool => parent::save($options));
+        return $this->getConnection()->transaction(fn (): bool => parent::save($options));
     }
 
     protected static function booted(): void

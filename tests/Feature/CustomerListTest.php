@@ -6,6 +6,7 @@ use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Filament\Resources\Customers\Pages\ViewCustomer;
 use App\Models\Company;
 use App\Models\Customer;
+use Filament\Actions\Exceptions\ActionNotResolvableException;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 use Livewire\Livewire;
@@ -196,6 +197,24 @@ it('deactivates and reactivates a customer from its row menu', function (): void
         ->callAction(TestAction::make('unarchive')->table($customer));
 
     expect($customer->fresh()?->isArchived())->toBeFalse();
+});
+
+it('does not let a table action touch another company\'s customer', function (): void {
+    // Table actions resolve their record by re-querying the table's own
+    // query, which Filament scopes to the tenant. Fails if that record
+    // resolution ever ignores the tenant scope — the action would then
+    // silently archive another company's customer instead of throwing.
+    $a = Company::factory()->create();
+    $b = Company::factory()->create();
+    $theirs = Customer::factory()->for($b)->create();
+    actInCompany($a);
+
+    $page = Livewire::test(ListCustomers::class);
+
+    expect(fn () => $page->callAction(TestAction::make('archive')->table($theirs)))
+        ->toThrow(ActionNotResolvableException::class);
+
+    expect($theirs->fresh()?->archived_at)->toBeNull();
 });
 
 it('deactivates and reactivates a customer from its page', function (): void {
