@@ -147,20 +147,17 @@ class SelectCompany extends Page
     }
 
     /**
-     * Brings the page and the top-bar switcher up to date after archiving or
-     * restoring.
+     * Reloads /admin after archiving or restoring.
      *
-     * Filament cached the content schema earlier in this request — it built it
-     * to find the action being called, before the action changed which
-     * companies are archived — so it is dropped and the render rebuilds it.
-     * The switcher lives in Filament's separate top-bar component, which
-     * re-renders only on its refresh event.
+     * The change touches state Filament caches in several places — the page's
+     * content schema and its header actions are built before the action runs,
+     * and the switcher lives in Filament's separate top-bar component. A reload
+     * rebuilds all of them; patching the caches one by one missed the header
+     * action ("Neue Firma" twice, or not at all).
      */
     private function refreshAfterChange(): void
     {
-        unset($this->cachedSchemas['content']);
-
-        $this->dispatch('refresh-topbar');
+        $this->redirect(url(Filament::getDefaultPanel()->getPath()));
     }
 
     private function createCompanyAction(): Action

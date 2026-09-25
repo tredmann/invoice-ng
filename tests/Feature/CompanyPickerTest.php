@@ -349,35 +349,96 @@ it('renders no search box while nothing is searchable', function (): void {
     $this->actingAs($user)->get('/admin/acme-gmbh')->assertOk()->assertDontSeeHtml('fi-global-search');
 });
 
-it('redraws the picker after archiving and restoring', function (): void {
-    // Asserting the database alone missed this: the actions worked, but the
-    // page rendered the schema it had built — to find the action — before the
-    // action ran, so the tile stayed and the Deaktiviert count lagged.
+/**
+ * How often the page links to company registration: the header action and
+ * the empty state's action must never both be there.
+ */
+function registrationLinks(string $html): int
+{
+    return substr_count($html, 'href="'.url('/admin/new').'"');
+}
+
+it('reloads the picker after archiving and restoring, so nothing on it is stale', function (): void {
+    /** @var TestCase $this */
+    // Filament caches the page's schema and header actions, and the switcher
+    // is a separate top-bar component: patching one cache left another stale.
+    // A reload of /admin rebuilds all of them.
     $company = Company::factory()->create(['name' => 'Acme GmbH']);
     $user = User::factory()->create();
     $user->companies()->attach([$company->getKey(), Company::factory()->create(['name' => 'Beta GmbH'])->getKey()]);
 
-    $page = Livewire::actingAs($user)->test(SelectCompany::class)
-        ->assertDontSee('Deaktiviert (')
+    Livewire::actingAs($user)->test(SelectCompany::class)
         ->callAction(TestAction::make('archive')->schemaComponent("company-{$company->getKey()}"))
-        ->assertSee('Deaktiviert (1)')
-        ->assertDontSeeHtml('href="'.url('/admin/acme-gmbh').'"')
-        // The switcher lives in Filament's separate top-bar component, which
-        // only re-renders on this event.
-        ->assertDispatched('refresh-topbar');
+        ->assertRedirect(url('/admin'));
 
-    $page->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$company->getKey()}"))
+    $this->actingAs($user)->get('/admin')->assertOk()
+        ->assertSee('Deaktiviert (1)')
+        ->assertDontSeeHtml('href="'.url('/admin/acme-gmbh').'"');
+
+    Livewire::actingAs($user)->test(SelectCompany::class)
+        ->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$company->getKey()}"))
+        ->assertRedirect(url('/admin'));
+
+    $this->actingAs($user)->get('/admin')->assertOk()
         ->assertDontSee('Deaktiviert (')
         ->assertSeeHtml('href="'.url('/admin/acme-gmbh').'"');
 });
 
-it('turns to the empty state when the last active company is archived', function (): void {
+it('offers Neue Firma exactly once after the last active company is archived', function (): void {
+    /** @var TestCase $this */
     $only = Company::factory()->create(['name' => 'Only GmbH']);
     $user = User::factory()->create();
     $user->companies()->attach($only);
 
     Livewire::actingAs($user)->test(SelectCompany::class)
         ->callAction(TestAction::make('archive')->schemaComponent("company-{$only->getKey()}"))
+        ->assertRedirect(url('/admin'));
+
+    $html = (string) $this->actingAs($user)->get('/admin')->assertOk()
         ->assertSee('Noch keine Firma angelegt.')
-        ->assertSee('Deaktiviert (1)');
+        ->assertSee('Deaktiviert (1)')
+        ->getContent();
+
+    expect(registrationLinks($html))->toBe(1);
+});
+
+it('offers Neue Firma again after restoring from an empty picker', function (): void {
+    /** @var TestCase $this */
+    $gone = Company::factory()->archived()->create(['name' => 'Gone GmbH']);
+    $user = User::factory()->create();
+    $user->companies()->attach($gone);
+
+    Livewire::actingAs($user)->test(SelectCompany::class)
+        ->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$gone->getKey()}"))
+        ->assertRedirect(url('/admin'));
+
+    $html = (string) $this->actingAs($user)->get('/admin')->assertOk()
+        ->assertSeeHtml('href="'.url('/admin/gone-gmbh').'"')
+        ->getContent();
+
+    expect(registrationLinks($html))->toBe(1);
+});
+
+it('escapes company names in the Deaktiviert section', function (): void {
+    /** @var TestCase $this */
+    // With no active company the switcher is hidden, so only the archived row
+    // can print the name.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Müller & Söhne <b>GmbH</b>']));
+
+    $html = (string) $this->actingAs($user)->get('/admin')->assertOk()->getContent();
+
+    expect($html)->toContain('Müller &amp; Söhne &lt;b&gt;GmbH&lt;/b&gt;');
+    expect($html)->not->toContain('<b>GmbH</b>');
+});
+
+it('shows no switcher inside an archived company when no company is active', function (): void {
+    /** @var TestCase $this */
+    // Spec §2.1: with no active company there is nothing to switch to. The
+    // archived company's URL still works, but its dropdown would be empty.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+
+    $this->actingAs($user)->get('/admin/gone-gmbh')->assertOk()
+        ->assertDontSeeHtml('<div data-company-switcher=');
 });

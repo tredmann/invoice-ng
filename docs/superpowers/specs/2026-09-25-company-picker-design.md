@@ -164,10 +164,13 @@ question goes back to the owner.
 - **Actions on repeated sections:** a ⋮ action on each company's section
   resolves that company; a call naming a company not on the page throws
   Filament's `ActionNotResolvableException` and changes nothing.
-- **Found while checking it in the browser:** after archiving or restoring,
-  Filament rendered the schema it had cached while resolving the action, and
-  the switcher — a separate top-bar component — did not re-render. The page
-  now drops that cached schema and dispatches Filament's `refresh-topbar`.
+- **Found while checking it in the browser, and in review:** after archiving or
+  restoring, Filament rendered the content schema and header actions it had
+  cached before the action ran, and the switcher — a separate top-bar
+  component — did not re-render. The page now reloads `/admin` after either
+  action, which rebuilds all of them.
+- **Switcher with no active company:** hidden even inside an archived company
+  opened by its URL, since its dropdown would be empty (§2.1).
 
 ### 4.2 Findings of the first round (sidebar placement), kept for reference
 

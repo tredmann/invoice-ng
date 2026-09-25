@@ -14,7 +14,9 @@
     /** @var \App\Models\Company|null $current */
 @endphp
 
-@if ($current !== null || $companies->isNotEmpty())
+{{-- With no active company there is nothing to switch to — even inside an
+     archived company opened by its URL (spec §2.1). --}}
+@if ($companies->isNotEmpty())
     <div data-company-switcher="{{ $variant }}">
         <x-filament::dropdown placement="bottom-start" size @class(['fi-tenant-menu' => $variant === 'desktop'])>
             <x-slot name="trigger">
