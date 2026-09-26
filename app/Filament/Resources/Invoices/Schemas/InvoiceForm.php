@@ -44,76 +44,78 @@ class InvoiceForm
         // which would set the cards side by side.
         return $schema->columns(1)->components([
             Section::make(__('invoice.sections.header'))->schema([
-                // One row, in the board's proportions: of its 1008px card,
-                // Kunde is 576, Rechnungsdatum 180 and Zahlungsziel 220 —
-                // seven, two and three twelfths.
-                Grid::make(12)->schema([
-                    Select::make('customer_id')
-                        ->label(__('invoice.fields.customer'))
-                        ->columnSpan(7)
-                        ->options(fn (?Document $record): array => self::customerOptions($record))
+                // Two columns, two rows each. Left, at two thirds: who the
+                // invoice is for, then when the work happened. Right, at one
+                // third: the two dates that belong to the paperwork rather
+                // than to the job — when it is written and when it is due.
+                Grid::make(3)->schema([
+                    Group::make()->columnSpan(2)->schema([
+                        Select::make('customer_id')
+                            ->label(__('invoice.fields.customer'))
+                            ->options(fn (?Document $record): array => self::customerOptions($record))
                         // Preselected when the customer page sent us here, so
                         // „Neue Rechnung" on a customer arrives with that
                         // customer already chosen rather than an empty picker.
-                        ->default(fn (): ?string => self::customerFromRequest())
-                        ->searchable()
-                        ->required()
+                            ->default(fn (): ?string => self::customerFromRequest())
+                            ->searchable()
+                            ->required()
                         // The Zahlungsziel follows the chosen customer, so the
                         // form has to re-render when it changes.
-                        ->live()
-                        ->afterStateUpdated(function (mixed $state, Set $set): void {
-                            $customer = is_string($state) ? Customer::query()->find($state) : null;
+                            ->live()
+                            ->afterStateUpdated(function (mixed $state, Set $set): void {
+                                $customer = is_string($state) ? Customer::query()->find($state) : null;
 
-                            if ($customer instanceof Customer) {
-                                $set('payment_term', $customer->effectivePaymentTerm()->value);
-                            }
-                        }),
-                    DatePicker::make('issued_on')
-                        ->label(__('invoice.fields.issued_on'))
-                        ->columnSpan(2)
-                        ->native(false)
-                        ->displayFormat('d.m.Y')
-                        ->default(today())
-                        ->required()
-                        // The Fälligkeitsdatum below follows from this and the
-                        // Zahlungsziel, so both have to re-render on change.
-                        ->live(onBlur: true),
-                    Select::make('payment_term')
-                        ->label(__('invoice.fields.payment_term'))
-                        ->columnSpan(3)
-                        ->options(PaymentTerm::class)
-                        ->default(fn (): string => self::companyDefaultTerm()->value)
-                        ->required()
-                        ->live()
-                        // Shown, not stored: the Fälligkeitsdatum is derived at
-                        // issue from the Ausstellungsdatum and the Zahlungsziel.
-                        // Saying it here is what turns „14 Tage netto" from a
-                        // setting into a date the reader can check.
-                        ->helperText(fn (Get $get): ?string => self::dueHint($get)),
+                                if ($customer instanceof Customer) {
+                                    $set('payment_term', $customer->effectivePaymentTerm()->value);
+                                }
+                            }),
+                        // Side by side and equal: the form sends these two,
+                        // and the model decides from them whether the Beleg
+                        // carries a Leistungsdatum (BT-72) or a
+                        // Leistungszeitraum (BG-14), storing exactly one.
+                        Grid::make(2)->schema([
+                            DatePicker::make('performed_from')
+                                ->label(__('invoice.fields.performed_from'))
+                                ->native(false)
+                                ->displayFormat('d.m.Y')
+                                ->default(today())
+                                ->required(),
+                            DatePicker::make('performed_to')
+                                ->label(__('invoice.fields.performed_to'))
+                                ->native(false)
+                                ->displayFormat('d.m.Y')
+                                ->afterOrEqual('performed_from'),
+                        ]),
+
+                        Text::make(__('invoice.fields.performed_help'))
+                            ->size(TextSize::Small)
+                            ->color('gray'),
+                    ]),
+
+                    Group::make()->columnSpan(1)->schema([
+                        DatePicker::make('issued_on')
+                            ->label(__('invoice.fields.issued_on'))
+                            ->native(false)
+                            ->displayFormat('d.m.Y')
+                            ->default(today())
+                            ->required()
+                            // The Fälligkeitsdatum below follows from this and
+                            // the Zahlungsziel, so both re-render on change.
+                            ->live(onBlur: true),
+                        Select::make('payment_term')
+                            ->label(__('invoice.fields.payment_term'))
+                            ->options(PaymentTerm::class)
+                            ->default(fn (): string => self::companyDefaultTerm()->value)
+                            ->required()
+                            ->live()
+                            // Shown, not stored: the Fälligkeitsdatum is
+                            // derived at issue from the Ausstellungsdatum and
+                            // the Zahlungsziel. Saying it here turns „14 Tage
+                            // netto" from a setting into a date the reader can
+                            // check.
+                            ->helperText(fn (Get $get): ?string => self::dueHint($get)),
+                    ]),
                 ]),
-
-                Grid::make(12)->schema([
-                    // The form sends these two; the model decides from them
-                    // whether the Beleg carries a Leistungsdatum (BT-72) or a
-                    // Leistungszeitraum (BG-14), and stores exactly one.
-                    DatePicker::make('performed_from')
-                        ->label(__('invoice.fields.performed_from'))
-                        ->columnSpan(3)
-                        ->native(false)
-                        ->displayFormat('d.m.Y')
-                        ->default(today())
-                        ->required(),
-                    DatePicker::make('performed_to')
-                        ->label(__('invoice.fields.performed_to'))
-                        ->columnSpan(3)
-                        ->native(false)
-                        ->displayFormat('d.m.Y')
-                        ->afterOrEqual('performed_from'),
-                ]),
-
-                Text::make(__('invoice.fields.performed_help'))
-                    ->size(TextSize::Small)
-                    ->color('gray'),
             ]),
 
             Section::make(__('invoice.sections.positions'))
