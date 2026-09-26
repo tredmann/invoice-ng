@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\FromFormState;
 use Filament\Support\Contracts\HasLabel;
 
 /**
@@ -16,23 +17,10 @@ use Filament\Support\Contracts\HasLabel;
  */
 enum VatScheme: string implements HasLabel
 {
+    use FromFormState;
+
     case Standard = 'standard';
     case SmallBusiness = 'small_business';
-
-    /**
-     * Coerces a form's state — the enum itself, its backing string, or nothing
-     * yet — to a scheme. Forms hold whichever of these they were last given, so
-     * a closure that asks the state a question has to accept all three. The
-     * same shape as `CustomerType::fromFormState()`.
-     */
-    public static function fromFormState(mixed $state): ?self
-    {
-        if ($state instanceof self) {
-            return $state;
-        }
-
-        return is_string($state) ? self::tryFrom($state) : null;
-    }
 
     /**
      * Whether this company issues under §19 UStG: 0 %, no USt block, and the

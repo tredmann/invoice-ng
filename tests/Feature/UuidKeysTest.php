@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\LineItem;
 use App\Models\NumberRange;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -123,4 +125,27 @@ it('generates version 7 uuids for number ranges', function (): void {
     $range = NumberRange::factory()->for(Company::factory())->create();
 
     expect($range->getKey()[14])->toBe('7');
+});
+
+it('gives documents and line items uuid keys and uuid foreign keys', function (): void {
+    $columns = DB::select(
+        'select table_name, column_name, data_type from information_schema.columns
+         where (table_name = ? and column_name in (?, ?, ?))
+            or (table_name = ? and column_name in (?, ?))',
+        ['documents', 'id', 'company_id', 'customer_id', 'line_items', 'id', 'document_id']
+    );
+
+    expect($columns)->toHaveCount(5);
+
+    foreach ($columns as $column) {
+        expect($column->data_type)->toBe('uuid');
+    }
+});
+
+it('generates version 7 uuids for documents and line items', function (): void {
+    $invoice = Invoice::factory()->create();
+    $line = LineItem::factory()->for($invoice, 'document')->create();
+
+    expect($invoice->getKey()[14])->toBe('7')
+        ->and($line->getKey()[14])->toBe('7');
 });

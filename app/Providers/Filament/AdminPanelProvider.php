@@ -68,7 +68,7 @@ class AdminPanelProvider extends PanelProvider
                     ->icon(Heroicon::OutlinedCog6Tooth)
                     ->url(fn (): string => route(CompanySettings::getRouteName(), ['tenant' => Filament::getTenant()]))
                     ->isActiveWhen(fn (): bool => request()->routeIs(CompanySettings::getRouteName()))
-                    ->sort(2),
+                    ->sort(3),
             ])
             // Once after the brand for desktop, once before the user menu for
             // phones, where Filament hides the brand area; the phone copy is

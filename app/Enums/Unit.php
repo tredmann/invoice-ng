@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\FromFormState;
 use Filament\Support\Contracts\HasLabel;
 
 /**
@@ -20,6 +21,8 @@ use Filament\Support\Contracts\HasLabel;
  */
 enum Unit: string implements HasLabel
 {
+    use FromFormState;
+
     case Piece = 'H87';
     case Hour = 'HUR';
     case Day = 'DAY';

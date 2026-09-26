@@ -6,6 +6,7 @@ namespace App\Filament\Resources\Customers\Pages;
 
 use App\Filament\Resources\Customers\Actions\CustomerActions;
 use App\Filament\Resources\Customers\CustomerResource;
+use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Models\Customer;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -66,8 +67,9 @@ class ViewCustomer extends ViewRecord
             // target, and the header keeps its shape until then.
             Action::make('newInvoice')
                 ->label(__('customer.actions.new_invoice'))
-                ->disabled()
-                ->tooltip(__('customer.actions.new_invoice_disabled')),
+                ->url(fn (): string => InvoiceResource::getUrl('create', [
+                    'customer' => $this->customer()->getKey(),
+                ])),
             ActionGroup::make([
                 CustomerActions::deactivate(),
                 CustomerActions::reactivate(),

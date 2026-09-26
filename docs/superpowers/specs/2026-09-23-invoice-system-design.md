@@ -258,6 +258,21 @@ reference.
 The rest of the system asks a document what it can do rather than
 inspecting its type.
 
+> **Built 2026-09-27, one type of four.** The `documents` table exists with
+> `Invoice` as its first `tightenco/parental` child, and a Rechnung can be
+> drafted, listed, read, corrected and deleted. Two fields of the list above
+> are not on it yet — the frozen block and the stored totals — because both are
+> written *at issue*, and a nullable column nobody writes is structure invented
+> ahead of its use. `number` and its `unique(company_id, number)` backstop *are*
+> there: an index is awkward to add to a populated table and free to add to an
+> empty one, and PostgreSQL treats nulls as distinct, so every numberless draft
+> coexists under it.
+>
+> A document is addressed by its **UUID** for its whole life, unlike a customer.
+> A draft has no Belegnummer to be named by, and a scheme that switched at issue
+> would change a document's address partway through it. See
+> `docs/superpowers/specs/2026-09-27-invoice-drafts-design.md` §5.
+
 > **Corrected 2026-09-26.** Four types, not three, and one of the names above
 > has moved. Read the „Gutschrift" row of the table and its bullet as
 > **Teilstorno** — that is the partial take-back described there. The real
@@ -279,6 +294,15 @@ full open amount.
 
 Position, title, description, quantity, unit, unit price, tax rate, line
 net. Plain values; they reference no master data.
+
+> **Built 2026-09-27 as `LineItem`** — tech-stack §12 called it `DocumentLine`;
+> `CONTEXT.md` gives **Position** → `LineItem` and is the authority on names.
+> „References no master data" is enforced structurally: `unit` holds the UN/ECE
+> code and `tax_rate` the Steuersatz in basis points, and there is deliberately
+> no foreign key to `tax_rates`, so a rate renamed or deactivated next year
+> cannot reach backwards into a document that §4 makes immutable. The line net
+> is not stored: it follows from quantity × unit price and would be a second
+> truth.
 
 ### 3.7 Payments
 
@@ -328,6 +352,15 @@ At the moment of issue, three things are frozen:
 **After issue, the document and its line items are immutable.** This is
 enforced at the model layer — writes are rejected, not merely hidden in
 the interface. Only status, payments and audit entries may still change.
+
+> **Built 2026-09-27, before anything can be issued.** `Document` refuses any
+> dirty attribute but the status once the *stored* status is not `draft` —
+> reading the status being written would refuse the draft → issued transition
+> itself — and `LineItem` refuses every write belonging to an issued Beleg.
+> Deleting is drafts only (§3.4). Nothing reaches a non-draft status yet; the
+> guards are exercised through a factory state, which is the only moment they
+> can be watched refusing. The three things §4 freezes are *not* built: no
+> number is drawn, no block is frozen, no PDF is written.
 
 ## 5. Numbering
 
@@ -741,6 +774,10 @@ coverage.
 | Deletion | Archive only; drafts deletable |
 | Scheduled price changes | Dropped |
 | Migration | None |
+| Document table | `documents` + `tightenco/parental` from the start; one child class so far — added 2026-09-27 |
+| Document URL | The UUID, for the document's whole life; the Belegnummer never appears in one — added 2026-09-27 |
+| Line items | `LineItem`, carrying the unit code and tax rate as copied values with no foreign key — added 2026-09-27 |
+| Draft totals | Computed from the Positionen; stored only at issue — added 2026-09-27 |
 | Tax rates | A per-company table in basis points; one default per company enforced by a partial unique index — added 2026-09-26 |
 | Payment terms and units | Enums, not tables: neither is data a user invents, and a Position references no master data — added 2026-09-26, see ADR 0003 |
 | Number range storage | Its own table, because the row is locked for the length of a PDF render — added 2026-09-26 |

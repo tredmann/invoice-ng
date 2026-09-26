@@ -14,6 +14,11 @@ return [
         'small_business' => 'Kleinunternehmer (§19 UStG)',
     ],
 
+    'payment_term_hint' => [
+        'immediate' => 'Sofort bei Ausstellung',
+        'after_issue' => ':days Tage ab Ausstellung',
+    ],
+
     'payment_term' => [
         'immediate' => 'Sofort fällig',
         'net_7' => '7 Tage netto',

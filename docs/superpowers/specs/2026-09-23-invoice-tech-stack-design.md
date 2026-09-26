@@ -211,6 +211,12 @@ this is not.
 `Document::query()` returns all three as their proper classes.
 `Invoice::query()` scopes itself to invoices.
 
+> **In use since 2026-09-27.** `Document` carries `HasChildren` with a
+> `childTypes` alias map, `Invoice` carries `HasParent`. The aliases are domain
+> words rather than class names, so the `type` column survives a namespace move.
+> One child for one type is not ceremony: the table shape is the expensive half
+> of the decision, and the three remaining Belegarten now cost a class each.
+
 Alternatives considered: hand-rolled `newFromBuilder` (owns the edge
 cases in relations, factories and Filament, which is where thirty lines
 becomes eighty), and a single model with type-behaviour objects (works,
@@ -497,6 +503,10 @@ Plain Laravel layout. No `src/`, no modules, no DDD folder structure.
   parental children, `DocumentLine`, `Payment`, `TaxRate`,
   `PaymentTerm`, `NumberRange`, `EmailTemplate`, `AuditEntry`, `Unit`
 
+  > **Corrected 2026-09-27.** `DocumentLine` is **`LineItem`**. `CONTEXT.md`
+  > gives **Position** → `LineItem`, and `CLAUDE.md` makes it the authority on
+  > what a domain concept is called.
+  >
   > **Corrected 2026-09-26.** `PaymentTerm` and `Unit` are **enums**, not
   > models. This list was written before §3.6 of the feature design was held
   > against it: a Position „references no master data", so a Position carrying a

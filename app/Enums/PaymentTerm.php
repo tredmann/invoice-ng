@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\FromFormState;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Filament\Support\Contracts\HasLabel;
@@ -18,6 +19,8 @@ use Filament\Support\Contracts\HasLabel;
  */
 enum PaymentTerm: string implements HasLabel
 {
+    use FromFormState;
+
     case Immediate = 'immediate';
     case Net7 = 'net_7';
     case Net14 = 'net_14';
@@ -51,6 +54,20 @@ enum PaymentTerm: string implements HasLabel
         return CarbonImmutable::instance($issuedOn)
             ->startOfDay()
             ->addDays($this->days());
+    }
+
+    /**
+     * What a Beleg's Status card says where a Fälligkeitsdatum will go.
+     *
+     * Not the label plus „ab Ausstellung": „14 Tage netto ab Ausstellung"
+     * carries „netto" for no reason, and „Sofort fällig ab Ausstellung" is not
+     * German. One phrase per case, decided here.
+     */
+    public function dueHint(): string
+    {
+        return $this === self::Immediate
+            ? __('company.payment_term_hint.immediate')
+            : __('company.payment_term_hint.after_issue', ['days' => $this->days()]);
     }
 
     public function getLabel(): string
