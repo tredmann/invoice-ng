@@ -83,3 +83,23 @@ it('generates version 7 uuids for customers', function (): void {
 
     expect($customer->getKey()[14])->toBe('7');
 });
+
+it('gives tax rates a uuid key and a uuid company foreign key', function (): void {
+    $columns = DB::select(
+        'select column_name, data_type from information_schema.columns
+         where table_name = ? and column_name in (?, ?)',
+        ['tax_rates', 'id', 'company_id']
+    );
+
+    expect($columns)->toHaveCount(2);
+
+    foreach ($columns as $column) {
+        expect($column->data_type)->toBe('uuid');
+    }
+});
+
+it('generates version 7 uuids for tax rates', function (): void {
+    $rate = Company::factory()->create()->taxRates()->where('rate', 1900)->sole();
+
+    expect($rate->getKey()[14])->toBe('7');
+});

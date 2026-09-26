@@ -14,6 +14,14 @@ return [
         'small_business' => 'Kleinunternehmer (§19 UStG)',
     ],
 
+    'tax_rate' => [
+        'seed' => [
+            'standard' => 'Regelsatz',
+            'reduced' => 'Ermäßigter Satz',
+            'exempt' => 'Steuerfrei',
+        ],
+    ],
+
     'payment_term' => [
         'immediate' => 'Sofort fällig',
         'net_7' => '7 Tage netto',

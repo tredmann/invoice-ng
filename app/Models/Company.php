@@ -11,6 +11,7 @@ use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -184,12 +185,75 @@ class Company extends Model
         return $this->hasMany(Customer::class);
     }
 
+    /**
+     * @return HasMany<TaxRate, $this>
+     */
+    public function taxRates(): HasMany
+    {
+        return $this->hasMany(TaxRate::class);
+    }
+
+    /**
+     * The Steuersätze a Position of this company may carry, highest first.
+     *
+     * The single place the Besteuerung is consulted. A Kleinunternehmer issues
+     * at 0 % under §19 and has no choice to make, so exactly one rate comes
+     * back — and it comes back even if it was deactivated while the company was
+     * still on the standard scheme, because the law does not consult that flag.
+     *
+     * Deliberately not a question the rounding of §6 asks: were the scheme read
+     * inside the arithmetic, the same Positionen would total differently
+     * depending on who asked.
+     *
+     * @return Collection<int, TaxRate>
+     */
+    public function selectableTaxRates(): Collection
+    {
+        $rates = $this->taxRates()->orderByDesc('rate')->get();
+
+        if ($this->vat_scheme === VatScheme::SmallBusiness) {
+            return $rates->where('rate', 0)->values();
+        }
+
+        return $rates->reject(fn (TaxRate $rate): bool => $rate->isDeactivated())->values();
+    }
+
+    /**
+     * The three rates German law offers, given to every company on creation.
+     *
+     * Here rather than in a seeder because a company created through
+     * RegisterCompany must get them too, and no seeder runs on that path. The
+     * Nummernkreis is deliberately *not* seeded alongside them: the rates are a
+     * fact about the law that every company shares, while a prefix and a
+     * starting value are a choice only the owner can make.
+     */
+    private function seedTaxRates(): void
+    {
+        $seeds = [
+            ['rate' => 1900, 'key' => 'standard', 'is_default' => true],
+            ['rate' => 700, 'key' => 'reduced', 'is_default' => false],
+            ['rate' => 0, 'key' => 'exempt', 'is_default' => false],
+        ];
+
+        foreach ($seeds as $seed) {
+            $this->taxRates()->create([
+                'rate' => $seed['rate'],
+                'name' => (string) __("company.tax_rate.seed.{$seed['key']}"),
+                'is_default' => $seed['is_default'],
+            ]);
+        }
+    }
+
     protected static function booted(): void
     {
         // Set on create and never again: the slug is a stable public
         // identifier, and a rename must not break a bookmarked URL.
         static::creating(function (Company $company): void {
             $company->slug ??= self::uniqueSlugFrom((string) $company->name);
+        });
+
+        static::created(function (Company $company): void {
+            $company->seedTaxRates();
         });
     }
 
