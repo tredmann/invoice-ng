@@ -153,25 +153,21 @@ class InvoiceForm
                             TableColumn::make(__('invoice.fields.unit_price'))->width('8rem')->alignEnd(),
                             TableColumn::make(__('invoice.fields.tax_rate'))->width('7rem'),
                             TableColumn::make(__('invoice.fields.net'))->width('7rem')->alignEnd(),
+                            // Beschreibung has a column because the repeater
+                            // emits one cell per field, but no header and no
+                            // track: panel-styles puts it on a second line
+                            // spanning Bezeichnung through Steuer.
+                            TableColumn::make(__('invoice.fields.description'))->hiddenHeaderLabel(),
                         ])
                         ->schema([
                             // Filled by the counter in panel-styles; an empty
                             // cell is all the markup the number needs.
                             Text::make(''),
-                            // Bezeichnung and Beschreibung share one cell, as
-                            // the mockup stacks them: a seventh column would
-                            // squeeze every other one.
-                            Group::make([
-                                TextInput::make('title')
-                                    ->hiddenLabel()
-                                    ->placeholder(__('invoice.placeholders.title'))
-                                    ->required()
-                                    ->maxLength(255),
-                                TextInput::make('description')
-                                    ->hiddenLabel()
-                                    ->placeholder(__('invoice.placeholders.description'))
-                                    ->maxLength(255),
-                            ]),
+                            TextInput::make('title')
+                                ->hiddenLabel()
+                                ->placeholder(__('invoice.placeholders.title'))
+                                ->required()
+                                ->maxLength(255),
                             TextInput::make('quantity')
                                 ->hiddenLabel()
                                 ->required()
@@ -197,6 +193,13 @@ class InvoiceForm
                                 ->required()
                                 ->live(),
                             Text::make(fn (Get $get): string => self::lineNet($get)),
+                            // Last of the fields, so it is always the cell
+                            // before the actions one — which is how the CSS
+                            // finds it whether or not a drag handle is there.
+                            TextInput::make('description')
+                                ->hiddenLabel()
+                                ->placeholder(__('invoice.placeholders.description'))
+                                ->maxLength(255),
                         ]),
 
                     Text::make(fn (Get $get): Htmlable => self::totalsBlock($get))->columnSpanFull(),

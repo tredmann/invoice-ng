@@ -65,10 +65,43 @@
        drag-handle cell only once there are two rows to reorder, so the Pos.
        cell is first with one row and second with more. What never changes is
        what follows it — Bezeichnung, Menge, Einheit, Einzelpreis, Steuer,
-       Netto and the actions cell, seven in all. */
-    .app-positions-repeater tbody > tr > td:nth-last-child(8) { color: var(--gray-400); font-size: 0.875rem; text-align: center; vertical-align: middle }
-    .app-positions-repeater tbody > tr > td:nth-last-child(8)::before { content: counter(app-position) }
-    .dark .app-positions-repeater tbody > tr > td:nth-last-child(8) { color: var(--gray-500) }
+       Netto, Beschreibung and the actions cell, eight in all. */
+    .app-positions-repeater tbody > tr > td:nth-last-child(9) { color: var(--gray-400); font-size: 0.875rem; text-align: center; line-height: 2.25rem }
+    .app-positions-repeater tbody > tr > td:nth-last-child(9)::before { content: counter(app-position) }
+    /* The cell needs a component to exist at all, but the number is the
+       ::before — left visible, the empty placeholder adds its own line box
+       and makes this the tallest cell in the row. */
+    .app-positions-repeater tbody > tr > td:nth-last-child(9) > * { display: none }
+    .dark .app-positions-repeater tbody > tr > td:nth-last-child(9) { color: var(--gray-500) }
+
+    /* The Positionen row is a grid rather than a table row.
+       An HTML cell can only span columns with colspan, which Filament's table
+       repeater never emits — it writes one <td> per field. Laying the header
+       and the rows out on one shared template gets the same result: every
+       field keeps its column, and Beschreibung, which has no track of its
+       own, is placed on a second line across Bezeichnung to Steuer.
+       align-items: start is what puts the numeric fields level with
+       Bezeichnung instead of centring them against both its lines. */
+    .app-positions-repeater thead > tr,
+    .app-positions-repeater tbody > tr {
+        display: grid;
+        grid-template-columns: 3rem minmax(0, 1fr) 6rem 8rem 8rem 7rem 7rem auto;
+        column-gap: 0.5rem;
+        align-items: start;
+    }
+
+    /* Filament adds the drag-handle cell only once there are two rows to
+       reorder, to the header and the rows alike — so the template gains a
+       leading track at the same moment for both. */
+    .app-positions-repeater table:has(tbody > tr + tr) thead > tr,
+    .app-positions-repeater table:has(tbody > tr + tr) tbody > tr {
+        grid-template-columns: 2.5rem 3rem minmax(0, 1fr) 6rem 8rem 8rem 7rem 7rem auto;
+    }
+
+    /* Beschreibung: no header, second line, spanning the five fields above. */
+    .app-positions-repeater thead > tr > th:nth-last-child(2) { display: none }
+    .app-positions-repeater tbody > tr > td:nth-last-child(2) { grid-row: 2; grid-column: 2 / span 5 }
+    .app-positions-repeater table:has(tbody > tr + tr) tbody > tr > td:nth-last-child(2) { grid-column: 3 / span 5 }
 
     /* Numbers line up on the right, the way they do on the document. */
     .app-input-end { text-align: end }
