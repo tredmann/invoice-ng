@@ -32,8 +32,10 @@ between companies happens in one place: a switcher in the top bar.**
 > **Revised 2026-09-26** by `2026-09-26-topbar-trail-design.md`: the dropdown
 > now carries a "Firma wechseln" label, initials avatars and, under a divider,
 > "Firmen verwalten" and "Neue Firma"; the switcher shows inside an archived
-> company opened by its URL; and it is the first crumb of the page's trail.
-> The bullets below are otherwise unchanged.
+> company opened by its URL; and — after the owner's second concept — it
+> takes the brand logo's place, which is hidden, so "Firmen verwalten" is the
+> way back to `/admin` rather than the logo (below and §2.2). The bullets below
+> are otherwise unchanged.
 
 - Brand, then the **company switcher**, then the user menu on the right.
 - **The switcher** shows the current company's avatar and name ("B BALT ▾"); on
@@ -43,7 +45,9 @@ between companies happens in one place: a switcher in the top bar.**
   — the switcher only switches.
 - **With no active company at all**, the switcher is not shown: there is nothing
   to switch to.
-- **The brand logo leads to `/admin`**, never into a default company.
+- **The brand logo leads to `/admin`**, never into a default company. *(Since
+  2026-09-26 the logo is hidden and "Firmen verwalten" in the switcher leads
+  there, from the same home URL.)*
 - **No global search box, for now.** Filament's search searches resources, and
   the companies list was the only one; with it gone (§2.5) Filament shows no
   box. It returns by itself with the first searchable resource (customers).
@@ -57,7 +61,8 @@ between companies happens in one place: a switcher in the top bar.**
   state — **"Noch keine Inhalte."** with a **"Firmendaten vervollständigen →"**
   link to the settings — until invoicing gives it real content. An empty screen
   says what to do next (`.ai/guidelines/ui/core.blade.php`).
-- **Back to all companies:** the brand logo.
+- **Back to all companies:** the brand logo. *(Since 2026-09-26: "Firmen
+  verwalten" in the switcher; the logo is hidden.)*
 
 ### 2.3 `/admin` — "Firma wählen"
 

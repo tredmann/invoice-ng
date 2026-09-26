@@ -8,14 +8,21 @@ top-bar switcher this revises (§7).
 
 ## 1. Purpose
 
-The owner drew the top bar they want (`breadcrumb.pdf`, outside the repo): the
-company switcher becomes the first crumb of a breadcrumb trail —
-`Kranz Ingenieurbüro GmbH ▾ › Kunden › Bauer & Kollegen GmbH` — and the trail
-leaves the page, where Filament draws it above the heading.
+The owner drew the top bar they want (`breadcrumb.pdf`, outside the repo) and,
+after using the first build, redrew it (`breadcrumb2.pdf`): the company
+switcher takes the logo's place at the top left, and the page's breadcrumb
+trail — `Kunden › Bauer & Kollegen GmbH` — moves from above the heading into
+the top bar, over the content column.
 
-**Success is that, inside a company, the top bar says where the user is and in
-which company, starting exactly where the page content below it starts, and
-that the switcher's dropdown looks like the concept.**
+> **Revised 2026-09-26 (breadcrumb2).** The first build kept the logo and put
+> the switcher at the start of the trail, as its first crumb. The owner's
+> redesign removes the logo, puts the switcher where it was, and leaves the
+> trail to start on its own at the content column. §2.1–§2.3 and §3.1 describe
+> the redesign.
+
+**Success is that, inside a company, the top bar says in which company the user
+is — above the sidebar — and where, starting exactly where the page content
+below it starts, and that the switcher's dropdown looks like the concept.**
 
 Only the top bar is in scope. The rest of the concept — the brand at the top of
 a full-height sidebar, dashboard content, invoices, the user avatar — is not
@@ -25,23 +32,27 @@ a full-height sidebar, dashboard content, invoices, the user avatar — is not
 
 ### 2.1 Top bar, desktop (from 64rem), inside a company
 
-- **The logo stays where it is.** Its area takes the sidebar's width.
-- **After it, one column** holding the switcher and the trail, with the same
-  maximum width, centring and side padding as the page content (`fi-main`). The
-  switcher therefore starts exactly where the page heading starts — at 1280 px,
-  and at 1920 px where the content is centred.
+- **No logo.** The switcher takes its place at the top left, as wide as the
+  sidebar below it: avatar, name, and the chevron at the far end. It lines up
+  with the sidebar's entries. The way back to the picker is "Firmen
+  verwalten" in its dropdown (§2.5).
+- **The trail** sits over the content column, with the same maximum width,
+  centring and side padding as the page content (`fi-main`). Its first crumb
+  starts exactly where the page heading starts — at 1280 px, and at 1920 px
+  where the content is centred.
 - **The user menu** stays at the far right.
 - **Crumbs:** every crumb but the last is a gray link; the last is the current
-  page, darker, and not a link. Separators are gray chevrons.
+  page, darker, and not a link. Gray chevrons separate crumbs — between them
+  only, none before the first.
 - **The page draws no breadcrumbs** above its heading any more.
 
 ### 2.2 The trail
 
-The switcher is always the first crumb. After it: the section, then — where
-there is one — the record, then the page if it is not the record itself. No
-"Liste", no "Anzeigen".
+The section, then — where there is one — the record, then the page if it is
+not the record itself. No "Liste", no "Anzeigen". The company is not a crumb:
+the switcher names it.
 
-| Page | Trail after the switcher |
+| Page | Trail |
 |---|---|
 | Dashboard | `Dashboard` |
 | Firmendaten | `Firmendaten` |
@@ -56,9 +67,8 @@ design: `Rechnungen › RE-2026-0042`, `Rechnungen › Neue Rechnung`.
 
 ### 2.3 Top bar on `/admin`
 
-No sidebar, so nothing to align with: the content there starts where the logo
-already is. `Firma wählen ▾` stays directly after the logo, as today, with no
-trail after it. The switcher is hidden when the user has no active company.
+`Firma wählen ▾` in the switcher's place at the top left, with no trail. The
+switcher is hidden when the user has no active company.
 
 ### 2.4 Phones (below 64rem)
 
@@ -103,8 +113,10 @@ Each unit has one job.
    `->topbarLivewireComponent()`. Holds the trail in a public `$trail`
    property:
    - On a full page load the page renders before the layout mounts the top bar.
-     The page leaves its trail in a request-scoped holder; the top bar takes it
-     in `mount()`.
+     A listener on Livewire's `render` event records the page in a
+     request-scoped holder (`RenderedPage`); the top bar builds the trail from
+     it in `mount()` (spike findings: `Livewire::current()` is the top bar
+     itself by then).
    - As a Livewire property, the trail survives the top bar's own re-renders:
      Filament's `Topbar` re-renders on a `refresh-topbar` event, which nothing
      in Filament or this application dispatches today, but anything may.
@@ -124,12 +136,19 @@ Each unit has one job.
 4. **`Company` initials** — a method on the model, used by the avatar in both
    the trigger and the list.
 5. **Panel configuration, `AdminPanelProvider`:** `->breadcrumbs(false)`,
-   `->topbarLivewireComponent(Topbar::class)`, and the alignment rules added
-   to the existing `STYLES_AFTER` block.
+   `->topbarLivewireComponent(Topbar::class)`, and a `topbar-styles` view at
+   `STYLES_AFTER` carrying the phone rule, the logo hiding, the switcher's
+   width and the alignment of §3.1.
 
 ### 3.1 Alignment
 
-Applied from 64rem and only with a sidebar (`.fi-body-has-navigation`):
+**The switcher**, from 64rem, on every page: Filament's brand link in the top
+bar is hidden (Filament has no setting that removes it), and the switcher is
+as wide as the sidebar less the top bar's inline padding and a gap
+(`calc(var(--sidebar-width) - 2rem)`), its trigger filling that width so the
+chevron sits at the far end. Its left edge meets the sidebar entries' (16 px).
+
+**The trail**, from 64rem and only with a sidebar (`.fi-body-has-navigation`):
 
 - The trail column is laid **over** the top bar rather than placed in its flow:
   positioned absolutely from the sidebar's edge (`--sidebar-width`) to the
@@ -142,8 +161,8 @@ Applied from 64rem and only with a sidebar (`.fi-body-has-navigation`):
   menu is lifted above it (`z-index: 1`), so nothing underneath stops
   working.
 
-Measured at the spike and again after building: the switcher and the page
-heading share their left edge at 1280 px (352 px) and 1920 px (512 px).
+Measured after building: the first crumb and the page heading share their left
+edge at 1280 px (352 px) and 1920 px (512 px).
 
 There is no frontend build (`CLAUDE.md`); these are plain CSS rules in the
 injected `<style>`, and inline styles where a single element needs one.
@@ -211,8 +230,9 @@ with no active company still hides the switcher.
 
 ## 8. Out of scope
 
-- **The brand in a full-height sidebar**, with the top bar spanning only the
-  content — the owner kept the brand where it is.
+- **A full-height sidebar**, with the top bar spanning only the content, as
+  the first concept drew it — the top bar still spans the page; only the logo
+  in it gave way to the switcher.
 - **Dashboard content, invoices** and the other screens of the concept.
 - **The user menu's avatar.**
 - **A trail on phones.**
@@ -221,11 +241,12 @@ with no active company still hides the switcher.
 
 | Decision | Choice |
 |---|---|
-| Scope | Top-bar content only; brand stays in the top bar |
+| Scope | Top-bar content only |
+| Logo | Hidden; the switcher takes its place, sidebar-wide (breadcrumb2) |
 | Alignment | Trail column mirrors `fi-main`, from 64rem with a sidebar |
-| `/admin` | Switcher after the logo, no trail |
+| `/admin` | Switcher in the logo's place, no trail |
 | Breadcrumbs above the heading | Removed (`->breadcrumbs(false)`) |
-| Trail rule | Switcher › section › record › page; no "Liste"/"Anzeigen" |
+| Trail rule | Section › record › page; no "Liste"/"Anzeigen"; the company is not a crumb |
 | Last crumb | Current page, not a link |
 | Dropdown | "Firma wechseln", companies with ✓, divider, "Firmen verwalten", "Neue Firma" |
 | "Firmen verwalten" on `/admin` | Left out |
