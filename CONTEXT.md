@@ -17,6 +17,14 @@ Geschäftsvorfall nachweist.
 _Code_: `Document`
 _Vermeiden_: Dokument (zu allgemein — ein PDF ist auch eines)
 
+**Festschreibung**:
+Der beim **Ausstellen** eingefrorene Block — Verkäuferidentität,
+Rechnungsanschrift des **Kunden** und **Zahlungsziel**, wie sie in diesem
+Moment lauteten — auf den **Beleg** kopiert und danach unveränderlich.
+_Code_: `frozen_block`
+_Vermeiden_: **Beleg** für diesen Block zu sagen (das ist der Oberbegriff),
+Snapshot, Momentaufnahme
+
 **Rechnung**:
 Zahlungsaufforderung an einen **Kunden** für eine erbrachte Leistung.
 _Code_: `Invoice`
@@ -212,9 +220,11 @@ _Vermeiden_: Forderungen, Außenstände, Debitoren
 
 ### Daten und Fristen
 
-**Rechnungsdatum**:
-Der Tag, an dem der **Beleg** **ausgestellt** wurde — im Gesetz das
-Ausstellungsdatum (§14 Abs. 4 Nr. 3 UStG).
+**Ausstellungsdatum**:
+Der Tag, an dem ein **Beleg** **ausgestellt** wurde (§14 Abs. 4 Nr. 3 UStG).
+Auf einer **Rechnung** darf das Feld die gewohnte Beschriftung
+**Rechnungsdatum** tragen; auf **Storno**, **Teilstorno** und **Gutschrift**
+heißt es Ausstellungsdatum, weil „Rechnungsdatum" dort schief liest.
 _Code_: `issued_on`
 _Vermeiden_: Belegdatum, Erstellungsdatum, Druckdatum
 
@@ -478,3 +488,19 @@ _Code_: `deactivated_at`
   Kundentyp `business` mit „Firma". Geklärt: **Firma** ist ausschließlich der
   eigene Betrieb; der Kundentyp heißt **Geschäftskunde**, sein Gegenstück
   **Privatkunde**. Entschieden 2026-09-26.
+- **„Rechnungsdatum" trug nicht auf jeder Belegart.** Auf einem **Storno**
+  liest es schief, und die Mockups behalfen sich mit „Belegdatum", das dieses
+  Glossar verbietet. Geklärt: der Begriff ist das **Ausstellungsdatum** (§14
+  Abs. 4 Nr. 3 UStG); nur die **Rechnung** darf ihr Feld weiter
+  „Rechnungsdatum" beschriften, weil der Empfänger das dort erwartet.
+  Aufgefallen beim Abgleich der Penpot-Mockups. Entschieden 2026-09-26.
+- **„Beleg" bezeichnete auch den eingefrorenen Block.** Die Mockups sagten
+  „Nummer, Beleg und PDF sind festgeschrieben" und meinten damit nicht den
+  Beleg, sondern den Identitätsblock aus §4 der Spec — für den es hier kein
+  Wort gab. Geklärt: **Festschreibung**. Entschieden 2026-09-26.
+- **Ein Teilstorno erfasst keine freien Zeilen.** Es wählt **Positionen** der
+  Ursprungsrechnung und darf deren Menge nur reduzieren; **Steuersatz** und
+  **Einzelpreis** stammen aus der Position. Damit kann die Steueraufstellung
+  des Teilstornos der Rechnung nicht widersprechen, und mehr zurückzugeben
+  als berechnet wurde ist unmöglich. Spec §8.3 sagte „freely-typed lines" und
+  ist korrigiert. Entschieden 2026-09-26.

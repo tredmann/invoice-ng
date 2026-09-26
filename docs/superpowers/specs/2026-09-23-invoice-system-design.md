@@ -453,6 +453,15 @@ A separate and deliberately slower action: it opens a **draft
 Gutschrift** referencing the invoice. The user types the credited lines
 and issues it. The invoice remains valid and open for the remainder.
 
+> **Corrected 2026-09-26 (second correction).** The lines are **not** freely
+> typed. The page lists the parent invoice's **Positionen**; the user ticks what
+> comes back and may reduce the quantity, nothing else. Unit price and tax rate
+> come from the position and cannot be edited, so the Teilstorno's VAT summary
+> can never contradict the invoice's, and taking back more than was charged is
+> structurally impossible. A matter that is not on the invoice therefore cannot
+> be expressed — deliberately; that case is a Storno plus a new invoice.
+> Settled against the Penpot mockups on 2026-09-26.
+>
 > **Corrected 2026-09-26.** The document this opens is a **Teilstorno**. The
 > two operations are named for the documents they produce: §8.2 is
 > **stornieren**, §8.3 produces a **Teilstorno** and needs no verb of its own,
