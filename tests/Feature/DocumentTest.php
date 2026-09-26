@@ -132,3 +132,53 @@ it('lets many drafts share the absence of a number', function (): void {
 
     expect(Invoice::query()->whereNull('number')->count())->toBe(3);
 });
+
+it('sums its Positionen into the figures the mockup prints', function (): void {
+    // The `Rechnung – Neu (Entwurf)` board, through the model this time.
+    // CalculateTotalsTest already asserts the arithmetic on bare inputs; this
+    // asserts that a Beleg hands its own Positionen over unchanged — the
+    // quantity as a decimal string, the Einzelpreis as Money, the Steuersatz
+    // in basis points.
+    $invoice = Invoice::factory()->create();
+
+    foreach ([
+        ['quantity' => '12', 'unit_price' => '95.00', 'tax_rate' => 1900],
+        ['quantity' => '6', 'unit_price' => '95.00', 'tax_rate' => 1900],
+        ['quantity' => '1', 'unit_price' => '290.00', 'tax_rate' => 700],
+    ] as $position => $line) {
+        LineItem::factory()->for($invoice, 'document')->create([
+            'position' => $position + 1,
+            'quantity' => $line['quantity'],
+            'unit_price' => Money::of($line['unit_price'], 'EUR'),
+            'tax_rate' => $line['tax_rate'],
+        ]);
+    }
+
+    $totals = $invoice->totals();
+
+    expect((string) $totals->net->getAmount())->toBe('2000.00')
+        ->and((string) $totals->tax->getAmount())->toBe('345.20')
+        ->and((string) $totals->gross->getAmount())->toBe('2345.20')
+        ->and($totals->groups)->toHaveCount(2)
+        ->and((string) $totals->groups[0]->tax->getAmount())->toBe('324.90')
+        ->and((string) $totals->groups[1]->tax->getAmount())->toBe('20.30');
+});
+
+it('totals an invoice with no Positionen to zero', function (): void {
+    expect((string) Invoice::factory()->create()->totals()->gross->getAmount())->toBe('0.00');
+});
+
+it('totals from the Positionen already loaded, without asking again', function (): void {
+    // The list computes a Betrag per row. Reading the relation rather than
+    // querying it is what keeps that from being one query per invoice — the
+    // list's eager load would otherwise buy nothing.
+    $invoice = Invoice::factory()->create();
+    LineItem::factory()->for($invoice, 'document')->count(2)->create();
+
+    $loaded = Invoice::query()->with('lineItems')->whereKey($invoice->getKey())->sole();
+
+    DB::enableQueryLog();
+    $loaded->totals();
+
+    expect(DB::getQueryLog())->toBe([]);
+});

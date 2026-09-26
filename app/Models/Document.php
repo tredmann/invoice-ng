@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Actions\CalculateTotals;
 use App\Enums\DocumentStatus;
 use App\Enums\PaymentTerm;
+use App\Money\LineInput;
+use App\Money\Totals;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -101,6 +104,33 @@ class Document extends Model
     public function lineItems(): HasMany
     {
         return $this->hasMany(LineItem::class)->orderBy('position');
+    }
+
+    /**
+     * The Beleg's figures, computed from its Positionen by the rounding of §6.
+     *
+     * Computed and not stored, while this is a draft. §6 stores totals on the
+     * document and §4 says that storing happens *at issue*; until then the
+     * Positionen are the only truth, and a stored copy would be a second one
+     * that an edit could leave disagreeing with the lines it claims to sum.
+     *
+     * Reads the relation rather than querying it, so a caller that eager-loaded
+     * `lineItems` — the list does, for its Betrag column — pays nothing extra.
+     */
+    public function totals(): Totals
+    {
+        $lines = $this->lineItems
+            ->map(fn (LineItem $item): LineInput => LineInput::of(
+                (string) $item->quantity,
+                $item->unit_price,
+                $item->tax_rate,
+            ))
+            ->all();
+
+        // array_values rather than the collection's values(): PHPStan reads
+        // the first as a list and the second as an array with int keys, and
+        // CalculateTotals asks for a list.
+        return (new CalculateTotals)(array_values($lines));
     }
 
     protected static function booted(): void
