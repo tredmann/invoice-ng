@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\PaymentTerm;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Company;
 use App\Models\Customer;
@@ -249,4 +250,20 @@ it('sets the tile figures apart from their sub-lines', function (): void {
     $html = (string) $this->get('/admin/alpha-gmbh/customers/K-0001')->assertOk()->getContent();
 
     expect(substr_count($html, 'fi-color-neutral'))->toBe(3);
+});
+
+it('shows the Zahlungsziel that would actually be used', function (): void {
+    /** @var TestCase $this */
+    // A customer with none of their own still shows a term, because the next
+    // Rechnung would use the company's. A blank here would read as "not set"
+    // for something that is always set in practice.
+    $company = Company::factory()->create(['payment_term' => PaymentTerm::Net30]);
+    $customer = Customer::factory()->for($company)->create(['payment_term' => null]);
+    $user = actInCompany($company);
+
+    $this->actingAs($user)
+        ->get(CustomerResource::getUrl('view', ['record' => $customer]))
+        ->assertOk()
+        ->assertSee('Zahlungsziel')
+        ->assertSee('30 Tage netto');
 });

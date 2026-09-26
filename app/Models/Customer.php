@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\CustomerType;
+use App\Enums\PaymentTerm;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -22,6 +23,7 @@ use LogicException;
  * @property CustomerType $type
  * @property int $number
  * @property Carbon|null $deactivated_at
+ * @property PaymentTerm|null $payment_term
  */
 // `number`, `company_id` and `deactivated_at` are absent from the list below: the
 // number is assigned here, the company is the tenant, and `deactivated_at`
@@ -42,6 +44,7 @@ use LogicException;
     'postal_code',
     'city',
     'email',
+    'payment_term',
 ])]
 #[RouteKey('number')]
 class Customer extends Model
@@ -224,11 +227,35 @@ class Customer extends Model
     /**
      * @return array<string, string>
      */
+    /**
+     * The Zahlungsziel a Rechnung to this customer starts from: their own if
+     * they have one, otherwise the company's.
+     *
+     * Resolved here and not backfilled into the column, because a company that
+     * changes its default must not silently change the terms an existing
+     * customer is invoiced under. A null stays a null, and means „whatever the
+     * company says today".
+     */
+    public function effectivePaymentTerm(): PaymentTerm
+    {
+        if ($this->payment_term instanceof PaymentTerm) {
+            return $this->payment_term;
+        }
+
+        $company = $this->company;
+
+        throw_if($company === null, LogicException::class, 'A customer is invoiced under their company, so the company must be set '
+        .'before a Zahlungsziel can be resolved.');
+
+        return $company->payment_term;
+    }
+
     protected function casts(): array
     {
         return [
             'type' => CustomerType::class,
             'number' => 'integer',
+            'payment_term' => PaymentTerm::class,
             'deactivated_at' => 'datetime',
         ];
     }

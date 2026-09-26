@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\CustomerType;
+use App\Enums\PaymentTerm;
 use App\Models\Company;
 use App\Models\Customer;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -168,4 +169,29 @@ it('deactivates and restores a customer, keeping the first deactivation date', f
     $customer->reactivate();
 
     expect($customer->fresh()?->isDeactivated())->toBeFalse();
+});
+
+it('follows the company Zahlungsziel until the customer has one of their own', function (): void {
+    $company = Company::factory()->create(['payment_term' => PaymentTerm::Net30]);
+    $customer = Customer::factory()->for($company)->create(['payment_term' => null]);
+
+    expect($customer->effectivePaymentTerm())->toBe(PaymentTerm::Net30);
+
+    $customer->update(['payment_term' => PaymentTerm::Net7]);
+
+    expect($customer->refresh()->effectivePaymentTerm())->toBe(PaymentTerm::Net7);
+});
+
+it('does not rewrite a customer term when the company changes its own', function (): void {
+    // The reason the column is nullable rather than backfilled: a company that
+    // moves to 30 days must not silently change the terms a customer with an
+    // agreed 7 days is invoiced under.
+    $company = Company::factory()->create(['payment_term' => PaymentTerm::Net14]);
+    $agreed = Customer::factory()->for($company)->create(['payment_term' => PaymentTerm::Net7]);
+    $follower = Customer::factory()->for($company)->create(['payment_term' => null]);
+
+    $company->update(['payment_term' => PaymentTerm::Net30]);
+
+    expect($agreed->refresh()->effectivePaymentTerm())->toBe(PaymentTerm::Net7)
+        ->and($follower->refresh()->effectivePaymentTerm())->toBe(PaymentTerm::Net30);
 });

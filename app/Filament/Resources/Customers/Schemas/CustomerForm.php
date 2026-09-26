@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Customers\Schemas;
 
 use App\Enums\CustomerType;
+use App\Enums\PaymentTerm;
+use App\Models\Company;
 use App\Models\Customer;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Grid;
@@ -98,9 +102,6 @@ class CustomerForm
                     ]),
                 ]),
 
-            // No payment term: it is company master data that does not exist
-            // yet, and a per-customer default arrives with it. See the
-            // customers spec, correction of 2026-09-25.
             Section::make(__('customer.sections.billing'))->schema([
                 TextInput::make('email')
                     ->label(__('customer.fields.email'))
@@ -108,6 +109,17 @@ class CustomerForm
                     ->helperText(__('customer.help.email'))
                     ->email()
                     ->maxLength(255),
+                // Empty means „whatever the company says today", which is why
+                // the placeholder names the company's current default rather
+                // than pre-selecting it: a copied value would stop following
+                // the company the moment it was saved.
+                Select::make('payment_term')
+                    ->label(__('customer.fields.payment_term'))
+                    ->options(PaymentTerm::class)
+                    ->placeholder(__('customer.placeholders.payment_term', [
+                        'term' => self::companyDefaultTerm()->getLabel(),
+                    ]))
+                    ->helperText(__('customer.help.payment_term')),
             ]),
         ]);
     }
@@ -117,6 +129,13 @@ class CustomerForm
      * cannot render a field that the save then throws away, or hide one that
      * the save keeps.
      */
+    private static function companyDefaultTerm(): PaymentTerm
+    {
+        $company = Filament::getTenant();
+
+        return $company instanceof Company ? $company->payment_term : PaymentTerm::Net14;
+    }
+
     private static function isBusiness(Get $get): bool
     {
         return CustomerType::fromFormState($get('type'))?->isBusiness() ?? false;
