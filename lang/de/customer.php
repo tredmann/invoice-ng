@@ -28,6 +28,12 @@ return [
         'deactivate' => 'Deaktivieren',
         'reactivate' => 'Wieder aktivieren',
         'save' => 'Kunde speichern',
+        'new_invoice' => 'Neue Rechnung',
+        'new_invoice_disabled' => 'Rechnungen gibt es noch nicht.',
+    ],
+
+    'view' => [
+        'subheading' => 'Kundennr. :number',
     ],
 
     'create' => [

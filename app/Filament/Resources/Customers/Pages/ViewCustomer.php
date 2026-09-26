@@ -8,6 +8,7 @@ use App\Filament\Resources\Customers\Actions\CustomerActions;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Customer;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
@@ -28,12 +29,21 @@ class ViewCustomer extends ViewRecord
     }
 
     /**
-     * The heading carries the Deaktiviert badge; the title stays plain text,
-     * because it also ends up in the browser tab.
+     * The heading carries the Deaktiviert badge and the type; the title stays
+     * plain text, because it also ends up in the browser tab.
      */
     public function getHeading(): Htmlable
     {
-        return CustomerResource::nameWithStatus($this->customer());
+        return CustomerResource::nameWithType($this->customer());
+    }
+
+    /**
+     * The number sits here rather than in a card: it identifies the customer,
+     * and it is what the URL is built from.
+     */
+    public function getSubheading(): string|Htmlable|null
+    {
+        return __('customer.view.subheading', ['number' => $this->customer()->formattedNumber()]);
     }
 
     protected function customer(): Customer
@@ -46,14 +56,22 @@ class ViewCustomer extends ViewRecord
     }
 
     /**
-     * @return array<Action>
+     * @return array<Action|ActionGroup>
      */
     protected function getHeaderActions(): array
     {
         return [
             EditAction::make()->label(__('customer.actions.edit')),
-            CustomerActions::deactivate(),
-            CustomerActions::reactivate(),
+            // Disabled rather than absent: the invoicing wave gives it a
+            // target, and the header keeps its shape until then.
+            Action::make('newInvoice')
+                ->label(__('customer.actions.new_invoice'))
+                ->disabled()
+                ->tooltip(__('customer.actions.new_invoice_disabled')),
+            ActionGroup::make([
+                CustomerActions::deactivate(),
+                CustomerActions::reactivate(),
+            ]),
         ];
     }
 }

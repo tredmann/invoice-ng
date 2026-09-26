@@ -114,3 +114,19 @@ it('lists Kunden in the sidebar of a company', function (): void {
         ->get('/admin/alpha-gmbh')->assertOk()->assertSeeHtml('/admin/alpha-gmbh/customers')
         ->assertSee('Kunden');
 });
+
+it('carries the number and the type in the detail header', function (): void {
+    /** @var TestCase $this */
+    // The mockup moves the number out of the body and into the subtitle, and
+    // puts the type beside the name. Asserting the two together is what
+    // distinguishes a real header from a number that only appears in a card.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->create(['name' => 'Bauer & Kollegen GmbH']);
+
+    $this->actingAs(memberOf($company));
+
+    $this->get('/admin/alpha-gmbh/customers/K-0001')
+        ->assertOk()
+        ->assertSee('Kundennr. K-0001')
+        ->assertSee('Geschäftskunde');
+});

@@ -88,6 +88,30 @@ class CustomerResource extends Resource
         );
     }
 
+    /**
+     * The detail heading: the name with its Deaktiviert marker, then the type.
+     *
+     * Built through nameWithStatus so the name is escaped exactly once and a
+     * deactivated customer is marked the same way as in the list. The badge
+     * goes through Blade::render for the same reason it does there — an
+     * HtmlString is printed as is, so an uncompiled component tag would show
+     * as text.
+     */
+    public static function nameWithType(Customer $customer): HtmlString
+    {
+        $badge = Blade::render(
+            '<x-filament::badge :color="$color" size="sm">{{ $label }}</x-filament::badge>',
+            ['color' => $customer->type->getColor(), 'label' => $customer->type->getLabel()],
+        );
+
+        return new HtmlString(
+            '<span style="display: inline-flex; align-items: center; gap: 0.5rem">'
+            .self::nameWithStatus($customer)->toHtml()
+            .$badge
+            .'</span>'
+        );
+    }
+
     public static function form(Schema $schema): Schema
     {
         return CustomerForm::configure($schema);
