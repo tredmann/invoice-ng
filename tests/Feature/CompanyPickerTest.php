@@ -130,25 +130,25 @@ it('still sends a login to the page the user was on the way to', function (): vo
         ->assertRedirect(url('/admin/acme-gmbh/settings'));
 });
 
-it('points the brand logo at the picker, not at the first company', function (): void {
+it('leads Firmen verwalten to the picker, not to the first company', function (): void {
     /** @var TestCase $this */
     // Filament's default home URL resolves to the user's default tenant — the
-    // first company by name — so from inside Zeta the logo led into Alpha, and
-    // on the picker it made the choice the page exists to offer.
+    // first company by name — so from inside Zeta it would lead into Alpha.
+    // Firmen verwalten is built from the home URL, and since the brand logo
+    // left the top bar it is the way back to the picker.
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create(['name' => 'Alpha GmbH']));
     $user->companies()->attach(Company::factory()->create(['name' => 'Zeta GmbH']));
 
-    foreach (['/admin', '/admin/zeta-gmbh'] as $path) {
-        $content = (string) $this->actingAs($user)->get($path)->assertOk()->getContent();
+    $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin/zeta-gmbh')->assertOk()->getContent());
 
-        expect($content)->toContain('fi-topbar-start');
+    expect($switcher)->toContain('Firmen verwalten');
 
-        $logoLink = (string) str($content)->after('fi-topbar-start')->before('fi-logo');
+    // The opening tag of the entry that carries the label.
+    $manageLink = (string) str($switcher)->before('Firmen verwalten')->afterLast('<a');
 
-        expect($logoLink)->toContain('href="'.url('/admin').'"');
-        expect($logoLink)->not->toContain('alpha-gmbh');
-    }
+    expect($manageLink)->toContain('href="'.url('/admin').'"');
+    expect($manageLink)->not->toContain('alpha-gmbh');
 });
 
 it('sends an already signed-in visit to the login page to the picker', function (): void {

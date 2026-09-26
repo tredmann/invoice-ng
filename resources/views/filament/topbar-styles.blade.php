@@ -30,10 +30,21 @@
     .dark .app-company-avatar { border-color: var(--gray-700); background: var(--gray-800); color: var(--gray-300) }
     .dark .app-company-avatar-current { border-color: var(--primary-700); background: color-mix(in oklab, var(--primary-500) 15%, transparent); color: var(--primary-400) }
     .dark .app-company-option-check { color: var(--primary-400) }
+    /* Spec §2.1 (breadcrumb2). From 64rem the switcher takes the logo's
+       place: Filament's brand link is hidden — its way back to the picker
+       is Firmen verwalten in the dropdown now — and the switcher is as wide
+       as the sidebar below it, less the top bar's inline padding and a gap,
+       with its chevron at the far end. */
+    @media (min-width: 64rem) {
+        .fi-topbar-start > a:has(.fi-logo), .fi-topbar-start > .fi-logo { display: none }
+        [data-company-switcher="desktop"] { width: calc(var(--sidebar-width) - 2rem) }
+        [data-company-switcher="desktop"] .fi-dropdown-trigger, [data-company-switcher="desktop"] .fi-tenant-menu-trigger { width: 100% }
+    }
+
     /* Spec §3.1. From 64rem, with a sidebar, the column spans the width the
        page content spans — from the sidebar's edge to the right edge — and
        its box mirrors fi-main: 80rem wide at most, centred, 2rem inline
-       padding. So the switcher starts where the heading starts, at any
+       padding. So the first crumb starts where the heading starts, at any
        width. Positioned over the top bar rather than in its flow, because in
        the flow the user menu would narrow it and shift the centring.
 

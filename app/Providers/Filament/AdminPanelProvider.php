@@ -39,9 +39,11 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
-            // The brand logo leads to the company picker. Filament's default
-            // home is the user's default tenant — the first company by name —
-            // which would make the choice the picker exists to offer.
+            // Home is the company picker: the switcher's Firmen verwalten leads
+            // there (the brand logo is hidden, top-bar trail spec §2.1).
+            // Filament's default home is the user's default tenant — the first
+            // company by name — which would make the choice the picker exists
+            // to offer.
             ->homeUrl(fn (): string => url($panel->getPath()))
             // The current company lives in the URL, not only in the session:
             // every company-scoped screen sits under /admin/{company}. Held in

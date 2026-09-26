@@ -180,3 +180,33 @@ it('refreshes the top bar after the company data is saved, so a new name shows',
         ->assertHasNoFormErrors()
         ->assertDispatched('refresh-topbar');
 });
+
+it('draws the switcher in the logo\'s place, outside the trail column', function (): void {
+    /** @var TestCase $this */
+    // breadcrumb2: the switcher sits where the logo was, as wide as the
+    // sidebar; only the crumbs sit over the content column.
+    [, $user] = acme();
+
+    $html = (string) $this->actingAs($user)->get('/admin/acme-gmbh/customers')->assertOk()->getContent();
+    $document = HTMLDocument::createFromString($html, LIBXML_NOERROR);
+
+    expect($document->querySelector('.fi-topbar-start [data-company-switcher="desktop"]'))->not->toBeNull();
+    expect($document->querySelector('[data-topbar-column] [data-company-switcher]'))->toBeNull();
+    expect($document->querySelector('[data-topbar-column] ol[data-topbar-trail]'))->not->toBeNull();
+});
+
+it('separates crumbs only between them, not before the first', function (): void {
+    /** @var TestCase $this */
+    [$company, $user] = acme();
+    Customer::factory()->for($company)->create(['name' => 'Bauer & Kollegen GmbH']);
+
+    $html = (string) $this->actingAs($user)->get('/admin/acme-gmbh/customers/K-0001/edit')->assertOk()->getContent();
+    $document = HTMLDocument::createFromString($html, LIBXML_NOERROR);
+
+    $separators = array_map(
+        fn (Element $item): int => $item->querySelectorAll('.app-trail-separator')->length,
+        iterator_to_array($document->querySelectorAll('ol[data-topbar-trail] > li')),
+    );
+
+    expect($separators)->toBe([0, 1, 1]);
+});
