@@ -125,6 +125,37 @@ docker compose run --rm app ./vendor/bin/rector process --dry-run  # preview the
 Never run `php`, `composer`, or `artisan` directly on the host — there is
 nothing installed there to run them with.
 
+## When something goes wrong
+
+**`Cannot connect to the Docker daemon`** — Docker Desktop is not running.
+Start it (`open -a Docker` on a Mac), wait for it to settle, and retry. This is
+the most likely reason any command above fails.
+
+**`port is already allocated`** — something else holds 8080 or 5432. Find it
+with `lsof -i :8080`, or change the left-hand number under `ports` in
+`compose.yaml`.
+
+**The page will not load right after `docker compose up -d`** — the app waits
+for PostgreSQL to report healthy, which takes a few seconds from cold.
+`docker compose ps` should show both services `healthy`.
+
+**`SQLSTATE[08006] … no password supplied`** — `.env` is missing or stale.
+`cp .env.example .env`, then `php artisan key:generate`.
+
+**`SQLSTATE[42P01] … relation "…" does not exist`** — the database the browser
+uses is a migration behind. Run `docker compose run --rm app php artisan
+migrate`. A green test run does not protect you here: the suite runs against
+`invoice_test` and rebuilds that schema every time, so it structurally cannot
+notice that `invoice` is missing a table. Only loading the app finds it. **Any
+wave that adds a migration needs this after pulling.**
+
+**You want to start completely clean** — this destroys the database, including
+your login account, after which the first-run sequence above applies again:
+
+```sh
+docker compose down -v
+```
+
 ## Decisions that shape this setup
 
 See `CLAUDE.md` for the non-negotiable decisions behind this environment

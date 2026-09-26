@@ -52,8 +52,8 @@ vendor original to diff against, and no upstream change can silently discard
 them. Do not go looking for one.
 
 `documentation/core.blade.php` is the one that says which documents have to be
-updated after a change — including the Outline collection, which nothing syncs
-automatically.
+updated after a change. All of them live in this repository; the Outline
+collection that used to be on that list was dropped on 2026-09-26.
 
 Verify a change with:
 

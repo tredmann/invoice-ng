@@ -173,21 +173,26 @@ Deliberately parked, so they are not mistaken for oversights:
 - `docs/adr/` — decisions that were expensive to reach and would otherwise
   read as arbitrary
 - `docs/agents-md-maintenance.md` — read before editing `AGENTS.md`; it is generated
-- The Outline collection **Invoice** — <https://heimdall.tail1ec8f7.ts.net/collection/invoice-BgP8lxR8dF>
 
 The specs are the authority. Read the relevant one before changing behaviour.
 
 ## A change usually makes more than one document wrong
 
-The specs above are mirrored in Outline as many small linked pages, and
-**nothing syncs the two**. A repo-only edit leaves the copy people actually
-read quietly wrong — that is how one false claim about font subsetting
-survived in three places at once.
+The same claim tends to be written down in several places, and **nothing syncs
+them**. A change that corrects only one leaves the others read as current —
+that is how one false claim about font subsetting survived in three places at
+once.
 
 So after changing the stack or behaviour, correct what the change falsified:
-`README.md`, this file, the specs, and the Outline collection. `AGENTS.md`
-carries the same list in full, including how to search and patch Outline —
-and it is generated, so change it through `.ai/guidelines/`, never directly.
+`README.md`, this file, `CONTEXT.md` when a name moved, the specs, and any ADR
+the change contradicts. `AGENTS.md` carries the same list in full — and it is
+generated, so change it through `.ai/guidelines/`, never directly.
+
+> Everything above lives **in this repository**. There was also an Outline
+> collection mirroring the specs as many small linked pages, and keeping the
+> two in step cost more than it returned; the obligation was dropped on
+> 2026-09-26. Everything that was only there — the troubleshooting section — is
+> now in `README.md`. Treat that collection as history if you meet it.
 
 **A wave that adds something a user can see also owes `README.md` a feature
 entry.** Its "What it does today" section is the only thing here written for
