@@ -130,3 +130,56 @@ it('carries the number and the type in the detail header', function (): void {
         ->assertSee('Kundennr. K-0001')
         ->assertSee('Geschäftskunde');
 });
+
+it('shows when the customer was created, in German', function (): void {
+    /** @var TestCase $this */
+    // "Kunde seit" reads created_at, which nothing has ever rendered. Asserting
+    // the German form and not just the year is what distinguishes it from a raw
+    // timestamp or an ISO date.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    $this->travelTo('2025-03-14 09:00:00');
+    Customer::factory()->for($company)->create(['name' => 'Bauer & Kollegen GmbH']);
+    $this->travelBack();
+
+    $this->actingAs(memberOf($company));
+
+    $this->get('/admin/alpha-gmbh/customers/K-0001')
+        ->assertOk()
+        ->assertSee('Kunde seit')
+        ->assertSee('14.03.2025');
+});
+
+it('leaves no business-only label behind for a private customer', function (): void {
+    /** @var TestCase $this */
+    // A two-column card is the shape that leaves an empty labelled slot behind
+    // when a field is hidden. Both labels, because each is hidden separately.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->privatePerson()->create(['name' => 'Dr. Annika Vogel']);
+
+    $this->actingAs(memberOf($company));
+
+    $this->get('/admin/alpha-gmbh/customers/K-0001')
+        ->assertOk()
+        ->assertDontSee('Ansprechpartner')
+        ->assertDontSee('USt-IdNr.');
+});
+
+it('prints a long name and a long email in full on the detail page', function (): void {
+    /** @var TestCase $this */
+    // Guards the markup, not the layout: what would break this is someone
+    // reaching for ->limit() or ->lineClamp() on the entries to tidy the
+    // two-column card. Whether the columns hold at a narrow width is a
+    // question for eyes, not for this test.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->create([
+        'name' => 'Ingenieurgemeinschaft Hofmann, Weber & Partner mbB Süd',
+        'email' => 'rechnungseingang.zentrale@hofmann-weber-partner.de',
+    ]);
+
+    $this->actingAs(memberOf($company));
+
+    $this->get('/admin/alpha-gmbh/customers/K-0001')
+        ->assertOk()
+        ->assertSee('Ingenieurgemeinschaft Hofmann, Weber & Partner mbB Süd')
+        ->assertSee('rechnungseingang.zentrale@hofmann-weber-partner.de');
+});

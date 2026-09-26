@@ -74,6 +74,8 @@ return [
         'type' => 'Typ',
         'name' => 'Name',
         'name_business' => 'Firmenname',
+        'billing_address' => 'Rechnungsanschrift',
+        'created_at' => 'Kunde seit',
         'contact_person' => 'Ansprechpartner',
         'vat_id' => 'USt-IdNr.',
         'street' => 'Straße und Hausnummer',
