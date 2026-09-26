@@ -265,5 +265,14 @@ it('puts cancel at the far left and save at the far right', function (): void {
     $html = (string) $this->get('/admin/alpha-gmbh/customers/create')->assertOk()->getContent();
 
     expect($html)->toContain('fi-align-between');
-    expect(strpos($html, 'Abbrechen'))->toBeLessThan(strpos($html, 'Kunde speichern'));
+
+    // Both positions are asserted present before they are compared: strpos()
+    // returns false when a needle is missing, and false casts to 0, which would
+    // let a form with no cancel button pass the comparison.
+    $cancel = strpos($html, 'Abbrechen');
+    $save = strpos($html, 'Kunde speichern');
+
+    expect($cancel)->not->toBeFalse()
+        ->and($save)->not->toBeFalse()
+        ->and((int) $cancel)->toBeLessThan((int) $save);
 });
