@@ -27,6 +27,11 @@ return [
         'edit' => 'Bearbeiten',
         'deactivate' => 'Deaktivieren',
         'reactivate' => 'Wieder aktivieren',
+        'save' => 'Kunde speichern',
+    ],
+
+    'create' => [
+        'subheading' => 'Die Kundennummer wird beim Speichern vergeben.',
     ],
 
     'sections' => [

@@ -228,3 +228,13 @@ it('labels the name field for the chosen customer type', function (): void {
         ->fillForm(['type' => CustomerType::PrivatePerson->value])
         ->assertDontSee('Firmenname');
 });
+
+it('tells the user on the create page that the number comes on save', function (): void {
+    // The create form has no number field, and the mockup explains the gap
+    // rather than leaving the owner to wonder where the number went.
+    actInCompany(Company::factory()->create());
+
+    Livewire::test(CreateCustomer::class)
+        ->assertSee('Die Kundennummer wird beim Speichern vergeben.')
+        ->assertSee('Kunde speichern');
+});
