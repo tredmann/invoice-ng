@@ -2,12 +2,14 @@
 
 A multi-company German invoicing application. Laravel 13 + Filament 5, PHP 8.5.
 
-**Current state: companies and the tenancy backbone are in place.** A company can
-be created, completed and archived, and every company-scoped screen sits behind a
-Filament tenant boundary keyed on the company's slug. Customers, documents,
-numbering and money handling do not exist yet. If you are looking for an `Invoice`
-model, it has not been written. What works is the container stack, the test
-harness, a proven PDF renderer, and a Filament panel with login and tenancy.
+**Current state: companies, the tenancy backbone and customers are in place.** A
+company can be created, completed and archived, and every company-scoped screen
+sits behind a Filament tenant boundary keyed on the company's slug. Each company
+keeps its own customers — listed, created, viewed, edited and deactivated under
+`/admin/{company}/customers`. Documents, invoice numbering and money handling do
+not exist yet. If you are looking for an `Invoice` model, it has not been
+written. What works is the container stack, the test harness, a proven PDF
+renderer, and a Filament panel with login, tenancy and customers.
 
 ## Everything runs in the container
 
@@ -44,6 +46,11 @@ Each was expensive to reach. Read the reason before changing one.
   bookmarked and shared, and a sequential key tells the holder how many
   customers exist and lets them walk to a neighbour's. Unrelated to invoice
   numbers, which are sequential by law. See §3.1 of the system design spec.
+  Customer URLs are the one place a sequential value sits in a path —
+  `/admin/{company}/customers/K-0004` — and that is deliberate: every customer
+  under a company's slug is one its viewer may already see, so there is no
+  neighbour to walk to, and the number prints on every invoice anyway. The UUID
+  is still the key. See §3.4 of the customers spec.
 - **The current company lives in the URL, not only the session.** Every
   company-scoped screen sits under the company's slug — `/admin/{company}/invoices`,
   `/admin/{company}/settings`. Held in session alone, one URL shows different
@@ -132,6 +139,12 @@ Deliberately parked, so they are not mistaken for oversights:
   `canAccessTenant()`, which filters on both columns, does. Irrelevant at one
   user and a handful of companies; a one-line `$table->index('user_id')` when
   it isn't.
+- Tenant scoping of `Customer` is Filament's: a global scope and a creation
+  hook registered when the panel boots, active only inside panel requests. Code
+  that runs outside the panel — a queued job, a console command, v2's
+  recurring-invoice run — sees every company's customers and must scope
+  explicitly. Livewire tests must boot the panel for the same reason
+  (`actInCompany()` in `tests/Pest.php`).
 
 ## Where things are written down
 
