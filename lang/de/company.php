@@ -14,6 +14,14 @@ return [
         'small_business' => 'Kleinunternehmer (§19 UStG)',
     ],
 
+    'payment_term' => [
+        'immediate' => 'Sofort fällig',
+        'net_7' => '7 Tage netto',
+        'net_14' => '14 Tage netto',
+        'net_30' => '30 Tage netto',
+        'net_60' => '60 Tage netto',
+    ],
+
     'errors' => [
         'iban' => 'Diese IBAN ist ungültig.',
     ],
