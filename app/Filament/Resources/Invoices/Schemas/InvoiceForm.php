@@ -31,7 +31,6 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
@@ -93,10 +92,6 @@ class InvoiceForm
                                 ->suffixIcon(Heroicon::OutlinedCalendar, isInline: true)
                                 ->afterOrEqual('performed_from'),
                         ]),
-
-                        Text::make(__('invoice.fields.performed_help'))
-                            ->size(TextSize::Small)
-                            ->color('gray'),
                     ]),
 
                     Group::make()->columnSpan(1)->schema([
@@ -127,7 +122,6 @@ class InvoiceForm
             ]),
 
             Section::make(__('invoice.sections.positions'))
-                ->description(__('invoice.sections.positions_help'))
                 ->schema([
                     Repeater::make('line_items')
                         ->hiddenLabel()

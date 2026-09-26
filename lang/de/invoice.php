@@ -23,7 +23,6 @@ return [
     'sections' => [
         'header' => 'Kopfdaten',
         'positions' => 'Positionen',
-        'positions_help' => 'Frei erfasst – es gibt keinen Artikelstamm.',
     ],
 
     'fields' => [
@@ -33,7 +32,6 @@ return [
         'performed_from' => 'Leistungsdatum',
         'performed_to' => 'Leistung bis (optional)',
         'due_hint' => 'Fällig am :date',
-        'performed_help' => 'Ein Zeitraum oder ein einzelnes Datum – für die ganze Rechnung, nicht je Position. Der Beleg trägt eines von beiden.',
         'position' => 'Pos.',
         'title' => 'Bezeichnung',
         'description' => 'Beschreibung',
