@@ -108,9 +108,15 @@ Each unit has one job.
    - As a Livewire property, the trail survives the top bar's own re-renders:
      Filament's `Topbar` re-renders on a `refresh-topbar` event, which nothing
      in Filament or this application dispatches today, but anything may.
-   - When a page re-renders through Livewire — saving a renamed customer on the
-     edit page — it sends its new trail to the top bar, so the crumb does not
-     go stale.
+   - No page today changes its trail without navigating: saving a customer on
+     its edit page redirects to the view page, which renders a fresh trail. A
+     page that sends its trail over Livewire is left until one needs it —
+     sending on every re-render would add a request to every keystroke of a
+     live form.
+   - **Company data** is the exception: renaming the company changes the
+     switcher's name, and the settings page does not navigate on save. It
+     dispatches `refresh-topbar` after saving, and the top bar re-renders with
+     the new name while keeping its trail.
 3. **The top-bar view** (`company-switcher` today, renamed for what it now
    holds): switcher and trail in one Blade view, drawn by the existing
    `TOPBAR_LOGO_AFTER` render hook. The phone copy at `GLOBAL_SEARCH_BEFORE`
@@ -140,8 +146,8 @@ Throwaway, checked by screenshot at 1280, 1920 and 390 px, light and dark. If
 one question cannot be answered cleanly, work stops and it goes back to the
 owner.
 
-1. **Handover:** does the trail reach the top bar on a full page load, survive
-   `refresh-topbar`, and update after a rename on the edit page?
+1. **Handover:** does the trail reach the top bar on a full page load, and
+   survive `refresh-topbar` with the company still set?
 2. **Render hook:** can the view drawn at `TOPBAR_LOGO_AFTER` read the top
    bar's `$trail`? If not, which placement can, still without forking a view?
 3. **Alignment:** do the switcher and the page heading share a left edge at
@@ -159,8 +165,8 @@ Pest against PostgreSQL. Each test is chosen for what would make it fail.
 - **Escaping:** a customer named `Bauer & <Söhne> GmbH` appears in the trail as
   text — neither as markup nor as `&amp;amp;`.
 - **Top-bar re-render:** a Livewire test of `Topbar` — the trail is still
-  rendered after `refresh`; saving a renamed customer on the edit page sends
-  the new trail.
+  rendered after `refresh-topbar`; saving the company data dispatches
+  `refresh-topbar`.
 - **Dropdown:** "Firma wechseln"; exactly the user's active companies; the
   current one marked; "Firmen verwalten" → `/admin` and "Neue Firma" →
   `/admin/new`; "Firmen verwalten" absent on `/admin`; the switcher present
