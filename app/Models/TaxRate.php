@@ -38,14 +38,23 @@ class TaxRate extends Model
      */
     public static function formatRate(int $basisPoints): string
     {
+        return self::formatPercent($basisPoints).' %';
+    }
+
+    /**
+     * The same figure without the sign, for a form input that carries its own
+     * „%" suffix: „19", „7,5", „0".
+     */
+    public static function formatPercent(int $basisPoints): string
+    {
         $whole = intdiv($basisPoints, 100);
         $fraction = $basisPoints % 100;
 
         if ($fraction === 0) {
-            return "{$whole} %";
+            return (string) $whole;
         }
 
-        return "{$whole},".rtrim(sprintf('%02d', $fraction), '0').' %';
+        return "{$whole},".rtrim(sprintf('%02d', $fraction), '0');
     }
 
     /**

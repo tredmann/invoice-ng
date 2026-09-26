@@ -2,11 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Actions\DrawNextNumber;
 use App\Enums\LegalForm;
+use App\Enums\PaymentTerm;
+use App\Enums\VatScheme;
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Models\Company;
+use App\Models\NumberRange;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\DB;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -288,4 +294,144 @@ it('never lets the slug be edited', function (): void {
         ->assertHasNoFormErrors();
 
     expect($company->fresh()?->slug)->toBe('acme-gmbh');
+});
+
+/**
+ * Signs in and makes $company the tenant, for the tabbed settings form.
+ *
+ * @return Testable<CompanySettings>
+ */
+function settingsFormFor(Company $company): Testable
+{
+    Livewire::actingAs(userOf([$company]));
+    Filament::setCurrentPanel('admin');
+    Filament::setTenant($company);
+
+    return Livewire::test(CompanySettings::class);
+}
+
+it('saves the Zahlungsziel from the bank tab', function (): void {
+    $company = Company::factory()->create();
+
+    settingsFormFor($company)
+        ->fillForm(['payment_term' => PaymentTerm::Net30->value])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($company->fresh()?->payment_term)->toBe(PaymentTerm::Net30);
+});
+
+it('creates the Nummernkreis the first time the tab is saved', function (): void {
+    // The row is absent until now — that is what lets the Bereitschaftsprüfung
+    // report it missing rather than always finding a default someone invented.
+    $company = Company::factory()->create();
+
+    expect($company->numberRange()->exists())->toBeFalse();
+
+    settingsFormFor($company)
+        ->fillForm([
+            'number_range' => [
+                'prefix' => 'AR-',
+                'padding' => 5,
+                'next_value' => 43,
+                'include_year' => false,
+                'reset_yearly' => false,
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $range = $company->fresh()?->numberRange()->sole();
+
+    expect($range?->prefix)->toBe('AR-')
+        ->and($range?->padding)->toBe(5)
+        ->and($range?->next_value)->toBe(43)
+        ->and($range?->nextNumber())->toBe('AR-00043');
+});
+
+it('previews the next number without drawing one', function (): void {
+    // A preview built by calling DrawNextNumber would look identical on screen
+    // and burn a Belegnummer on every page load.
+    $company = Company::factory()->create();
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 43, 'include_year' => false,
+    ]);
+
+    settingsFormFor($company)->assertSee('RE-0043');
+
+    $range = $company->numberRange()->sole();
+
+    expect($range->drawn_count)->toBe(0)
+        ->and($range->next_value)->toBe(43);
+});
+
+it('refuses to lower the Startwert once a number has been drawn', function (): void {
+    $company = Company::factory()->create();
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 100, 'include_year' => false,
+    ]);
+    DB::transaction(fn (): string => (new DrawNextNumber)($company));
+
+    settingsFormFor($company)
+        ->fillForm(['number_range' => [
+            'prefix' => 'RE-', 'padding' => 4, 'next_value' => 50,
+            'include_year' => false, 'reset_yearly' => true,
+        ]])
+        ->call('save')
+        ->assertHasFormErrors(['number_range.next_value']);
+
+    expect($company->numberRange()->sole()->next_value)->toBe(101);
+});
+
+it('still allows the Startwert to be raised after a draw', function (): void {
+    // One direction alone cannot tell "guarded" from "always refused".
+    $company = Company::factory()->create();
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 100, 'include_year' => false,
+    ]);
+    DB::transaction(fn (): string => (new DrawNextNumber)($company));
+
+    settingsFormFor($company)
+        ->fillForm(['number_range' => [
+            'prefix' => 'RE-', 'padding' => 4, 'next_value' => 5000,
+            'include_year' => false, 'reset_yearly' => true,
+        ]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($company->numberRange()->sole()->next_value)->toBe(5000);
+});
+
+it('edits the Steuersätze through the tax tab', function (): void {
+    $company = Company::factory()->create();
+    $standard = $company->taxRates()->where('rate', 1900)->sole();
+
+    settingsFormFor($company)
+        ->fillForm(['tax_rates' => [
+            ['id' => $standard->getKey(), 'rate' => '19', 'name' => 'Regelsatz', 'is_default' => false],
+            ['id' => null, 'rate' => '7,5', 'name' => 'Sondersatz', 'is_default' => true],
+        ]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $rates = $company->taxRates()->whereNull('deactivated_at')->orderByDesc('rate')->get();
+
+    expect($rates->pluck('rate')->all())->toBe([1900, 750])
+        ->and($rates->where('is_default', true)->pluck('rate')->all())->toBe([750]);
+});
+
+it('hides the Steuersätze from a Kleinunternehmer and says why', function (): void {
+    $company = Company::factory()->create(['vat_scheme' => VatScheme::SmallBusiness]);
+
+    settingsFormFor($company)
+        ->assertDontSee('Steuersatz hinzufügen')
+        ->assertSee('ohne USt-Block');
+});
+
+it('shows the Steuersätze to a company on the standard scheme', function (): void {
+    // The other direction: without it, a card hidden by a mistake in the
+    // visibility closure would look exactly like a card hidden on purpose.
+    $company = Company::factory()->create();
+
+    settingsFormFor($company)->assertSee('Steuersatz hinzufügen');
 });

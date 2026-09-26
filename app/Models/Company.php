@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\LegalForm;
+use App\Enums\PaymentTerm;
 use App\Enums\VatScheme;
 use App\Rules\Iban;
 use Database\Factories\CompanyFactory;
@@ -30,6 +31,8 @@ use Normalizer;
  * follow — Customer carries the same declaration.
  *
  * @property LegalForm $legal_form
+ * @property PaymentTerm $payment_term
+ * @property VatScheme $vat_scheme
  * @property Carbon|null $deactivated_at
  */
 #[Fillable([
@@ -47,6 +50,8 @@ use Normalizer;
     'bank_name',
     'iban',
     'bic',
+    'payment_term',
+    'logo_path',
 ])]
 // Filament builds tenant URLs with `route(..., ['tenant' => $company])`,
 // which calls `getRouteKey()`. The panel identifies a tenant by querying the
@@ -67,6 +72,7 @@ class Company extends Model
     #[\Override]
     protected $attributes = [
         'vat_scheme' => 'standard',
+        'payment_term' => 'net_14',
     ];
 
     public static function uniqueSlugFrom(string $name): string
@@ -224,11 +230,111 @@ class Company extends Model
     {
         $rates = $this->taxRates()->orderByDesc('rate')->get();
 
-        if ($this->vat_scheme === VatScheme::SmallBusiness) {
+        if ($this->vat_scheme->isSmallBusiness()) {
             return $rates->where('rate', 0)->values();
         }
 
         return $rates->reject(fn (TaxRate $rate): bool => $rate->isDeactivated())->values();
+    }
+
+    /**
+     * Brings the company's Steuersätze in line with what the settings form
+     * sent: rows are created or updated, and rows the form dropped are
+     * **deactivated, never deleted** (system design §3.4) so a rate an issued
+     * Beleg was computed with stays intact.
+     *
+     * Re-adding a rate that was dropped earlier reuses its row rather than
+     * inserting a second one — `unique(company_id, rate)` would refuse the
+     * insert, and a user who removes 7 % and changes their mind should not
+     * meet a database error.
+     *
+     * Exactly one default is settled here rather than trusted from the form.
+     * A request flagging two would otherwise be decided by save order, which
+     * is not a decision anyone made.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     */
+    public function syncTaxRates(array $rows): void
+    {
+        $rows = array_values($rows);
+
+        if ($rows === []) {
+            return;
+        }
+
+        $defaultIndex = null;
+
+        foreach ($rows as $index => $row) {
+            if (($row['is_default'] ?? false) === true) {
+                $defaultIndex = $index;
+                break;
+            }
+        }
+
+        if ($defaultIndex === null) {
+            foreach ($rows as $index => $row) {
+                if ($defaultIndex === null || (int) $row['rate'] > (int) $rows[$defaultIndex]['rate']) {
+                    $defaultIndex = $index;
+                }
+            }
+        }
+
+        $kept = [];
+
+        foreach ($rows as $index => $row) {
+            $rate = (int) $row['rate'];
+            $attributes = [
+                'rate' => $rate,
+                'name' => (string) $row['name'],
+                'is_default' => $index === $defaultIndex,
+            ];
+
+            $existing = isset($row['id']) && is_string($row['id'])
+                ? $this->taxRates()->whereKey($row['id'])->first()
+                : null;
+
+            $existing ??= $this->taxRates()->where('rate', $rate)->first();
+
+            if ($existing instanceof TaxRate) {
+                $existing->forceFill(['deactivated_at' => null])->fill($attributes)->save();
+                $kept[] = $existing->getKey();
+
+                continue;
+            }
+
+            $kept[] = $this->taxRates()->create($attributes)->getKey();
+        }
+
+        $dropped = $this->taxRates()
+            ->whereNotIn('id', $kept)
+            ->whereNull('deactivated_at')
+            ->get();
+
+        foreach ($dropped as $rate) {
+            $rate->deactivate();
+        }
+    }
+
+    /**
+     * Creates the company's Nummernkreis or updates it in place.
+     *
+     * The row is absent until this runs for the first time, which is what lets
+     * the Bereitschaftsprüfung report it missing. Lowering `next_value` after
+     * a draw is refused by the model, not here.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function configureNumberRange(array $attributes): NumberRange
+    {
+        $range = $this->numberRange()->first();
+
+        if ($range instanceof NumberRange) {
+            $range->fill($attributes)->save();
+
+            return $range;
+        }
+
+        return $this->numberRange()->create($attributes);
     }
 
     /**
@@ -278,6 +384,7 @@ class Company extends Model
         return [
             'legal_form' => LegalForm::class,
             'vat_scheme' => VatScheme::class,
+            'payment_term' => PaymentTerm::class,
             'deactivated_at' => 'datetime',
         ];
     }
