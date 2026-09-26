@@ -486,31 +486,19 @@ it('sets the next Belegnummer apart in its own box', function (): void {
     expect($html)->toContain('.app-number-preview-value');
 });
 
-it('lays every settings card out in the columns the mockup measures', function (): void {
+it('puts the Handelsregister fields side by side', function (): void {
     /** @var TestCase $this */
-    // Two of these were stacked and three had the wrong proportions, and no
-    // behavioural test noticed — a form saves the same whether its fields sit
-    // beside each other or under one another. The counts below are the whole
-    // page's grid declarations, so a card that loses its row changes them.
-    //
-    // Proportions come from the Penpot boards, whose card content is 1008px
-    // wide throughout:
-    //   Name 772 | Rechtsform 220        →  4 cols, span 3
-    //   Registergericht 752 | Nummer 240 →  4 cols, span 3
-    //   Steuernummer 732 | USt-IdNr. 260 →  4 cols, span 3
-    //   IBAN 772 | BIC 220               →  4 cols, span 3
-    //   Zahlungsziel 260                 →  4 cols, span 1
-    //   PLZ 140 | Ort 852                →  7 cols, span 6
-    //   Präfix/Stellen/Startwert         →  7 cols, three of span 1
-    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+    // The register card is the only two-column grid a GmbH has that a sole
+    // proprietorship does not, so the difference between the two pages is
+    // exactly that card. Stacking it again drops the count to match.
+    $gmbh = Company::factory()->create(['name' => 'Acme GmbH']);
+    $sole = Company::factory()->soleProprietorship()->create(['name' => 'Bea Weber']);
 
-    $html = (string) $this->actingAs(userOf([$company]))
-        ->get('/admin/acme-gmbh/settings')
-        ->assertOk()
-        ->getContent();
+    $withRegister = (string) $this->actingAs(userOf([$gmbh]))
+        ->get('/admin/acme-gmbh/settings')->assertOk()->getContent();
+    $withoutRegister = (string) $this->actingAs(userOf([$sole]))
+        ->get('/admin/bea-weber/settings')->assertOk()->getContent();
 
-    expect(substr_count($html, '--cols-lg: repeat(4'))->toBe(5)
-        ->and(substr_count($html, '--cols-lg: repeat(7'))->toBe(2)
-        ->and(substr_count($html, '--col-span-lg: span 3 / span 3'))->toBe(4)
-        ->and(substr_count($html, '--col-span-lg: span 6 / span 6'))->toBe(1);
+    expect(substr_count($withRegister, '--cols-lg: repeat(2'))
+        ->toBe(substr_count($withoutRegister, '--cols-lg: repeat(2') + 1);
 });

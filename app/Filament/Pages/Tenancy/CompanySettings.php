@@ -114,26 +114,17 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.identity'))
                 ->description(__('company.sections.identity_help'))
                 ->schema([
-                    // Proportions are the mockup's, measured off it: its card
-                    // content is 1008px wide throughout, so Name 772 beside
-                    // Rechtsform 220 is three quarters against one.
-                    Grid::make(4)->schema([
-                        TextInput::make('name')
-                            ->label(__('company.fields.name'))
-                            ->required()
-                            ->maxLength(255)
-                            ->columnSpan(3),
-                        Select::make('legal_form')
-                            ->label(__('company.fields.legal_form'))
-                            ->options(LegalForm::class)
-                            ->required()
-                            // The register fields appear and disappear with
-                            // this, so the form has to re-render on change.
-                            ->live(),
-                    ]),
-                    // The one field the mockup does not draw. Full width and
-                    // last of the identity block, so it sits out of the way of
-                    // the rows that are drawn.
+                    TextInput::make('name')
+                        ->label(__('company.fields.name'))
+                        ->required()
+                        ->maxLength(255),
+                    Select::make('legal_form')
+                        ->label(__('company.fields.legal_form'))
+                        ->options(LegalForm::class)
+                        ->required()
+                        // The register fields appear and disappear with this,
+                        // so the form has to re-render on change.
+                        ->live(),
                     TextInput::make('slug')
                         ->label(__('company.fields.slug'))
                         ->helperText(__('company.fields.slug_help'))
@@ -146,8 +137,7 @@ class CompanySettings extends EditTenantProfile
                         ->label(__('company.fields.street'))
                         ->required()
                         ->maxLength(255),
-                    // PLZ 140 against Ort 852: a seventh, not a quarter.
-                    Grid::make(7)->schema([
+                    Grid::make(4)->schema([
                         TextInput::make('postal_code')
                             ->label(__('company.fields.postal_code'))
                             ->required()
@@ -156,7 +146,7 @@ class CompanySettings extends EditTenantProfile
                             ->label(__('company.fields.city'))
                             ->required()
                             ->maxLength(255)
-                            ->columnSpan(6),
+                            ->columnSpan(3),
                     ]),
                     TextInput::make('managing_directors')
                         ->label(__('company.fields.managing_directors'))
@@ -170,13 +160,13 @@ class CompanySettings extends EditTenantProfile
                 ->description(__('company.sections.register_help'))
                 ->visible(fn (Get $get): bool => $this->isRegisteredForm($get))
                 ->schema([
-                    // Registergericht 752 beside Registernummer 240.
-                    Grid::make(4)->schema([
+                    // Two columns, not two rows: the mockup puts Registergericht
+                    // and Registernummer side by side.
+                    Grid::make(2)->schema([
                         TextInput::make('register_court')
                             ->label(__('company.fields.register_court'))
                             ->required()
-                            ->maxLength(255)
-                            ->columnSpan(3),
+                            ->maxLength(255),
                         TextInput::make('register_number')
                             ->label(__('company.fields.register_number'))
                             ->required()
@@ -219,16 +209,14 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.tax_numbers'))
                 ->description(__('company.sections.tax_numbers_help'))
                 ->schema([
-                    // Steuernummer 732 beside USt-IdNr. 260.
-                    Grid::make(4)->schema([
+                    Grid::make(2)->schema([
                         TextInput::make('tax_number')
                             ->label(__('company.fields.tax_number'))
                             // Which identifier a company has depends on its
                             // scheme, so each is required only while the other
                             // is missing.
                             ->requiredWithout('vat_id')
-                            ->maxLength(50)
-                            ->columnSpan(3),
+                            ->maxLength(50),
                         TextInput::make('vat_id')
                             ->label(__('company.fields.vat_id'))
                             ->requiredWithout('tax_number')
@@ -295,13 +283,12 @@ class CompanySettings extends EditTenantProfile
                     TextInput::make('bank_name')
                         ->label(__('company.fields.bank_name'))
                         ->maxLength(255),
-                    // IBAN 772 beside BIC 220.
-                    Grid::make(4)->schema([
+                    Grid::make(3)->schema([
                         TextInput::make('iban')
                             ->label(__('company.fields.iban'))
                             ->rule(new Iban)
                             ->maxLength(42)
-                            ->columnSpan(3),
+                            ->columnSpan(2),
                         TextInput::make('bic')
                             ->label(__('company.fields.bic'))
                             ->maxLength(11),
@@ -314,14 +301,10 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.payment_term'))
                 ->description(__('company.sections.payment_term_help'))
                 ->schema([
-                    // 260 of 1008: a Zahlungsziel is two words, and a select
-                    // stretched across the card would look like a mistake.
-                    Grid::make(4)->schema([
-                        Select::make('payment_term')
-                            ->hiddenLabel()
-                            ->options(PaymentTerm::class)
-                            ->required(),
-                    ]),
+                    Select::make('payment_term')
+                        ->hiddenLabel()
+                        ->options(PaymentTerm::class)
+                        ->required(),
                 ]),
         ];
     }
@@ -335,11 +318,7 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.number_range'))
                 ->description(__('company.sections.number_range_help'))
                 ->schema([
-                    // Präfix 160, Stellen 120, Startwert 140 — three short
-                    // fields at the left, not three spread across the card.
-                    // Seven columns leaves the remaining four empty, which is
-                    // what the mockup shows.
-                    Grid::make(7)->schema([
+                    Grid::make(3)->schema([
                         TextInput::make('number_range.prefix')
                             ->label(__('company.fields.prefix'))
                             ->maxLength(20)
