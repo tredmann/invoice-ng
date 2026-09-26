@@ -29,7 +29,6 @@ return [
         'reactivate' => 'Wieder aktivieren',
         'save' => 'Kunde speichern',
         'new_invoice' => 'Neue Rechnung',
-        'new_invoice_disabled' => 'Rechnungen gibt es noch nicht.',
     ],
 
     'view' => [
@@ -46,6 +45,10 @@ return [
     ],
 
     'invoices' => [
+        'issued_on' => 'Datum',
+        'status' => 'Status',
+        'total' => 'Betrag',
+        'all' => 'Alle Rechnungen',
         'heading' => 'Rechnungen',
         'empty' => 'Noch keine Rechnungen.',
     ],

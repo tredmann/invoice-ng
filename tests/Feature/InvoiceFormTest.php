@@ -225,3 +225,24 @@ it('insists on a customer and at least one Position', function (): void {
         ->call('create')
         ->assertHasFormErrors(['customer_id', 'line_items']);
 });
+
+it('preselects a customer named in the url, and only a real one', function (): void {
+    // Both halves: the create page arriving from a customer starts with that
+    // customer, and a key from another company is ignored rather than trusted
+    // — it is a query parameter, so it is checked against the tenant-scoped
+    // picker.
+    $alpha = Company::factory()->create();
+    $beta = Company::factory()->create();
+    $mine = Customer::factory()->for($alpha)->create();
+    $theirs = Customer::factory()->for($beta)->create();
+
+    actInCompany($alpha);
+
+    Livewire::withQueryParams(['customer' => $mine->getKey()])
+        ->test(CreateInvoice::class)
+        ->assertFormSet(['customer_id' => $mine->getKey()]);
+
+    Livewire::withQueryParams(['customer' => $theirs->getKey()])
+        ->test(CreateInvoice::class)
+        ->assertFormSet(['customer_id' => null]);
+});

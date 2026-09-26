@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Customers\Schemas;
 
+use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Models\Customer;
+use App\Money\Euro;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\EmptyState;
 use Filament\Schemas\Components\Grid;
@@ -14,6 +16,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 
 class CustomerInfolist
 {
@@ -93,9 +97,45 @@ class CustomerInfolist
             // with the invoicing wave, together with the table it summarises.
             Section::make(__('customer.invoices.heading'))->schema([
                 EmptyState::make(__('customer.invoices.empty'))
-                    ->icon(Heroicon::OutlinedDocumentText),
+                    ->icon(Heroicon::OutlinedDocumentText)
+                    ->visible(fn (Customer $record): bool => $record->documents()->doesntExist()),
+                Text::make(fn (Customer $record): Htmlable => self::documents($record))
+                    ->visible(fn (Customer $record): bool => $record->documents()->exists())
+                    ->columnSpanFull(),
             ]),
         ]);
+    }
+
+    /**
+     * The customer's Belege, newest first. Each row is a link, because the
+     * reason to look at this card is to get to one of them.
+     */
+    private static function documents(Customer $customer): Htmlable
+    {
+        $rows = '';
+
+        foreach ($customer->documents as $document) {
+            $rows .= '<tr>'
+                .'<td><a href="'.e(InvoiceResource::getUrl('view', ['record' => $document])).'">'
+                .e($document->number === null
+                    ? __('invoice.view.draft_heading')
+                    : (string) $document->number)
+                .'</a></td>'
+                .'<td>'.e($document->status->getLabel()).'</td>'
+                .'<td>'.e($document->issued_on->format('d.m.Y')).'</td>'
+                .'<td class="app-positions-end">'.e(Euro::format($document->totals()->gross)).'</td>'
+                .'</tr>';
+        }
+
+        return new HtmlString(
+            '<table class="app-positions">'
+            .'<thead><tr>'
+            .'<th>'.e(__('customer.invoices.heading')).'</th>'
+            .'<th>'.e(__('customer.invoices.status')).'</th>'
+            .'<th>'.e(__('customer.invoices.issued_on')).'</th>'
+            .'<th class="app-positions-end">'.e(__('customer.invoices.total')).'</th>'
+            .'</tr></thead><tbody>'.$rows.'</tbody></table>'
+        );
     }
 
     /**

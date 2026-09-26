@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 use App\Enums\PaymentTerm;
 use App\Filament\Resources\Customers\CustomerResource;
+use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Models\Company;
 use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\LineItem;
+use Brick\Money\Money;
 use Tests\TestCase;
 
 it('resolves a customer number within the company in the url', function (): void {
@@ -266,4 +270,68 @@ it('shows the Zahlungsziel that would actually be used', function (): void {
         ->assertOk()
         ->assertSee('Zahlungsziel')
         ->assertSee('30 Tage netto');
+});
+
+it('sends Neue Rechnung to the create page with this customer chosen', function (): void {
+    /** @var TestCase $this */
+    // The seam the customers wave left disabled. Preselecting is the point:
+    // arriving at an empty picker from a customer's own page would be a step
+    // backwards.
+    $company = Company::factory()->create();
+    $customer = Customer::factory()->for($company)->create();
+    $user = actInCompany($company);
+
+    $this->actingAs($user)
+        ->get(CustomerResource::getUrl('view', ['record' => $customer]))
+        ->assertOk()
+        ->assertSee('Neue Rechnung')
+        ->assertSeeHtml('customer='.$customer->getKey())
+        ->assertDontSee('Rechnungen gibt es noch nicht.');
+});
+
+it('lists the customer\'s own Belege on their page', function (): void {
+    /** @var TestCase $this */
+    $company = Company::factory()->create();
+    $mine = Customer::factory()->for($company)->create();
+    $theirs = Customer::factory()->for($company)->create();
+
+    $ours = Invoice::factory()->for($company)->create([
+        'customer_id' => $mine->getKey(), 'issued_on' => '2026-09-25',
+    ]);
+    LineItem::factory()->for($ours, 'document')->create([
+        'quantity' => '2', 'unit_price' => Money::of('100.00', 'EUR'), 'tax_rate' => 1900,
+    ]);
+
+    $other = Invoice::factory()->for($company)->create(['customer_id' => $theirs->getKey()]);
+    LineItem::factory()->for($other, 'document')->create();
+
+    $user = actInCompany($company);
+
+    $this->actingAs($user)
+        ->get(CustomerResource::getUrl('view', ['record' => $mine]))
+        ->assertOk()
+        ->assertSee('25.09.2026')
+        ->assertSee('238,00')
+        ->assertSeeHtml(e(InvoiceResource::getUrl('view', ['record' => $ours])))
+        ->assertDontSeeHtml(e(InvoiceResource::getUrl('view', ['record' => $other])))
+        ->assertDontSee('Noch keine Rechnungen.');
+});
+
+it('keeps the customer overview tiles at zero while nothing is issued', function (): void {
+    /** @var TestCase $this */
+    // A draft is not revenue. The tiles count issued documents, so a customer
+    // with a draft still reads 0,00 € — which is the honest answer and the one
+    // a reader would most expect to have quietly broken.
+    $company = Company::factory()->create();
+    $customer = Customer::factory()->for($company)->create();
+    $invoice = Invoice::factory()->for($company)->create(['customer_id' => $customer->getKey()]);
+    LineItem::factory()->for($invoice, 'document')->create();
+
+    $user = actInCompany($company);
+
+    $this->actingAs($user)
+        ->get(CustomerResource::getUrl('view', ['record' => $customer]))
+        ->assertOk()
+        ->assertSee('Offene Forderungen')
+        ->assertSee('0,00 €');
 });

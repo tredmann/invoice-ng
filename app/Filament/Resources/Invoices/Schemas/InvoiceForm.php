@@ -44,6 +44,10 @@ class InvoiceForm
                 Select::make('customer_id')
                     ->label(__('invoice.fields.customer'))
                     ->options(fn (?Document $record): array => self::customerOptions($record))
+                    // Preselected when the customer page sent us here, so
+                    // „Neue Rechnung" on a customer arrives with that customer
+                    // already chosen rather than at an empty picker.
+                    ->default(fn (): ?string => self::customerFromRequest())
                     ->searchable()
                     ->required()
                     // The Zahlungsziel follows the chosen customer, so the form
@@ -177,6 +181,21 @@ class InvoiceForm
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
+    }
+
+    /**
+     * Only a customer of this company: the value is a query parameter, so it
+     * is checked against the tenant-scoped picker rather than trusted.
+     */
+    private static function customerFromRequest(): ?string
+    {
+        $customer = request()->query('customer');
+
+        if (! is_string($customer)) {
+            return null;
+        }
+
+        return array_key_exists($customer, self::customerOptions(null)) ? $customer : null;
     }
 
     /**
