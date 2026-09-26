@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Normalizer;
 
 /**
  * Declared because Larastan types `legal_form` as a string despite the enum
@@ -97,10 +98,16 @@ class Company extends Model
      * of letters and digits, so "(Neu) Handel" gives "NH"; characters, not
      * bytes, so "Übersee" keeps its "Ü". A name with no letter or digit at all
      * falls back to its first character, so the avatar is never empty.
+     *
+     * Composed first: a name pasted on macOS can carry "Ü" as "U" plus a
+     * combining mark, which is neither letter nor digit and would split the
+     * word. Upper-cased by simple mapping, which leaves "ß" one letter rather
+     * than "SS".
      */
     public function initials(): string
     {
         $name = trim((string) $this->name);
+        $name = Normalizer::normalize($name, Normalizer::FORM_C) ?: $name;
         $words = preg_split('/[^\p{L}\p{N}]+/u', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         if ($words === []) {
@@ -112,7 +119,7 @@ class Company extends Model
             array_slice($words, 0, 2),
         );
 
-        return mb_strtoupper(implode('', $letters));
+        return mb_convert_case(implode('', $letters), MB_CASE_UPPER_SIMPLE);
     }
 
     /**

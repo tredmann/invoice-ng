@@ -183,4 +183,9 @@ it('draws initials from the first letters of the first two words', function (str
     'punctuation first' => ['(Neu) Handel', 'NH'],
     'digits' => ['3D Druck GmbH', '3D'],
     'no letters at all' => ['!!!', '!'],
+    // Pasted on macOS: "Ü" as "U" plus a combining diaeresis. Split as
+    // letters only, the mark would break the word into "U" and "bersee".
+    'decomposed umlaut' => ["U\u{0308}bersee Handel", 'ÜH'],
+    // Full upper-casing turns "ß" into "SS" — two letters for one.
+    'sharp s first' => ['ßauer Werk', 'ßW'],
 ]);

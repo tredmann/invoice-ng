@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\Tenancy\CompanySettings;
+use App\Livewire\RenderedPage;
 use App\Livewire\Topbar;
 use App\Models\Company;
 use App\Models\Customer;
@@ -165,9 +167,16 @@ it('keeps its trail when the top bar re-renders on its own', function (): void {
     [$company] = acme();
     actInCompany($company);
 
-    Livewire::test(Topbar::class, ['trail' => [['label' => 'Kunden', 'url' => null]]])
-        ->dispatch('refresh-topbar')
-        ->assertSeeHtml('<span aria-current="page">Kunden</span>');
+    // The page this request rendered, as AppServiceProvider records it.
+    resolve(RenderedPage::class)->page = new Dashboard;
+
+    $topbar = Livewire::test(Topbar::class)
+        ->assertSeeHtml('<span aria-current="page">Dashboard</span>');
+
+    resolve(RenderedPage::class)->page = null;
+
+    $topbar->dispatch('refresh-topbar')
+        ->assertSeeHtml('<span aria-current="page">Dashboard</span>');
 });
 
 it('refreshes the top bar after the company data is saved, so a new name shows', function (): void {
@@ -209,4 +218,14 @@ it('separates crumbs only between them, not before the first', function (): void
     );
 
     expect($separators)->toBe([0, 1, 1]);
+});
+
+it('exposes the trail as its own navigation landmark', function (): void {
+    /** @var TestCase $this */
+    [, $user] = acme();
+
+    $html = (string) $this->actingAs($user)->get('/admin/acme-gmbh/customers')->assertOk()->getContent();
+    $document = HTMLDocument::createFromString($html, LIBXML_NOERROR);
+
+    expect($document->querySelector('nav[aria-label="Navigationspfad"] > ol[data-topbar-trail]'))->not->toBeNull();
 });

@@ -31,6 +31,7 @@ return [
 
     'switcher' => [
         'label' => 'Firma wechseln',
+        'trigger' => 'Firma wechseln (aktuell: :name)',
         'manage' => 'Firmen verwalten',
     ],
 
