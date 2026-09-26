@@ -27,6 +27,38 @@ The reason is that loose row actions are a ratchet. Every feature adds one, no
 feature ever removes one, and the table ends up wider than the data it exists to
 show — with the destructive action sitting a few pixels from the common one.
 
+## Form actions sit at opposite ends
+
+**Cancel goes to the far left of the action row, the saving action to the far
+right.** Not side by side at one end, and not the other way round.
+
+Filament does neither by default — it emits the submit action first and groups
+every action at one end — so a form page takes the trait rather than arranging
+its own buttons:
+
+```php
+use App\Filament\Concerns\SeparatesFormActions;
+
+class CreateCustomer extends CreateRecord
+{
+    use SeparatesFormActions;
+}
+```
+
+It sets `Alignment::Between` and moves cancel to the front. Applying the rule
+by hand means getting two separate things right on every form page, which is
+how a codebase ends up with three different button arrangements.
+
+**Dialogs included.** The reason for the rule is the distance between a button
+that keeps your work and one that throws it away, so the narrow container is
+where it matters most, not where it is excused.
+
+A page with no cancel — the settings pages, which save in place — has nothing
+to separate: one saving action, far right.
+
+Whatever else the footer needs to say (a computed total, a warning about what
+saving will do) goes on its own line **above** the buttons, never between them.
+
 ## Simplicity over completeness
 
 **When a screen could show more or show less, show less.** Density is not a

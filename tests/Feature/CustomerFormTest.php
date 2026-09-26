@@ -216,3 +216,54 @@ it('clears contact person and vat id when the form switches a Geschäftskunde to
     expect($customer->contact_person)->toBeNull()
         ->and($customer->vat_id)->toBeNull();
 });
+
+it('labels the name field for the chosen customer type', function (): void {
+    // A Geschäftskunde has a Firmenname, a Privatkunde has a name. One static
+    // label is wrong for one of them, and the mockup labels it per type.
+    actInCompany(Company::factory()->create());
+
+    Livewire::test(CreateCustomer::class)
+        ->fillForm(['type' => CustomerType::Business->value])
+        ->assertSee('Firmenname')
+        ->assertSee('z. B. Weber Haustechnik e.K.')
+        ->fillForm(['type' => CustomerType::PrivatePerson->value])
+        ->assertDontSee('Firmenname')
+        ->assertSee('z. B. Sofia Kraus');
+});
+
+it('tells the user on the create page that the number comes on save', function (): void {
+    // The create form has no number field, and the mockup explains the gap
+    // rather than leaving the owner to wonder where the number went.
+    actInCompany(Company::factory()->create());
+
+    Livewire::test(CreateCustomer::class)
+        ->assertSee('Die Kundennummer wird beim Speichern vergeben.')
+        ->assertSee('Kunde speichern');
+});
+
+it('stacks the form cards full width rather than two by two', function (): void {
+    /** @var TestCase $this */
+    // Same Filament default as the detail page: a schema that declares no
+    // columns of its own is given two, so from 1024px up the four cards
+    // render 2x2 and PLZ lands in about an eighth of the width. The board
+    // stacks them. The two-column grids inside the cards are Grid::make(3)
+    // and Grid::make(4) and are not counted here.
+    actInCompany(Company::factory()->create(['name' => 'Alpha GmbH']));
+
+    $html = (string) $this->get('/admin/alpha-gmbh/customers/create')->assertOk()->getContent();
+
+    expect(substr_count($html, '--cols-lg: repeat(2'))->toBe(0);
+});
+
+it('puts cancel at the far left and save at the far right', function (): void {
+    /** @var TestCase $this */
+    // Both halves matter: Filament emits save first and groups both buttons
+    // at one end. Alignment alone would leave them in the wrong order, and
+    // order alone would leave them side by side.
+    actInCompany(Company::factory()->create(['name' => 'Alpha GmbH']));
+
+    $html = (string) $this->get('/admin/alpha-gmbh/customers/create')->assertOk()->getContent();
+
+    expect($html)->toContain('fi-align-between');
+    expect(strpos($html, 'Abbrechen'))->toBeLessThan(strpos($html, 'Kunde speichern'));
+});

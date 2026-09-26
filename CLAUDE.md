@@ -77,7 +77,9 @@ Each was expensive to reach. Read the reason before changing one.
   buttons. Filament's `ActionGroup` already defaults to that trigger.
 - **Simplicity over density in the interface.** Where a screen could show more
   or less, show less; add an affordance when a task needs it, not in advance.
-  `.ai/guidelines/ui/core.blade.php` carries both UI rules in full.
+  `.ai/guidelines/ui/core.blade.php` carries the UI rules in full — including
+  that cancel sits at the far left of a form's action row and the saving
+  action at the far right, dialogs included.
 - **Rector covers `app/` and `tests/` only.** `config/` and `bootstrap/` ship with
   Laravel and are replaced wholesale by framework upgrades; rewriting them turns
   every future skeleton diff into a merge conflict. Run Rector *before* Pint —

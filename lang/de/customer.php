@@ -27,18 +27,65 @@ return [
         'edit' => 'Bearbeiten',
         'deactivate' => 'Deaktivieren',
         'reactivate' => 'Wieder aktivieren',
+        'save' => 'Kunde speichern',
+        'new_invoice' => 'Neue Rechnung',
+        'new_invoice_disabled' => 'Rechnungen gibt es noch nicht.',
+    ],
+
+    'view' => [
+        'subheading' => 'Kundennr. :number',
+    ],
+
+    'stats' => [
+        'revenue' => 'Umsatz :year',
+        'revenue_since' => 'seit 01.01.:year',
+        'open' => 'Offene Forderungen',
+        'overdue' => 'Überfällig',
+        'invoice_count' => '{0}0 Rechnungen|{1}1 Rechnung|[2,*]:count Rechnungen',
+        'zero' => '0,00 €',
+    ],
+
+    'invoices' => [
+        'heading' => 'Rechnungen',
+        'empty' => 'Noch keine Rechnungen.',
+    ],
+
+    'create' => [
+        'subheading' => 'Die Kundennummer wird beim Speichern vergeben.',
     ],
 
     'sections' => [
-        'customer' => 'Kunde',
-        'address' => 'Adresse',
-        'contact' => 'Kontakt',
+        'type' => 'Typ',
+        'master' => 'Stammdaten',
+        'address' => 'Rechnungsanschrift',
+        'billing' => 'Rechnungsstellung',
+    ],
+
+    'help' => [
+        'type' => 'Bestimmt, welche Angaben die Rechnung braucht – und steht auf dem Beleg.',
+        'address' => 'Erscheint unverändert auf jeder Rechnung an diesen Kunden.',
+        'vat_id' => 'Nur bei Geschäftskunden.',
+        'email' => 'Ohne E-Mail bleibt nur der PDF-Download.',
+    ],
+
+    'placeholders' => [
+        'business_name' => 'z. B. Weber Haustechnik e.K.',
+        'private_name' => 'z. B. Sofia Kraus',
+        'contact_person' => 'Optional',
+        'vat_id' => 'DE…',
+        'street' => 'Musterstraße 1',
+        'postal_code' => '90402',
+        'city' => 'Nürnberg',
+        'email' => 'name@firma.de',
     ],
 
     'fields' => [
         'number' => 'Kundennr.',
         'type' => 'Typ',
         'name' => 'Name',
+        'name_business' => 'Firmenname',
+        'billing_address' => 'Rechnungsanschrift',
+        'created_at' => 'Kunde seit',
         'contact_person' => 'Ansprechpartner',
         'vat_id' => 'USt-IdNr.',
         'street' => 'Straße und Hausnummer',

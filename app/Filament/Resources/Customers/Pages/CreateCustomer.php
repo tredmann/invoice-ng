@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Customers\Pages;
 
+use App\Filament\Concerns\SeparatesFormActions;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Company;
 use App\Models\Customer;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
 
 class CreateCustomer extends CreateRecord
 {
+    use SeparatesFormActions;
+
     #[\Override]
     protected static string $resource = CustomerResource::class;
 
@@ -23,6 +28,20 @@ class CreateCustomer extends CreateRecord
     public function getTitle(): string
     {
         return __('customer.actions.create');
+    }
+
+    /**
+     * The create form has no number field — it is assigned on save. Saying so
+     * here is cheaper than an owner hunting for where to type one.
+     */
+    public function getSubheading(): string|Htmlable|null
+    {
+        return __('customer.create.subheading');
+    }
+
+    protected function getCreateFormAction(): Action
+    {
+        return parent::getCreateFormAction()->label(__('customer.actions.save'));
     }
 
     /**
