@@ -80,6 +80,24 @@ From the point of view of someone using it, rather than building it:
   three figures: revenue this year, open receivables, and how much of that is
   overdue. **Those three read 0,00 € for now**: they are counted from invoices,
   and invoicing is the next phase. The invoice list under them says so too.
+- **Rechnungen, as drafts.** Under Rechnungen a company writes an invoice:
+  pick the customer, the Rechnungsdatum, the Zahlungsziel and the Leistung,
+  then type the Positionen — Bezeichnung, Menge, Einheit, Einzelpreis and
+  Steuersatz — with the net, the Umsatzsteuer per Steuersatz and the
+  Gesamtbetrag adding up under the rows as you go. The list shows every
+  invoice with its customer, date and amount, and finds one by the customer or
+  by what is written on it.
+- **A draft stays a draft.** **Nothing can be issued yet**, so an invoice has
+  no number, no due date and no PDF, and the list shows „—" where those will
+  go. A draft is freely editable and can be deleted outright; once issuing
+  exists, only its status will still be allowed to change and deleting will be
+  refused — the application already enforces that, it simply has nothing to
+  enforce it on. Drafts are counted nowhere: the customer's revenue and open
+  receivables still read 0,00 €, because a draft is not revenue.
+- **Only a customer of this company, and only an active one.** The picker
+  offers the company's own customers, deactivated ones excluded — except on a
+  draft that already names one, which keeps its recipient. A Kleinunternehmer
+  is offered 0 % and no other Steuersatz.
 - **Customers are deactivated, never deleted.** A deactivated customer stays in
   the list, greyed and marked "Deaktiviert", keeps its page and its number, and
   can be reactivated from its ⋮ menu or its page.
@@ -92,16 +110,16 @@ From the point of view of someone using it, rather than building it:
 
 ### Not built yet
 
-The entire document side: invoices and their ZUGFeRD PDFs, Storno and
-Teilstorno, Gutschriften over a Vermittlungsprovision, recording payments,
-sending email, Mahnungen, recurring invoices, the period export for the tax
-advisor, and dashboard figures. Sending is not set up either — the E-Mail tab
-in the settings is not built.
+**Ausstellen** — and everything that hangs off it: drawing the Belegnummer,
+freezing the identity block, the ZUGFeRD PDF, sending it by email, recording
+payments, Storno and Teilstorno, Gutschriften over a Vermittlungsprovision,
+Mahnungen, recurring invoices, the period export for the tax advisor, and the
+dashboard's figures. The E-Mail tab in the settings is not built either.
 
-The groundwork the documents will stand on *is* built and tested: the number
-range and the locked, gapless draw, the money type and the VAT rounding, the
-tax rates, the Zahlungsziel and the unit list. What is missing is the document
-that would use them.
+Everything an Ausstellvorgang needs *is* built and tested: the number range
+and the locked, gapless draw, the money type and the VAT rounding, the tax
+rates, the Zahlungsziel, the unit list, and now the Rechnung itself as a
+draft. What is missing is the step that turns one into a Beleg.
 
 `docs/superpowers/specs/2026-09-23-invoice-system-design.md` describes all of
 it, and `CONTEXT.md` settles what each of those documents is called and why.

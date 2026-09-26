@@ -158,6 +158,12 @@ A deactivated customer stays viewable and editable and keeps its URL. What it
 loses is a place in pickers — and the first picker arrives with invoices,
 which is where "only active customers can be chosen" gets enforced.
 
+> **Done 2026-09-27.** The invoice form's customer picker offers active
+> customers of the company in the path — with one exception the rule above did
+> not anticipate: a draft that already names a customer keeps them selectable
+> after they are deactivated, or saving it again would silently drop its
+> recipient.
+
 ## 4. Tenancy
 
 `CustomerResource` is a tenant-aware resource in the existing panel, owned

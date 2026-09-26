@@ -16,11 +16,14 @@ The money foundation landed with them: `TaxRate` rows in basis points,
 `CheckReadiness` reporting what still stands between a company and its first
 Beleg.
 
-**No document exists.** If you are looking for an `Invoice` model, it has not
-been written — nor `Document`, `LineItem` or `Payment`, and `tightenco/parental`
-is still unused. Nothing draws a number in anger yet, and no PDF or ZUGFeRD XML
-is produced. What works is the container stack, the test harness, a proven PDF
-renderer, and a panel with login, tenancy, customers and company master data.
+**A Beleg exists, but nothing can be issued.** `documents` holds every Belegart
+with `Invoice` as its first `tightenco/parental` child, `LineItem` carries the
+Positionen, and a Rechnung can be drafted, listed, read, corrected and deleted
+under `/admin/{company}/invoices`. What does not exist is **ausstellen**:
+nothing calls `DrawNextNumber`, nothing freezes an identity block, no PDF or
+ZUGFeRD XML is produced, and `horstoeko/zugferd` is still unused. `Storno`,
+`PartialCancellation`, `SelfBilledInvoice`, `Payment` and `AuditEntry` are not
+written.
 
 ## Everything runs in the container
 
@@ -170,7 +173,21 @@ Deliberately parked, so they are not mistaken for oversights:
   owes the enforcement: `IssueDocument` must call `CheckReadiness` before it
   opens its transaction and refuse on `canIssue() === false`. The check
   distinguishes blockers (what §14 UStG and §35a GmbHG require) from warnings
-  (bank details, logo); only the blockers may refuse.
+  (bank details, logo); only the blockers may refuse. Now that a `Document`
+  exists, the gate has something concrete to refuse — and still refuses
+  nothing.
+- **The immutability guards run against something nothing can produce.**
+  `Document` refuses any change but the status once a Beleg is issued,
+  `LineItem` refuses every write to an issued Beleg's Positionen, and deleting
+  is drafts only. No code path reaches a non-draft status yet: the guards are
+  exercised through `Invoice::factory()->issued()`. That state exists for the
+  tests and must not become a shortcut for issuing — the real transition is
+  §8.1, under a lock, with the number drawn inside it.
+- **A draft's Positionen are rewritten wholesale on every save**
+  (`HandlesLineItems`), because reordering two rows in place collides on
+  `unique(document_id, position)`. That is affordable only while nothing
+  references a Position and only a draft can be saved. The wave that issues has
+  to stop doing it; `LineItem`'s guard is what will object.
 - **Nothing yet seeds a Nummernkreis, on purpose.** A company has no
   `number_ranges` row until its settings tab is saved once — that is what lets
   the readiness check say „noch nicht konfiguriert" truthfully instead of always
@@ -215,6 +232,9 @@ Deliberately parked, so they are not mistaken for oversights:
 - `docs/superpowers/specs/2026-09-26-company-master-data-design.md` — the master
   data and money foundation an Ausstellvorgang needs, and why the readiness
   check blocks on some things and only warns about others
+- `docs/superpowers/specs/2026-09-27-invoice-drafts-design.md` — the Beleg
+  table, why a document is addressed by its UUID and a customer by `K-0004`,
+  and what the immutability guards refuse
 - `CONTEXT.md` — the German ubiquitous language of the domain, with the
   English identifier beside each term. A change to it is a change to what
   things are called everywhere.
