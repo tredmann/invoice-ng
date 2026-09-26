@@ -36,6 +36,15 @@ return [
         'subheading' => 'Kundennr. :number',
     ],
 
+    'stats' => [
+        'revenue' => 'Umsatz :year',
+        'revenue_since' => 'seit 01.01.:year',
+        'open' => 'Offene Forderungen',
+        'overdue' => 'Überfällig',
+        'invoice_count' => '{0}0 Rechnungen|{1}1 Rechnung|[2,*]:count Rechnungen',
+        'zero' => '0,00 €',
+    ],
+
     'create' => [
         'subheading' => 'Die Kundennummer wird beim Speichern vergeben.',
     ],

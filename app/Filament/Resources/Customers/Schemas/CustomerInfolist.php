@@ -6,8 +6,12 @@ namespace App\Filament\Resources\Customers\Schemas;
 
 use App\Models\Customer;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
 
 class CustomerInfolist
 {
@@ -54,6 +58,44 @@ class CustomerInfolist
                         ->label(__('customer.fields.email'))
                         ->placeholder('—'),
                 ]),
+
+            // Zero until the invoicing wave lands. Built from Section and Text
+            // rather than a StatsOverviewWidget because the design puts these
+            // between the master data and the invoice list, and a widget can
+            // only render before or after the whole infolist.
+            Grid::make(['default' => 1, 'md' => 3])->schema([
+                self::tile(
+                    __('customer.stats.revenue', ['year' => now()->year]),
+                    __('customer.stats.revenue_since', ['year' => now()->year]),
+                ),
+                self::tile(
+                    __('customer.stats.open'),
+                    trans_choice('customer.stats.invoice_count', 0),
+                ),
+                self::tile(
+                    __('customer.stats.overdue'),
+                    trans_choice('customer.stats.invoice_count', 0),
+                ),
+            ]),
+        ]);
+    }
+
+    /**
+     * One overview tile: a label, the figure, a quiet sub-line.
+     *
+     * The figure is hard-coded at zero because there are no invoices to count
+     * yet. The mockup prints the overdue figure in red; at zero that would
+     * warn about nothing, so the colour arrives with the data.
+     */
+    private static function tile(string $label, string $note): Section
+    {
+        return Section::make($label)->schema([
+            Text::make(__('customer.stats.zero'))
+                ->size(TextSize::Large)
+                ->weight(FontWeight::Bold),
+            Text::make($note)
+                ->size(TextSize::Small)
+                ->color('gray'),
         ]);
     }
 }

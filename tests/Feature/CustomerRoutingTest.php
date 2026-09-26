@@ -183,3 +183,21 @@ it('prints a long name and a long email in full on the detail page', function ()
         ->assertSee('Ingenieurgemeinschaft Hofmann, Weber & Partner mbB Süd')
         ->assertSee('rechnungseingang.zentrale@hofmann-weber-partner.de');
 });
+
+it('shows the overview tiles at zero while there are no invoices', function (): void {
+    /** @var TestCase $this */
+    // Zero with a count, not a blank and not a dash: a blank tile reads as a
+    // loading failure, and the figures only become real with the invoicing
+    // wave.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->create(['name' => 'Bauer & Kollegen GmbH']);
+
+    $this->actingAs(memberOf($company));
+
+    $this->get('/admin/alpha-gmbh/customers/K-0001')
+        ->assertOk()
+        ->assertSee('Offene Forderungen')
+        ->assertSee('Überfällig')
+        ->assertSee('0,00 €')
+        ->assertSee('0 Rechnungen');
+});
