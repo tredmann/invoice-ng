@@ -201,6 +201,14 @@ class Company extends Model
     }
 
     /**
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    /**
      * The company's Nummernkreis, or none until its settings tab has been
      * saved once. Absent rather than auto-created on purpose: that is what
      * lets the Bereitschaftsprüfung say „noch nicht konfiguriert" truthfully.
