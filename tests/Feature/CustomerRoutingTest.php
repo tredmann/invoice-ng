@@ -196,6 +196,8 @@ it('shows the overview tiles at zero while there are no invoices', function (): 
 
     $this->get('/admin/alpha-gmbh/customers/K-0001')
         ->assertOk()
+        ->assertSee('Umsatz '.now()->year)
+        ->assertSee('seit 01.01.'.now()->year)
         ->assertSee('Offene Forderungen')
         ->assertSee('Überfällig')
         ->assertSee('0,00 €')
@@ -214,6 +216,37 @@ it('says a customer has no invoices yet', function (): void {
 
     $this->get('/admin/alpha-gmbh/customers/K-0001')
         ->assertOk()
-        ->assertSee('Rechnungen')
         ->assertSee('Noch keine Rechnungen.');
+});
+
+it('lays the customer page out in one full-width column', function (): void {
+    /** @var TestCase $this */
+    // ViewRecord::defaultInfolist() forces columns(2) onto a schema that sets
+    // none of its own, which put the three tiles into a right-hand column from
+    // 1024px up — the column this redesign removed. Exactly one two-column
+    // grid may survive on the page: the master-data card's own.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->create();
+
+    $this->actingAs(memberOf($company));
+
+    $html = (string) $this->get('/admin/alpha-gmbh/customers/K-0001')->assertOk()->getContent();
+
+    expect(substr_count($html, '--cols-lg: repeat(2'))->toBe(1);
+});
+
+it('sets the tile figures apart from their sub-lines', function (): void {
+    /** @var TestCase $this */
+    // A Text defaults to gray-600, and ->color('gray') on it is a no-op
+    // because the component already declares gray as its default. Without an
+    // explicit emphasis colour the figure and its note render in the same
+    // grey and only size separates them. One neutral figure per tile.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->create();
+
+    $this->actingAs(memberOf($company));
+
+    $html = (string) $this->get('/admin/alpha-gmbh/customers/K-0001')->assertOk()->getContent();
+
+    expect(substr_count($html, 'fi-color-neutral'))->toBe(3);
 });

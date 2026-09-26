@@ -31,7 +31,10 @@ class CustomerInfolist
      */
     public static function configure(Schema $schema): Schema
     {
-        return $schema->components([
+        // One column, explicitly: ViewRecord::defaultInfolist() imposes
+        // columns(2) on any schema that declares none, which would put the
+        // tiles beside the master data instead of under it.
+        return $schema->columns(1)->components([
             Section::make(__('customer.sections.master'))
                 ->columns(2)
                 ->schema([
@@ -101,10 +104,12 @@ class CustomerInfolist
         return Section::make($label)->schema([
             Text::make(__('customer.stats.zero'))
                 ->size(TextSize::Large)
-                ->weight(FontWeight::Bold),
+                ->weight(FontWeight::Bold)
+                // Text defaults to gray; without this the figure and its note
+                // render in the same colour and only size tells them apart.
+                ->color('neutral'),
             Text::make($note)
-                ->size(TextSize::Small)
-                ->color('gray'),
+                ->size(TextSize::Small),
         ]);
     }
 }

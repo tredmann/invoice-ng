@@ -225,8 +225,10 @@ it('labels the name field for the chosen customer type', function (): void {
     Livewire::test(CreateCustomer::class)
         ->fillForm(['type' => CustomerType::Business->value])
         ->assertSee('Firmenname')
+        ->assertSee('z. B. Weber Haustechnik e.K.')
         ->fillForm(['type' => CustomerType::PrivatePerson->value])
-        ->assertDontSee('Firmenname');
+        ->assertDontSee('Firmenname')
+        ->assertSee('z. B. Sofia Kraus');
 });
 
 it('tells the user on the create page that the number comes on save', function (): void {
