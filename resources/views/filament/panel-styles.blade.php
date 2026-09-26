@@ -52,9 +52,16 @@
     .dark .app-positions .app-positions-note { color: var(--gray-400) }
 
     /* Filament renders a Text component as an inline-block span, so a block
-       inside one shrinks to its contents — which left the invoice totals at
-       225px in a 1068px card. Widened only where our own totals are inside. */
-    .fi-sc-text:has(> .app-invoice-totals) { display: block; width: 100% }
+       inside one shrinks to its contents instead of filling its column. It
+       left the invoice totals at 225px in a 1068px card, and the Beleg rows
+       ending 115px short of the card's edge — which reads as uneven padding
+       rather than as a width. Every class below is markup of ours placed in a
+       Text and meant to fill. */
+    .fi-sc-text:has(> .app-invoice-totals),
+    .fi-sc-text:has(> .app-beleg-rows),
+    .fi-sc-text:has(> .app-status),
+    .fi-sc-text:has(> .app-history),
+    .fi-sc-text:has(> .app-positions) { display: block; width: 100% }
 
     /* Pos. numbers as a counter over the repeater's rows, so dragging a
        Position into another order renumbers them without anything in the
@@ -110,6 +117,12 @@
        these styles for a list that has nothing after it. */
     .app-positions-ruled { border-bottom: 1px solid var(--gray-200) }
     .dark .app-positions-ruled { border-bottom-color: var(--gray-700) }
+
+    /* And a gap after that rule before the sums. The rows sit tight against
+       their own rules and take their breathing room from the cell padding,
+       so without this the sums start closer to the last Position than the
+       Positionen do to each other. 14px, off the board. */
+    .app-positions-ruled + .app-invoice-totals { margin-top: 0.875rem }
 
     /* Numbers line up on the right, the way they do on the document. */
     .app-input-end { text-align: end }
