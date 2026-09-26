@@ -11,6 +11,15 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!--
+            Its own suite because it cannot use RefreshDatabase: that holds an
+            open transaction for the length of a test, and a forked child gets
+            a copy of the parent's socket and cannot see uncommitted rows.
+            Listed last so the schema is already migrated when it runs.
+        -->
+        <testsuite name="Concurrency">
+            <directory>tests/Concurrency</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

@@ -5,7 +5,13 @@ set -euo pipefail
 docker compose run --rm --no-deps --entrypoint sh app -c '
   set -e
 
-  for ext in pdo_pgsql intl bcmath zip gd pcntl; do
+  # pcntl and posix both carry the concurrency test of tech stack §11.3: it
+  # forks two processes and ends each child with posix_kill rather than exit,
+  # so the PHPUnit shutdown handlers do not report a child as a second run.
+  # NB: this whole script body is inside a single-quoted sh -c argument, so an
+  # apostrophe anywhere in it — even in a comment — ends the string early and
+  # the failure surfaces as an unrelated missing extension.
+  for ext in pdo_pgsql intl bcmath zip gd pcntl posix; do
     php -m | grep -qx "$ext" || { echo "FAIL: missing PHP extension: $ext"; exit 1; }
   done
   echo "ok: php extensions"

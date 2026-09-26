@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Company;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -23,6 +24,18 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+/*
+ * The concurrency suite truncates rather than wrapping each test in a
+ * transaction. RefreshDatabase would make it untestable: a pcntl_fork()ed child
+ * receives a copy of the parent's PDO socket and cannot see rows the parent has
+ * not committed, so the range the children draw from would not exist for them.
+ * Truncation also means DB::transactionLevel() is genuinely 0 here, which is
+ * what lets the "refuses to draw outside a transaction" test mean anything.
+ */
+pest()->extend(TestCase::class)
+    ->use(DatabaseTruncation::class)
+    ->in('Concurrency');
 
 /*
 |--------------------------------------------------------------------------
