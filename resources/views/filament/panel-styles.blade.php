@@ -27,4 +27,27 @@
     .app-invoice-totals > .app-invoice-total { margin-top: 0.375rem; padding-top: 0.625rem; border-top: 1px solid var(--gray-200); font-size: 1rem; font-weight: 600; color: var(--gray-950) }
     .dark .app-invoice-totals > div { color: var(--gray-400) }
     .dark .app-invoice-totals > .app-invoice-total { border-top-color: var(--gray-700); color: var(--color-white) }
+
+    /* The Beleg card's right column and the Positionen table on a document's
+       detail page: label left, value right, as invoice-ui-decisions settled
+       for document cards — the opposite of the customer page, whose pairs
+       stack. */
+    .app-beleg-rows { display: flex; flex-direction: column; gap: 0.625rem; font-size: 0.875rem }
+    .app-beleg-rows > div { display: flex; justify-content: space-between; gap: 1.5rem }
+    .app-beleg-rows dt { color: var(--gray-500) }
+    .app-beleg-rows dd { margin: 0; font-weight: 500; color: var(--gray-950); text-align: end }
+    .dark .app-beleg-rows dt { color: var(--gray-400) }
+    .dark .app-beleg-rows dd { color: var(--color-white) }
+
+    .app-positions { width: 100%; border-collapse: collapse; font-size: 0.875rem }
+    .app-positions th { padding: 0 0.5rem 0.5rem; font-weight: 400; color: var(--gray-500); text-align: start; border-bottom: 1px solid var(--gray-200) }
+    .app-positions td { padding: 0.75rem 0.5rem; vertical-align: top; color: var(--gray-950) }
+    .app-positions tbody tr + tr td { border-top: 1px solid var(--gray-100) }
+    .app-positions .app-positions-end { text-align: end; white-space: nowrap }
+    .app-positions .app-positions-index { color: var(--gray-400) }
+    .app-positions .app-positions-note { display: block; margin-top: 0.125rem; color: var(--gray-500) }
+    .dark .app-positions th { color: var(--gray-400); border-bottom-color: var(--gray-700) }
+    .dark .app-positions td { color: var(--color-white) }
+    .dark .app-positions tbody tr + tr td { border-top-color: var(--gray-800) }
+    .dark .app-positions .app-positions-note { color: var(--gray-400) }
 </style>

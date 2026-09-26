@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Invoices\Tables;
 
+use App\Filament\Resources\Invoices\Actions\InvoiceActions;
 use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Models\Invoice;
 use App\Money\Euro;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -57,7 +59,11 @@ class InvoicesTable
             ->searchUsing(fn (Builder $query, string $search) => self::applySearch($query, $search))
             ->recordActions([
                 ActionGroup::make([
+                    ViewAction::make()
+                        ->label(__('invoice.actions.open'))
+                        ->icon(Heroicon::OutlinedArrowTopRightOnSquare),
                     EditAction::make()->label(__('invoice.actions.edit')),
+                    InvoiceActions::delete(),
                 ]),
             ])
             ->emptyStateIcon(Heroicon::OutlinedDocumentText)

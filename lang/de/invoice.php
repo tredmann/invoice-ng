@@ -61,6 +61,34 @@ return [
         'no_customers' => 'Diese Firma hat noch keine Kunden. Jede Rechnung geht an einen Kunden.',
     ],
 
+    'view' => [
+        'draft_heading' => 'Entwurf',
+        'beleg' => 'Beleg',
+        'recipient' => 'Rechnungsempfänger',
+        'customer_number' => 'Kundennr. :number',
+        'number' => 'Nummer',
+        'issued_on' => 'Rechnungsdatum',
+        'performed' => 'Leistungszeitraum',
+        'performed_single' => 'Leistungsdatum',
+        'payment_term' => 'Zahlungsziel',
+        'draft_note' => 'Entwurf – frei änderbar. Nummer, Festschreibung und PDF entstehen erst beim Ausstellen.',
+        'status' => 'Status',
+        'total' => 'Betrag',
+        'due' => 'Fällig',
+        'due_after_issue' => ':term ab Ausstellung',
+        'history' => 'Verlauf',
+        'created' => 'Erstellt',
+        'issue' => 'Rechnung ausstellen',
+        'issue_disabled' => 'Das Ausstellen ist noch nicht gebaut.',
+    ],
+
+    'delete' => [
+        'heading' => 'Entwurf löschen?',
+        'body' => 'Der Entwurf hat noch keine Nummer, also bleibt nichts zurück. Ausgestellte Belege lassen sich nie löschen.',
+        'confirm' => 'Entwurf löschen',
+        'done' => 'Entwurf gelöscht.',
+    ],
+
     'columns' => [
         'number' => 'Nummer',
         'status' => 'Status',

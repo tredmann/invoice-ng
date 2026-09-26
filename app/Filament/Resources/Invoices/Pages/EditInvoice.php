@@ -62,6 +62,12 @@ class EditInvoice extends EditRecord
         });
     }
 
+    #[\Override]
+    protected function getRedirectUrl(): string
+    {
+        return InvoiceResource::getUrl('view', ['record' => $this->getRecord()]);
+    }
+
     private function document(): Document
     {
         $record = $this->getRecord();

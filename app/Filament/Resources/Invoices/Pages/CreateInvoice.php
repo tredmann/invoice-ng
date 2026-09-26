@@ -85,6 +85,6 @@ class CreateInvoice extends CreateRecord
     #[\Override]
     protected function getRedirectUrl(): string
     {
-        return InvoiceResource::getUrl('edit', ['record' => $this->getRecord()]);
+        return InvoiceResource::getUrl('view', ['record' => $this->getRecord()]);
     }
 }
