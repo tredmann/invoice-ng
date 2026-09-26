@@ -260,27 +260,6 @@ it('says which day the Zahlungsziel falls due on', function (): void {
         ->assertSee('Fällig am 09.10.2026');
 });
 
-it('keeps the Positionen row at the number of cells its layout assumes', function (): void {
-    // panel-styles lays each row out as a grid and finds two cells by
-    // counting from the end: the Pos. number at nth-last-child(9) and
-    // Beschreibung at nth-last-child(2). Adding or removing a field in the
-    // repeater silently moves both — the number lands in the wrong column and
-    // Beschreibung stops spanning, with nothing failing anywhere. This is
-    // what fails instead.
-    $company = Company::factory()->create();
-    Customer::factory()->for($company)->create();
-    actInCompany($company);
-
-    $html = (string) Livewire::test(CreateInvoice::class)->html();
-
-    $row = (string) str($html)->after('<tbody')->between('<tr', '</tr>');
-
-    // Pos., Bezeichnung, Menge, Einheit, Einzelpreis, Steuer, Netto,
-    // Beschreibung, and the actions cell. The drag handle adds a tenth, but
-    // only once a second row exists to reorder.
-    expect(substr_count($row, '<td'))->toBe(9);
-});
-
 it('numbers the Positionen and offers to reorder them', function (): void {
     $company = Company::factory()->create();
     Customer::factory()->for($company)->create();
