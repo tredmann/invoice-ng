@@ -1091,4 +1091,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ## Spike findings
 
-(Filled in by Task 1.)
+Run 2026-09-26 against the development app, throwaway user `trail-spike@example.test`, company "Kranz Ingenieurbüro GmbH" with one customer. Screenshots `spike1280-0*.png`, `spike1920-0*.png` in the session scratchpad.
+
+1. **Handover — `Livewire::current()` in the top bar's `mount()` does NOT return the page.** It returns the top bar itself, and Livewire's component stack at that moment holds only the top bar: the page has left the render stack before its layout mounts the top bar. **The spec's fallback works:** a listener on Livewire's `render` event (`\Livewire\on('render', …)`, registered in `AppServiceProvider::boot()`) records the last `Filament\Pages\Page` that rendered in a scoped holder, and the top bar's `mount()` reads it — `ListCustomers` on `/admin/{company}/customers`, `SelectCompany` on `/admin`. Tasks 2–4 use the holder: `App\Livewire\RenderedPage`, a scoped singleton with `public ?Page $page = null`.
+2. **Render hook — yes.** Inside the `TOPBAR_*` hooks, `Livewire::current()` is the top bar, so the hook reads `$topbar->trail`.
+3. **`refresh-topbar` — survives.** After `Livewire.dispatch('refresh-topbar')` in the browser, the top bar's property still held the page class, and the switcher still named the company: the tenant is set on the top bar's own Livewire request. The `refresh-topbar` dispatch after a company rename (Task 2 Step 8) stands.
+4. **Alignment — exact.** With the Task 4 rules (inner box selected as `> div`), the switcher button's left edge and the page heading's were both 352 px at 1280 px and both 512 px at 1920 px. At 1920 px the user menu opened on click with the column over the top bar.

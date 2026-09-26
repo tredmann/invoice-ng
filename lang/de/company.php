@@ -29,6 +29,11 @@ return [
         'archived' => 'Deaktiviert (:count)',
     ],
 
+    'switcher' => [
+        'label' => 'Firma wechseln',
+        'manage' => 'Firmen verwalten',
+    ],
+
     'dashboard' => [
         'empty' => 'Noch keine Inhalte.',
         'complete_settings' => 'Firmendaten vervollständigen',
