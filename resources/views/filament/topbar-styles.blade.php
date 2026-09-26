@@ -30,4 +30,21 @@
     .dark .app-company-avatar { border-color: var(--gray-700); background: var(--gray-800); color: var(--gray-300) }
     .dark .app-company-avatar-current { border-color: var(--primary-700); background: color-mix(in oklab, var(--primary-500) 15%, transparent); color: var(--primary-400) }
     .dark .app-company-option-check { color: var(--primary-400) }
+    /* Spec §3.1. From 64rem, with a sidebar, the column spans the width the
+       page content spans — from the sidebar's edge to the right edge — and
+       its box mirrors fi-main: 80rem wide at most, centred, 2rem inline
+       padding. So the switcher starts where the heading starts, at any
+       width. Positioned over the top bar rather than in its flow, because in
+       the flow the user menu would narrow it and shift the centring.
+
+       The column ignores the pointer except over its own content, and the
+       user menu is lifted above it, so nothing under the column stops
+       working. The end padding keeps a long trail clear of the user menu. */
+    @media (min-width: 64rem) {
+        .fi-body-has-navigation .fi-topbar { position: relative }
+        .fi-body-has-navigation .fi-topbar-end { position: relative; z-index: 1 }
+        .fi-body-has-navigation [data-topbar-column] { position: absolute; inset-block: 0; inset-inline: var(--sidebar-width) 0; display: flex; pointer-events: none }
+        .fi-body-has-navigation [data-topbar-column] > .app-topbar-trail { width: 100%; max-width: 80rem; margin-inline: auto; padding-inline: 2rem 5rem; pointer-events: none }
+        .fi-body-has-navigation [data-topbar-column] > .app-topbar-trail > * { pointer-events: auto }
+    }
 </style>

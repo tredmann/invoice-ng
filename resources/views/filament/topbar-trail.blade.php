@@ -27,7 +27,7 @@
     <div @if ($variant === 'desktop') data-topbar-column @endif>
         <div class="app-topbar-trail">
             <div data-company-switcher="{{ $variant }}">
-                <x-filament::dropdown placement="bottom-start" size @class(['fi-tenant-menu' => $variant === 'desktop'])>
+                <x-filament::dropdown placement="bottom-start" size width="xs" @class(['fi-tenant-menu' => $variant === 'desktop'])>
                     <x-slot name="trigger">
                         <button type="button" class="fi-tenant-menu-trigger" aria-label="{{ $current?->name ?? __('company.picker.title') }}">
                             <span class="app-company-avatar">
