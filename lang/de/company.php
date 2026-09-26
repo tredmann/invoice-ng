@@ -43,9 +43,53 @@ return [
         'manage' => 'Firmen verwalten',
     ],
 
-    'dashboard' => [
-        'empty' => 'Noch keine Inhalte.',
-        'complete_settings' => 'Firmendaten vervollständigen',
+    'readiness' => [
+        'address' => [
+            'label' => 'Anschrift',
+            'ok' => 'Vollständig.',
+            'missing' => 'Straße, PLZ und Ort sind Pflichtangabe auf jeder Rechnung.',
+        ],
+        'tax_identifier' => [
+            'label' => 'Steuernummer oder USt-IdNr.',
+            'ok' => 'Hinterlegt.',
+            'missing' => 'Pflichtangabe auf jeder Rechnung.',
+        ],
+        'register' => [
+            'label' => 'Handelsregister',
+            'ok' => 'Eingetragen.',
+            'missing' => 'Registergericht, Registernummer und Geschäftsführer fehlen.',
+        ],
+        'number_range' => [
+            'label' => 'Nummernkreis',
+            'ok' => 'Eingerichtet.',
+            'missing' => 'Noch nicht konfiguriert.',
+        ],
+        'bank' => [
+            'label' => 'Bankverbindung',
+            'ok' => 'Hinterlegt.',
+            'missing' => 'Ohne IBAN weiß der Kunde nicht, wohin er zahlen soll.',
+        ],
+        'logo' => [
+            'label' => 'Logo',
+            'ok' => 'Hochgeladen.',
+            'missing' => 'Ohne Logo wird schlicht gedruckt.',
+        ],
+    ],
+
+    'steps' => [
+        'heading' => 'Erste Schritte',
+        'description' => 'Sobald die erste Rechnung ausgestellt ist, stehen hier Umsatz, offene Forderungen und überfällige Belege.',
+        'settings' => 'Firmendaten vervollständigen',
+        'settings_done' => 'Vollständig – aus dieser Firma lässt sich ausstellen.',
+        'settings_blocked' => 'Ohne diese Angaben lässt sich nichts ausstellen: :items',
+        'settings_warning' => 'Empfohlen, aber kein Hindernis: :items',
+        'customer' => 'Ersten Kunden anlegen',
+        'customer_help' => 'Geschäftskunde oder Privatkunde, mit Rechnungsanschrift und E-Mail.',
+        'customer_done' => 'Angelegt.',
+        'invoice' => 'Erste Rechnung schreiben',
+        'invoice_help' => 'Als Entwurf anlegen, prüfen, dann ausstellen.',
+        'invoice_disabled' => 'Rechnungen gibt es noch nicht.',
+        'open' => 'Öffnen',
     ],
 
     'settings' => [
