@@ -32,6 +32,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\TextSize;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
@@ -78,12 +79,18 @@ class InvoiceForm
                                 ->label(__('invoice.fields.performed_from'))
                                 ->native(false)
                                 ->displayFormat('d.m.Y')
+                                // Inline, so it sits inside the field's border
+                                // as the board draws it rather than beside it.
+                                // A picker that is not the browser's own has to
+                                // say it opens something.
+                                ->suffixIcon(Heroicon::OutlinedCalendar, isInline: true)
                                 ->default(today())
                                 ->required(),
                             DatePicker::make('performed_to')
                                 ->label(__('invoice.fields.performed_to'))
                                 ->native(false)
                                 ->displayFormat('d.m.Y')
+                                ->suffixIcon(Heroicon::OutlinedCalendar, isInline: true)
                                 ->afterOrEqual('performed_from'),
                         ]),
 
@@ -97,6 +104,7 @@ class InvoiceForm
                             ->label(__('invoice.fields.issued_on'))
                             ->native(false)
                             ->displayFormat('d.m.Y')
+                            ->suffixIcon(Heroicon::OutlinedCalendar, isInline: true)
                             ->default(today())
                             ->required()
                             // The Fälligkeitsdatum below follows from this and
