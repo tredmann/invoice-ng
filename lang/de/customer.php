@@ -45,6 +45,11 @@ return [
         'zero' => '0,00 €',
     ],
 
+    'invoices' => [
+        'heading' => 'Rechnungen',
+        'empty' => 'Noch keine Rechnungen.',
+    ],
+
     'create' => [
         'subheading' => 'Die Kundennummer wird beim Speichern vergeben.',
     ],

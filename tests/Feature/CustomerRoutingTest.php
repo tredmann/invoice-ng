@@ -201,3 +201,19 @@ it('shows the overview tiles at zero while there are no invoices', function (): 
         ->assertSee('0,00 €')
         ->assertSee('0 Rechnungen');
 });
+
+it('says a customer has no invoices yet', function (): void {
+    /** @var TestCase $this */
+    // The card exists before the invoices do, so the page keeps its shape.
+    // An absent card and an empty card look the same to a test that only
+    // asserts the heading, hence the empty-state line.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->create(['name' => 'Bauer & Kollegen GmbH']);
+
+    $this->actingAs(memberOf($company));
+
+    $this->get('/admin/alpha-gmbh/customers/K-0001')
+        ->assertOk()
+        ->assertSee('Rechnungen')
+        ->assertSee('Noch keine Rechnungen.');
+});

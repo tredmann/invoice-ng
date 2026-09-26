@@ -6,12 +6,14 @@ namespace App\Filament\Resources\Customers\Schemas;
 
 use App\Models\Customer;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\EmptyState;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
+use Filament\Support\Icons\Heroicon;
 
 class CustomerInfolist
 {
@@ -76,6 +78,13 @@ class CustomerInfolist
                     __('customer.stats.overdue'),
                     trans_choice('customer.stats.invoice_count', 0),
                 ),
+            ]),
+
+            // No "Alle Rechnungen" link: it would point nowhere. It arrives
+            // with the invoicing wave, together with the table it summarises.
+            Section::make(__('customer.invoices.heading'))->schema([
+                EmptyState::make(__('customer.invoices.empty'))
+                    ->icon(Heroicon::OutlinedDocumentText),
             ]),
         ]);
     }
