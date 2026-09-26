@@ -145,14 +145,19 @@ class InvoiceForm
                         // sits next to six fields a beginner is still filling.
                         ->deleteAction(fn (Action $action): Action => $action->color('gray'))
                         ->extraAttributes(['class' => 'app-positions-repeater'])
+                        // Every cell top-aligned. Bezeichnung and Beschreibung
+                        // stack, so the cell is two lines tall, and centring
+                        // leaves every other field floating halfway down the
+                        // row instead of level with the Bezeichnung it belongs
+                        // to.
                         ->table([
-                            TableColumn::make(__('invoice.fields.position'))->width('3rem'),
-                            TableColumn::make(__('invoice.fields.title')),
-                            TableColumn::make(__('invoice.fields.quantity'))->width('6rem')->alignEnd(),
-                            TableColumn::make(__('invoice.fields.unit'))->width('8rem'),
-                            TableColumn::make(__('invoice.fields.unit_price'))->width('8rem')->alignEnd(),
-                            TableColumn::make(__('invoice.fields.tax_rate'))->width('7rem'),
-                            TableColumn::make(__('invoice.fields.net'))->width('7rem')->alignEnd(),
+                            TableColumn::make(__('invoice.fields.position'))->width('3rem')->verticallyAlignStart(),
+                            TableColumn::make(__('invoice.fields.title'))->verticallyAlignStart(),
+                            TableColumn::make(__('invoice.fields.quantity'))->width('6rem')->alignEnd()->verticallyAlignStart(),
+                            TableColumn::make(__('invoice.fields.unit'))->width('8rem')->verticallyAlignStart(),
+                            TableColumn::make(__('invoice.fields.unit_price'))->width('8rem')->alignEnd()->verticallyAlignStart(),
+                            TableColumn::make(__('invoice.fields.tax_rate'))->width('7rem')->verticallyAlignStart(),
+                            TableColumn::make(__('invoice.fields.net'))->width('7rem')->alignEnd()->verticallyAlignStart(),
                         ])
                         ->schema([
                             // Filled by the counter in panel-styles; an empty

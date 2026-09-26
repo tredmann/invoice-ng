@@ -66,9 +66,21 @@
        cell is first with one row and second with more. What never changes is
        what follows it — Bezeichnung, Menge, Einheit, Einzelpreis, Steuer,
        Netto and the actions cell, seven in all. */
-    .app-positions-repeater tbody > tr > td:nth-last-child(8) { color: var(--gray-400); font-size: 0.875rem; text-align: center; vertical-align: middle }
+    .app-positions-repeater tbody > tr > td:nth-last-child(8) { color: var(--gray-400); font-size: 0.875rem; text-align: center; line-height: 2.25rem }
     .app-positions-repeater tbody > tr > td:nth-last-child(8)::before { content: counter(app-position) }
     .dark .app-positions-repeater tbody > tr > td:nth-last-child(8) { color: var(--gray-500) }
+
+    /* The drag handle and the delete button sit in cells Filament adds
+       itself, so they have no TableColumn to be aligned through — they are
+       the only two left centring against a two-line row. */
+    .app-positions-repeater tbody > tr > td:first-child,
+    .app-positions-repeater tbody > tr > td:last-child { vertical-align: top }
+    .app-positions-repeater tbody > tr > td:last-child .fi-fo-table-repeater-actions { align-items: flex-start }
+
+    /* The computed Netto is a Text, which has no alignment of its own — the
+       column's alignEnd() reaches the header and stops there. It is the cell
+       before the actions one, with or without a drag handle. */
+    .app-positions-repeater tbody > tr > td:nth-last-child(2) { text-align: end }
 
     /* Numbers line up on the right, the way they do on the document. */
     .app-input-end { text-align: end }
