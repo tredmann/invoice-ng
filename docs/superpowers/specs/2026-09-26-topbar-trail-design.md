@@ -94,7 +94,8 @@ trail — beside the user menu there is no room for one.
 The first letter of each of the name's first two words, upper-cased:
 "Kranz Ingenieurbüro GmbH" → "KI", "Übersee Handel" → "ÜH". A single word gives
 one letter: "Balt" → "B". Letters are taken as characters, not bytes, so an
-umlaut survives.
+umlaut survives — also one pasted in decomposed form ("U" plus a combining
+mark), which is composed first. "ß" stays one letter rather than "SS".
 
 Drawn locally. Filament's default avatar is an image from ui-avatars.com — an
 external request per company, and it cannot produce the concept's look.

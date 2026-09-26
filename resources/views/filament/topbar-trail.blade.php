@@ -28,7 +28,7 @@
     <div data-company-switcher="{{ $variant }}" class="app-switcher">
         <x-filament::dropdown placement="bottom-start" size width="xs" @class(['fi-tenant-menu' => $variant === 'desktop'])>
             <x-slot name="trigger">
-                <button type="button" class="fi-tenant-menu-trigger" aria-label="{{ $current?->name ?? __('company.picker.title') }}">
+                <button type="button" class="fi-tenant-menu-trigger" aria-label="{{ $current ? __('company.switcher.trigger', ['name' => $current->name]) : __('company.picker.title') }}">
                     <span class="app-company-avatar">
                         @if ($current)
                             {{ $current->initials() }}
@@ -62,6 +62,8 @@
                             :href="filament()->getUrl($company)"
                             :color="$isCurrent ? 'primary' : 'gray'"
                             :data-current-company="$isCurrent"
+                    {{-- The ✓ and the amber reach no screen reader. --}}
+                    :aria-current="$isCurrent ? 'true' : null"
                         >
                             <span class="app-company-option">
                                 <span @class(['app-company-avatar', 'app-company-avatar-current' => $isCurrent])>{{ $company->initials() }}</span>
@@ -92,8 +94,8 @@
 
     @if ($trail !== [])
         <div data-topbar-column>
-            <div class="app-topbar-trail">
-                <ol data-topbar-trail class="app-trail" aria-label="{{ __('layout.trail') }}">
+            <nav class="app-topbar-trail" aria-label="{{ __('layout.trail') }}">
+                <ol data-topbar-trail class="app-trail">
                     @foreach ($trail as $crumb)
                         <li class="app-trail-item">
                             {{-- Between crumbs only: the switcher is not part of the
@@ -109,7 +111,7 @@
                         </li>
                     @endforeach
                 </ol>
-            </div>
+            </nav>
         </div>
     @endif
 @endif

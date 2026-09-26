@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Filament\Pages\Tenancy\SelectCompany;
 use App\Models\Company;
 use App\Models\User;
+use Dom\Element;
+use Dom\HTMLDocument;
 use Filament\Actions\Exceptions\ActionNotResolvableException;
 use Filament\Actions\Testing\TestAction;
 use Filament\Auth\Pages\Login;
@@ -429,8 +431,8 @@ it('offers Neue Firma again after restoring from an empty picker', function (): 
 
 it('escapes company names in the Deaktiviert section', function (): void {
     /** @var TestCase $this */
-    // With no active company the switcher is hidden, so only the archived row
-    // can print the name.
+    // On /admin with no active company the switcher is hidden, so only the
+    // archived row can print the name.
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Müller & Söhne <b>GmbH</b>']));
 
@@ -454,7 +456,9 @@ it('shows the switcher inside an archived company even with no active company', 
         ->toContain('Firmen verwalten')
         ->toContain('href="'.url('/admin/new').'"');
     expect($switcher)->not->toContain('data-current-company');
-    expect($switcher)->not->toContain('Firma wechseln');
+    // No list, so no label over it. (The trigger's accessible name also says
+    // "Firma wechseln"; the label is the dropdown header.)
+    expect($switcher)->not->toContain('app-company-menu-label');
 });
 
 it('offers Firmen verwalten and Neue Firma inside a company, and marks the current one', function (): void {
@@ -489,4 +493,44 @@ it('draws company avatars locally, never from ui-avatars.com', function (): void
 
     expect($switcher)->toContain('>AG<');
     expect($switcher)->not->toContain('ui-avatars.com');
+});
+
+it('tells assistive technology which company is the current one', function (): void {
+    /** @var TestCase $this */
+    // The ✓ is an icon and the amber a colour; neither reaches a screen reader.
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Kranz Ingenieurbüro GmbH']));
+    $user->companies()->attach(Company::factory()->create(['name' => 'Hofgarten Immobilien GmbH']));
+
+    $html = (string) $this->actingAs($user)->get('/admin/kranz-ingenieurburo-gmbh')->assertOk()->getContent();
+    $document = HTMLDocument::createFromString($html, LIBXML_NOERROR);
+
+    $current = array_map(
+        fn (Element $item): string => trim((string) preg_replace('/\s+/', ' ', (string) $item->textContent)),
+        iterator_to_array($document->querySelectorAll('[data-company-switcher="desktop"] a[aria-current="true"]')),
+    );
+
+    expect($current)->toBe(['KI Kranz Ingenieurbüro GmbH']);
+});
+
+it('names what the switcher does in its accessible name, not just the company', function (): void {
+    /** @var TestCase $this */
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+
+    $this->actingAs(memberOf($company))->get('/admin/acme-gmbh')->assertOk()
+        ->assertSeeHtml('aria-label="Firma wechseln (aktuell: Acme GmbH)"');
+});
+
+it('escapes company names in the switcher inside a company', function (): void {
+    /** @var TestCase $this */
+    // Review focus 2 of the top-bar trail plan: inside a company the name
+    // prints in the trigger's text, its accessible name and the list.
+    $company = Company::factory()->create(['name' => 'Müller & Söhne <b>GmbH</b>']);
+
+    $html = (string) $this->actingAs(memberOf($company))->get('/admin/'.$company->slug)->assertOk()->getContent();
+    $switcher = (string) str(switcherMarkup($html))->before('data-company-switcher="phone"');
+
+    expect(substr_count($switcher, 'Müller &amp; Söhne &lt;b&gt;GmbH&lt;/b&gt;'))->toBe(3);
+    expect($switcher)->not->toContain('<b>GmbH</b>');
+    expect($switcher)->not->toContain('&amp;amp;');
 });

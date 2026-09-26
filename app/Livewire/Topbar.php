@@ -26,16 +26,13 @@ class Topbar extends BaseTopbar
     #[Locked]
     public array $trail = [];
 
-    /**
-     * @param  list<array{label: string, url: string|null}>|null  $trail  given by tests; the page's otherwise
-     */
-    public function mount(?array $trail = null): void
+    public function mount(): void
     {
         $page = resolve(RenderedPage::class)->page;
 
         // Outside a company — the picker on /admin — there is no trail.
-        $this->trail = $trail ?? (($page !== null && Filament::getTenant() !== null)
+        $this->trail = $page !== null && Filament::getTenant() !== null
             ? Breadcrumbs::for($page)
-            : []);
+            : [];
     }
 }
