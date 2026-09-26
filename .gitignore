@@ -22,6 +22,10 @@
 /public/hot
 /public/js/filament
 /public/storage
+# playwright-cli writes its snapshots and screenshots into the working
+# directory. The tool is a host install, not a project dependency — there is
+# still no Node.js in this repo or in the image (CLAUDE.md).
+/.playwright-cli
 /storage/*.key
 /storage/app/testing
 /storage/pail
