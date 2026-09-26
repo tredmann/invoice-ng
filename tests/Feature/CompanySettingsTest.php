@@ -435,3 +435,45 @@ it('shows the Steuersätze to a company on the standard scheme', function (): vo
 
     settingsFormFor($company)->assertSee('Steuersatz hinzufügen');
 });
+
+it('puts the only save action at the far right', function (): void {
+    /** @var TestCase $this */
+    // Filament's default is Alignment::Start, so this fails against a page that
+    // simply does not say — which is what it was doing. There is no cancel here
+    // to separate: the rule for a page that saves in place is one action, far
+    // right (.ai/guidelines/ui/core.blade.php).
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+
+    $html = (string) $this->actingAs(userOf([$company]))
+        ->get('/admin/acme-gmbh/settings')
+        ->assertOk()
+        ->getContent();
+
+    // Scoped to the action row: the page carries other aligned elements, and an
+    // unscoped search would pass on any of them.
+    $actions = (string) str($html)->after('form-actions');
+
+    expect($actions)->toContain('fi-align-end')
+        ->and($actions)->not->toContain('fi-align-start');
+});
+
+it('sets the next Belegnummer apart in its own box', function (): void {
+    /** @var TestCase $this */
+    // It is the one thing on the Nummernkreis tab that is an answer rather than
+    // a setting. A bare placeholder reads as another field's value.
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 43, 'include_year' => false,
+    ]);
+
+    $html = (string) $this->actingAs(userOf([$company]))
+        ->get('/admin/acme-gmbh/settings')
+        ->assertOk()
+        ->getContent();
+
+    $box = (string) str($html)->after('Nächste Nummer')->limit(2000, '');
+
+    expect($html)->toContain('Nächste Nummer')
+        ->and($box)->toContain('RE-0043')
+        ->and($box)->toContain('fi-section');
+});

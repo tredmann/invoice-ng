@@ -13,7 +13,6 @@ use App\Models\TaxRate;
 use App\Rules\Iban;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
@@ -26,8 +25,12 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
 use LogicException;
 
 /**
@@ -71,6 +74,21 @@ class CompanySettings extends EditTenantProfile
     public static function getLabel(): string
     {
         return __('company.settings.title');
+    }
+
+    /**
+     * One saving action, at the far right.
+     *
+     * Filament's default is `Alignment::Start`, so a page that saves in place
+     * puts its Speichern at the left unless it says otherwise — and
+     * `.ai/guidelines/ui/core.blade.php` says otherwise. `SeparatesFormActions`
+     * is the wrong tool here: it exists to put distance between cancel and
+     * save, and this page has no cancel to separate.
+     */
+    #[\Override]
+    public function getFormActionsAlignment(): string|Alignment
+    {
+        return Alignment::End;
     }
 
     public function form(Schema $schema): Schema
@@ -329,9 +347,19 @@ class CompanySettings extends EditTenantProfile
                     // Reads, never draws. A preview built by calling
                     // DrawNextNumber would look identical on screen and burn a
                     // Belegnummer on every page load.
-                    Placeholder::make('next_number')
-                        ->label(__('company.fields.next_number'))
-                        ->content(fn (Get $get): string => $this->previewNumber($get)),
+                    //
+                    // Boxed rather than a bare Placeholder: it is the one thing
+                    // on the tab that is an answer rather than a setting, and
+                    // the mockup sets it apart for that reason. Built from
+                    // Section and Text like the customer page's tiles, because
+                    // there is no CSS build to reach for.
+                    Section::make(__('company.fields.next_number'))
+                        ->compact()
+                        ->schema([
+                            Text::make(fn (Get $get): string => $this->previewNumber($get))
+                                ->size(TextSize::Large)
+                                ->weight(FontWeight::Bold),
+                        ]),
                     Callout::make(__('company.number_range.warning'))->color('warning'),
                 ]),
         ];

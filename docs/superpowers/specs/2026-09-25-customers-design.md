@@ -178,7 +178,8 @@ to a company cannot reach any of its screens, customers included.
 
 ## 5. Screens
 
-A **"Kunden"** sidebar entry, with a people icon, above Firmendaten. All
+A **"Kunden"** sidebar entry, with a people icon, above Einstellungen — the
+entry that spec calls Firmendaten; it was relabelled on 2026-09-26. All
 labels in `lang/de/customer.php`.
 
 ### 5.1 List — `/admin/{company}/customers`

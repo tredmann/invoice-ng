@@ -55,7 +55,7 @@ the switcher names it.
 | Page | Trail |
 |---|---|
 | Dashboard | `Dashboard` |
-| Firmendaten | `Firmendaten` |
+| Einstellungen | `Einstellungen` |
 | Customer list | `Kunden` |
 | New customer | `Kunden › Neuer Kunde` |
 | View a customer | `Kunden › Bauer & Kollegen GmbH` |
@@ -185,7 +185,7 @@ owner.
 
 Pest against PostgreSQL. Each test is chosen for what would make it fail.
 
-- **Trail per page:** Dashboard, Firmendaten, customer list, new, view and edit
+- **Trail per page:** Dashboard, Einstellungen, customer list, new, view and edit
   each render exactly the crumbs of §2.2; earlier crumbs link to the right
   URLs, the last is not a link. *Fails if* Filament's "Liste", "Anzeigen" or
   "Erstellen" returns, or the trail goes missing.

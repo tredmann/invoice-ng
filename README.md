@@ -16,7 +16,7 @@ From the point of view of someone using it, rather than building it:
   and legal form — and a button to set up a new one. The company switcher at
   the top left moves you between companies from any screen, and its "Firmen
   verwalten" brings you back to the start page. Inside a company the sidebar holds its
-  dashboard, its customers (Kunden) and its company data (Firmendaten). With no
+  dashboard, its customers (Kunden) and its settings (Einstellungen). With no
   company yet, the start page says so and offers to create one — nothing makes
   you.
 - **The header says where you are.** Inside a company, the switcher names the

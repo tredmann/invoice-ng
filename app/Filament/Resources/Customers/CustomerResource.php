@@ -36,7 +36,7 @@ class CustomerResource extends Resource
     #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    // Above Firmendaten, which the panel provider registers at sort 2.
+    // Above Einstellungen, which the panel provider registers at sort 2.
     #[\Override]
     protected static ?int $navigationSort = 1;
 

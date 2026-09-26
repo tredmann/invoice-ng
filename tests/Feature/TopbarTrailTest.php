@@ -62,7 +62,7 @@ it('shows the page title alone on pages outside a resource', function (string $p
     expect(trailOf($html))->toBe([[$label, null]]);
 })->with([
     'dashboard' => ['/admin/acme-gmbh', 'Dashboard'],
-    'settings' => ['/admin/acme-gmbh/settings', 'Firmendaten'],
+    'settings' => ['/admin/acme-gmbh/settings', 'Einstellungen'],
 ]);
 
 it('shows the section alone on the customer list, without Filament\'s Übersicht', function (): void {

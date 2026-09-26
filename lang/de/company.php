@@ -93,7 +93,10 @@ return [
     ],
 
     'settings' => [
-        'title' => 'Firmendaten',
+        // The page is „Einstellungen", as the mockups call it. „Firmendaten"
+        // stays the name of the data — the dashboard's first step still asks
+        // for it to be completed.
+        'title' => 'Einstellungen',
     ],
 
     'actions' => [

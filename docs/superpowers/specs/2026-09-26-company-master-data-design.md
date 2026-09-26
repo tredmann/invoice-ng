@@ -327,6 +327,18 @@ the settings page — the wave that needs it most is not this one.
 
 ### 7.1 Settings become four tabs — `/admin/{company}/settings`
 
+**The page is relabelled „Einstellungen".** It was „Firmendaten", which named
+the data rather than the page and stopped being accurate the moment the page
+grew a Nummernkreis and a Zahlungsziel. The mockups already called it
+Einstellungen. The old word keeps its job on the dashboard, where „Firmendaten
+vervollständigen" does mean the data.
+
+**One saving action, at the far right.** Filament's default is
+`Alignment::Start`, so this has to be said rather than assumed —
+`getFormActionsAlignment()` returns `Alignment::End`. `SeparatesFormActions` is
+the wrong tool: it exists to put distance between cancel and save, and this page
+has no cancel.
+
 The mockups show one „Einstellungen" heading, one tab bar and one „Speichern"
 bottom-right. That is one page, not four, so `CompanySettings` keeps its route,
 its label, its `EditTenantProfile` base and its single save action at the far
