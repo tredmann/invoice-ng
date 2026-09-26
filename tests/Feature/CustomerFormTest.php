@@ -216,3 +216,15 @@ it('clears contact person and vat id when the form switches a Geschäftskunde to
     expect($customer->contact_person)->toBeNull()
         ->and($customer->vat_id)->toBeNull();
 });
+
+it('labels the name field for the chosen customer type', function (): void {
+    // A Geschäftskunde has a Firmenname, a Privatkunde has a name. One static
+    // label is wrong for one of them, and the mockup labels it per type.
+    actInCompany(Company::factory()->create());
+
+    Livewire::test(CreateCustomer::class)
+        ->fillForm(['type' => CustomerType::Business->value])
+        ->assertSee('Firmenname')
+        ->fillForm(['type' => CustomerType::PrivatePerson->value])
+        ->assertDontSee('Firmenname');
+});
