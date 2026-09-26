@@ -235,3 +235,40 @@ it('deactivates and reactivates a customer from its page', function (): void {
 
     expect($customer->fresh()?->isDeactivated())->toBeFalse();
 });
+
+it('invites the first customer without any table furniture', function (): void {
+    /** @var TestCase $this */
+    // The board shows a bare card: icon, heading, description, button. A
+    // column header row and a search box over zero rows are furniture for
+    // data that is not there.
+    actInCompany(Company::factory()->create(['name' => 'Alpha GmbH']));
+
+    $html = (string) $this->get('/admin/alpha-gmbh/customers')->assertOk()->getContent();
+
+    expect($html)->toContain('Noch keine Kunden angelegt.');
+
+    // The visible furniture: every column label and the search box.
+    foreach (['Kundennr.', 'E-Mail', 'Ort', 'Suche'] as $furniture) {
+        expect(substr_count($html, $furniture))->toBe(0, $furniture.' should be gone');
+    }
+
+    // Filament still emits the table shell — a <thead> holding no cells at
+    // all, and a header bar carrying x-cloak. Both are invisible, and
+    // suppressing them would mean tripping a render condition in Filament's
+    // own view that an upgrade could move. Asserted on what a person sees.
+});
+
+it('keeps the search box when a search finds nothing', function (): void {
+    /** @var TestCase $this */
+    // The counterpart, and the reason the furniture cannot simply be dropped
+    // whenever the page shows no rows: with the search box gone there would be
+    // no way to clear the search that emptied the list.
+    $company = Company::factory()->create(['name' => 'Alpha GmbH']);
+    Customer::factory()->for($company)->create();
+    actInCompany($company);
+
+    Livewire::test(ListCustomers::class)
+        ->set('tableSearch', 'gibtesnicht')
+        ->assertSee('Keine Kunden gefunden.')
+        ->assertSee('Kundennr.');
+});

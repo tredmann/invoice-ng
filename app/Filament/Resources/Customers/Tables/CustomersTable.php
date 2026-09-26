@@ -28,8 +28,15 @@ class CustomersTable
 {
     public static function configure(Table $table): Table
     {
+        // With no customers at all the board shows a bare card: icon, heading,
+        // description, button. Column headers and a search box over zero rows
+        // are furniture for data that is not there. A search that finds
+        // nothing is the other case — there the furniture must stay, or there
+        // is no way to clear the search that emptied the list.
+        $hasAny = self::hasAnyCustomer();
+
         return $table
-            ->columns([
+            ->columns($hasAny ? [
                 TextColumn::make('number')
                     ->label(__('customer.fields.number'))
                     ->formatStateUsing(fn (int $state): string => Customer::formatNumber($state))
@@ -48,9 +55,9 @@ class CustomersTable
                     ->color('gray'),
                 TextColumn::make('city')
                     ->label(__('customer.fields.city')),
-            ])
+            ] : [])
             ->defaultSort('name')
-            ->searchable()
+            ->searchable($hasAny)
             ->searchUsing(fn (Builder $query, string $search) => self::applySearch($query, $search))
             ->recordActions([
                 ActionGroup::make([
@@ -81,6 +88,18 @@ class CustomersTable
                     ->url(fn (): string => CustomerResource::getUrl('create'))
                     ->hidden(fn (HasTable $livewire): bool => self::isSearching($livewire)),
             ]);
+    }
+
+    /**
+     * Whether this company has any customer at all, search aside.
+     *
+     * Same tenant-scoped query ListCustomers uses to decide whether its header
+     * button belongs on the page, so the two cannot disagree about which of
+     * the two empty states the page is in.
+     */
+    private static function hasAnyCustomer(): bool
+    {
+        return CustomerResource::getEloquentQuery()->exists();
     }
 
     /**
