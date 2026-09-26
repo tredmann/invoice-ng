@@ -29,6 +29,12 @@ between companies happens in one place: a switcher in the top bar.**
 
 ### 2.1 The top bar, on every panel page
 
+> **Revised 2026-09-26** by `2026-09-26-topbar-trail-design.md`: the dropdown
+> now carries a "Firma wechseln" label, initials avatars and, under a divider,
+> "Firmen verwalten" and "Neue Firma"; the switcher shows inside an archived
+> company opened by its URL; and it is the first crumb of the page's trail.
+> The bullets below are otherwise unchanged.
+
 - Brand, then the **company switcher**, then the user menu on the right.
 - **The switcher** shows the current company's avatar and name ("B BALT ▾"); on
   `/admin`, where none is current, a neutral icon and "Firma wählen ▾".

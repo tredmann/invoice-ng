@@ -19,6 +19,12 @@ From the point of view of someone using it, rather than building it:
   dashboard, its customers (Kunden) and its company data (Firmendaten). With no
   company yet, the start page says so and offers to create one — nothing makes
   you.
+- **The header says where you are.** Inside a company, the switcher is the
+  start of a trail — `Kranz Ingenieurbüro GmbH › Kunden › Bauer & Kollegen
+  GmbH` — lined up with the page below it; every step but the last is a link
+  back. The switcher's menu lists your companies with the current one ticked,
+  and also takes you to the start page ("Firmen verwalten") or to setting up a
+  new company ("Neue Firma").
 - **Company master data, kept per company.** Legal name and legal form, address,
   Steuernummer and/or USt-IdNr, bank details, and whether the company invoices
   under the standard VAT scheme or as a Kleinunternehmer (§19 UStG). An IBAN is
