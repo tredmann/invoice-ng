@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Customers\Pages;
 
+use App\Filament\Concerns\SeparatesFormActions;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Company;
 use App\Models\Customer;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateCustomer extends CreateRecord
 {
+    use SeparatesFormActions;
+
     #[\Override]
     protected static string $resource = CustomerResource::class;
 

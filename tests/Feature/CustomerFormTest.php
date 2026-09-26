@@ -254,3 +254,16 @@ it('stacks the form cards full width rather than two by two', function (): void 
 
     expect(substr_count($html, '--cols-lg: repeat(2'))->toBe(0);
 });
+
+it('puts cancel at the far left and save at the far right', function (): void {
+    /** @var TestCase $this */
+    // Both halves matter: Filament emits save first and groups both buttons
+    // at one end. Alignment alone would leave them in the wrong order, and
+    // order alone would leave them side by side.
+    actInCompany(Company::factory()->create(['name' => 'Alpha GmbH']));
+
+    $html = (string) $this->get('/admin/alpha-gmbh/customers/create')->assertOk()->getContent();
+
+    expect($html)->toContain('fi-align-between');
+    expect(strpos($html, 'Abbrechen'))->toBeLessThan(strpos($html, 'Kunde speichern'));
+});
