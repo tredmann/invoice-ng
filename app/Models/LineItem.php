@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\MoneyCast;
 use App\Enums\Unit;
+use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use Database\Factories\LineItemFactory;
 use DomainException;
@@ -45,6 +46,39 @@ class LineItem extends Model
 {
     /** @use HasFactory<LineItemFactory> */
     use HasFactory, HasUuids;
+
+    /**
+     * „95,00" — a German decimal for a text input that carries its own €.
+     *
+     * Not an HTML number input: those want a point, and someone writing a
+     * German invoice types a comma. Both are accepted on the way back in.
+     */
+    public static function formatPrice(Money $price): string
+    {
+        return str_replace('.', ',', (string) $price->getAmount());
+    }
+
+    public static function priceFrom(string $input): Money
+    {
+        return Money::of(str_replace(',', '.', trim($input)), 'EUR', roundingMode: RoundingMode::HalfUp);
+    }
+
+    /**
+     * „12.000" as stored becomes „12"; „1.500" becomes „1,5". A quantity is
+     * three decimals wide so fractional hours fit, and nobody wants to read
+     * the zeros.
+     */
+    public static function formatQuantity(string $quantity): string
+    {
+        $trimmed = rtrim(rtrim($quantity, '0'), '.');
+
+        return str_replace('.', ',', $trimmed === '' ? '0' : $trimmed);
+    }
+
+    public static function quantityFrom(string $input): string
+    {
+        return str_replace(',', '.', trim($input));
+    }
 
     /**
      * @return BelongsTo<Document, $this>

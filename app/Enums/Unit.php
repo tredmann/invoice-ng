@@ -26,6 +26,21 @@ enum Unit: string implements HasLabel
     case LumpSum = 'LS';
     case Kilometre = 'KMT';
 
+    /**
+     * Coerces a form's state — the enum itself, its backing code, or nothing
+     * yet — to a unit, in the shape of `CustomerType::fromFormState()`. A
+     * Select over an enum hands back the enum, and a string cast of one is a
+     * fatal error rather than the code.
+     */
+    public static function fromFormState(mixed $state): ?self
+    {
+        if ($state instanceof self) {
+            return $state;
+        }
+
+        return is_string($state) ? self::tryFrom($state) : null;
+    }
+
     public function getLabel(): string
     {
         return __("unit.{$this->value}");

@@ -130,3 +130,15 @@ it('refuses to delete an issued document', function (): void {
     expect(fn (): ?bool => $invoice->delete())->toThrow(DomainException::class)
         ->and(Invoice::query()->count())->toBe(1);
 });
+
+it('lets an edit move a Leistungsdatum that was already stored', function (): void {
+    // The form sends performed_from and the stored date is filled back into
+    // it. If performed_on won, changing the date would keep the old one — and
+    // every test above would still pass, because none of them edits a date
+    // that was already set.
+    $invoice = Invoice::factory()->create(['performed_on' => '2026-09-25']);
+
+    $invoice->update(['performed_from' => '2026-10-01', 'performed_to' => null]);
+
+    expect($invoice->fresh()?->performed_on?->toDateString())->toBe('2026-10-01');
+});

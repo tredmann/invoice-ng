@@ -188,13 +188,25 @@ class Document extends Model
         $from = $this->performed_from;
         $to = $this->performed_to;
 
-        if ($from !== null && $to !== null && ! $from->isSameDay($to)) {
-            $this->performed_on = null;
+        // `performed_from` is the authoritative input: it is the field the
+        // form sends, and a stored Leistungsdatum is filled back into it. Were
+        // `performed_on` allowed to win, editing the date of a document that
+        // already had one would silently keep the old one.
+        if ($from !== null) {
+            if ($to !== null && ! $from->isSameDay($to)) {
+                $this->performed_on = null;
+
+                return;
+            }
+
+            $this->performed_on = $from;
+            $this->performed_from = null;
+            $this->performed_to = null;
 
             return;
         }
 
-        $this->performed_on ??= $from ?? $to;
+        $this->performed_on ??= $to;
         $this->performed_from = null;
         $this->performed_to = null;
     }

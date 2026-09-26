@@ -19,4 +19,12 @@
     .dark .app-number-preview { border-color: var(--gray-700); background: var(--gray-800) }
     .dark .app-number-preview-label { color: var(--gray-400) }
     .dark .app-number-preview-value { color: var(--color-white) }
+
+    /* The totals under the Positionen: label left, figure right, the total
+       set apart by a rule above it, as the mockup draws it. */
+    .app-invoice-totals { display: flex; flex-direction: column; gap: 0.375rem; margin-inline-start: auto; width: 100%; max-width: 24rem; font-size: 0.875rem }
+    .app-invoice-totals > div { display: flex; justify-content: space-between; gap: 2rem; color: var(--gray-600) }
+    .app-invoice-totals > .app-invoice-total { margin-top: 0.375rem; padding-top: 0.625rem; border-top: 1px solid var(--gray-200); font-size: 1rem; font-weight: 600; color: var(--gray-950) }
+    .dark .app-invoice-totals > div { color: var(--gray-400) }
+    .dark .app-invoice-totals > .app-invoice-total { border-top-color: var(--gray-700); color: var(--color-white) }
 </style>
