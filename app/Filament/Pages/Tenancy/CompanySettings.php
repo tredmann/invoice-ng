@@ -29,8 +29,8 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
-use Filament\Support\Enums\FontWeight;
-use Filament\Support\Enums\TextSize;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 use LogicException;
 
 /**
@@ -114,17 +114,26 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.identity'))
                 ->description(__('company.sections.identity_help'))
                 ->schema([
-                    TextInput::make('name')
-                        ->label(__('company.fields.name'))
-                        ->required()
-                        ->maxLength(255),
-                    Select::make('legal_form')
-                        ->label(__('company.fields.legal_form'))
-                        ->options(LegalForm::class)
-                        ->required()
-                        // The register fields appear and disappear with this,
-                        // so the form has to re-render on change.
-                        ->live(),
+                    // Proportions are the mockup's, measured off it: its card
+                    // content is 1008px wide throughout, so Name 772 beside
+                    // Rechtsform 220 is three quarters against one.
+                    Grid::make(4)->schema([
+                        TextInput::make('name')
+                            ->label(__('company.fields.name'))
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpan(3),
+                        Select::make('legal_form')
+                            ->label(__('company.fields.legal_form'))
+                            ->options(LegalForm::class)
+                            ->required()
+                            // The register fields appear and disappear with
+                            // this, so the form has to re-render on change.
+                            ->live(),
+                    ]),
+                    // The one field the mockup does not draw. Full width and
+                    // last of the identity block, so it sits out of the way of
+                    // the rows that are drawn.
                     TextInput::make('slug')
                         ->label(__('company.fields.slug'))
                         ->helperText(__('company.fields.slug_help'))
@@ -137,7 +146,8 @@ class CompanySettings extends EditTenantProfile
                         ->label(__('company.fields.street'))
                         ->required()
                         ->maxLength(255),
-                    Grid::make(4)->schema([
+                    // PLZ 140 against Ort 852: a seventh, not a quarter.
+                    Grid::make(7)->schema([
                         TextInput::make('postal_code')
                             ->label(__('company.fields.postal_code'))
                             ->required()
@@ -146,7 +156,7 @@ class CompanySettings extends EditTenantProfile
                             ->label(__('company.fields.city'))
                             ->required()
                             ->maxLength(255)
-                            ->columnSpan(3),
+                            ->columnSpan(6),
                     ]),
                     TextInput::make('managing_directors')
                         ->label(__('company.fields.managing_directors'))
@@ -160,14 +170,18 @@ class CompanySettings extends EditTenantProfile
                 ->description(__('company.sections.register_help'))
                 ->visible(fn (Get $get): bool => $this->isRegisteredForm($get))
                 ->schema([
-                    TextInput::make('register_court')
-                        ->label(__('company.fields.register_court'))
-                        ->required()
-                        ->maxLength(255),
-                    TextInput::make('register_number')
-                        ->label(__('company.fields.register_number'))
-                        ->required()
-                        ->maxLength(50),
+                    // Registergericht 752 beside Registernummer 240.
+                    Grid::make(4)->schema([
+                        TextInput::make('register_court')
+                            ->label(__('company.fields.register_court'))
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpan(3),
+                        TextInput::make('register_number')
+                            ->label(__('company.fields.register_number'))
+                            ->required()
+                            ->maxLength(50),
+                    ]),
                 ]),
 
             Section::make(__('company.sections.logo'))
@@ -205,14 +219,16 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.tax_numbers'))
                 ->description(__('company.sections.tax_numbers_help'))
                 ->schema([
-                    Grid::make(2)->schema([
+                    // Steuernummer 732 beside USt-IdNr. 260.
+                    Grid::make(4)->schema([
                         TextInput::make('tax_number')
                             ->label(__('company.fields.tax_number'))
                             // Which identifier a company has depends on its
                             // scheme, so each is required only while the other
                             // is missing.
                             ->requiredWithout('vat_id')
-                            ->maxLength(50),
+                            ->maxLength(50)
+                            ->columnSpan(3),
                         TextInput::make('vat_id')
                             ->label(__('company.fields.vat_id'))
                             ->requiredWithout('tax_number')
@@ -279,12 +295,13 @@ class CompanySettings extends EditTenantProfile
                     TextInput::make('bank_name')
                         ->label(__('company.fields.bank_name'))
                         ->maxLength(255),
-                    Grid::make(3)->schema([
+                    // IBAN 772 beside BIC 220.
+                    Grid::make(4)->schema([
                         TextInput::make('iban')
                             ->label(__('company.fields.iban'))
                             ->rule(new Iban)
                             ->maxLength(42)
-                            ->columnSpan(2),
+                            ->columnSpan(3),
                         TextInput::make('bic')
                             ->label(__('company.fields.bic'))
                             ->maxLength(11),
@@ -297,10 +314,14 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.payment_term'))
                 ->description(__('company.sections.payment_term_help'))
                 ->schema([
-                    Select::make('payment_term')
-                        ->hiddenLabel()
-                        ->options(PaymentTerm::class)
-                        ->required(),
+                    // 260 of 1008: a Zahlungsziel is two words, and a select
+                    // stretched across the card would look like a mistake.
+                    Grid::make(4)->schema([
+                        Select::make('payment_term')
+                            ->hiddenLabel()
+                            ->options(PaymentTerm::class)
+                            ->required(),
+                    ]),
                 ]),
         ];
     }
@@ -314,7 +335,11 @@ class CompanySettings extends EditTenantProfile
             Section::make(__('company.sections.number_range'))
                 ->description(__('company.sections.number_range_help'))
                 ->schema([
-                    Grid::make(3)->schema([
+                    // Präfix 160, Stellen 120, Startwert 140 — three short
+                    // fields at the left, not three spread across the card.
+                    // Seven columns leaves the remaining four empty, which is
+                    // what the mockup shows.
+                    Grid::make(7)->schema([
                         TextInput::make('number_range.prefix')
                             ->label(__('company.fields.prefix'))
                             ->maxLength(20)
@@ -348,18 +373,22 @@ class CompanySettings extends EditTenantProfile
                     // DrawNextNumber would look identical on screen and burn a
                     // Belegnummer on every page load.
                     //
-                    // Boxed rather than a bare Placeholder: it is the one thing
-                    // on the tab that is an answer rather than a setting, and
-                    // the mockup sets it apart for that reason. Built from
-                    // Section and Text like the customer page's tiles, because
-                    // there is no CSS build to reach for.
-                    Section::make(__('company.fields.next_number'))
-                        ->compact()
-                        ->schema([
-                            Text::make(fn (Get $get): string => $this->previewNumber($get))
-                                ->size(TextSize::Large)
-                                ->weight(FontWeight::Bold),
-                        ]),
+                    // Boxed rather than a bare field: it is the one thing on
+                    // this tab that is an answer rather than a setting.
+                    //
+                    // Not a Section: a section heading is prominent and its
+                    // body plain, and this needs the opposite — a quiet 12px
+                    // label over a 22px value, as the mockup draws it. The
+                    // markup carries classes from panel-styles.blade.php
+                    // instead, because there is no CSS build.
+                    Text::make(fn (Get $get): Htmlable => new HtmlString(
+                        '<div class="app-number-preview">'
+                        .'<span class="app-number-preview-label">'
+                        .e(__('company.fields.next_number'))
+                        .'</span><span class="app-number-preview-value">'
+                        .e($this->previewNumber($get))
+                        .'</span></div>'
+                    ))->columnSpanFull(),
                     Callout::make(__('company.number_range.warning'))->color('warning'),
                 ]),
         ];

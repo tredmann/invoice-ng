@@ -471,9 +471,46 @@ it('sets the next Belegnummer apart in its own box', function (): void {
         ->assertOk()
         ->getContent();
 
-    $box = (string) str($html)->after('Nächste Nummer')->limit(2000, '');
+    // The whole box in one assertion: a label and a value inside one
+    // app-number-preview element. Asserting the two separately would pass
+    // against a layout that put them in different places on the page.
+    expect($html)->toMatch(
+        '/<div class="app-number-preview">'
+        .'<span class="app-number-preview-label">Nächste Nummer<\/span>'
+        .'<span class="app-number-preview-value">RE-0043<\/span>'
+        .'<\/div>/u'
+    );
 
-    expect($html)->toContain('Nächste Nummer')
-        ->and($box)->toContain('RE-0043')
-        ->and($box)->toContain('fi-section');
+    // And the classes have to resolve to something: there is no CSS build, so
+    // a class Filament does not ship is invisible unless panel-styles says so.
+    expect($html)->toContain('.app-number-preview-value');
+});
+
+it('lays every settings card out in the columns the mockup measures', function (): void {
+    /** @var TestCase $this */
+    // Two of these were stacked and three had the wrong proportions, and no
+    // behavioural test noticed — a form saves the same whether its fields sit
+    // beside each other or under one another. The counts below are the whole
+    // page's grid declarations, so a card that loses its row changes them.
+    //
+    // Proportions come from the Penpot boards, whose card content is 1008px
+    // wide throughout:
+    //   Name 772 | Rechtsform 220        →  4 cols, span 3
+    //   Registergericht 752 | Nummer 240 →  4 cols, span 3
+    //   Steuernummer 732 | USt-IdNr. 260 →  4 cols, span 3
+    //   IBAN 772 | BIC 220               →  4 cols, span 3
+    //   Zahlungsziel 260                 →  4 cols, span 1
+    //   PLZ 140 | Ort 852                →  7 cols, span 6
+    //   Präfix/Stellen/Startwert         →  7 cols, three of span 1
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+
+    $html = (string) $this->actingAs(userOf([$company]))
+        ->get('/admin/acme-gmbh/settings')
+        ->assertOk()
+        ->getContent();
+
+    expect(substr_count($html, '--cols-lg: repeat(4'))->toBe(5)
+        ->and(substr_count($html, '--cols-lg: repeat(7'))->toBe(2)
+        ->and(substr_count($html, '--col-span-lg: span 3 / span 3'))->toBe(4)
+        ->and(substr_count($html, '--col-span-lg: span 6 / span 6'))->toBe(1);
 });

@@ -77,6 +77,7 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::TOPBAR_LOGO_AFTER, fn (): string => $this->switcher('desktop'))
             ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_BEFORE, fn (): string => $this->switcher('phone'))
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn (): string => view('filament.topbar-styles')->render())
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn (): string => view('filament.panel-styles')->render())
             ->colors([
                 'primary' => Color::Amber,
             ])
