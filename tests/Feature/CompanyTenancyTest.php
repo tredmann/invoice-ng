@@ -28,33 +28,33 @@ it('carries uuids through both company_user foreign keys', function (): void {
     }
 });
 
-it('offers the user only their own non-archived companies as tenants', function (): void {
+it('offers the user only their own non-deactivated companies as tenants', function (): void {
     $user = User::factory()->create();
     $mine = Company::factory()->create(['name' => 'Mine GmbH']);
-    $archived = Company::factory()->archived()->create(['name' => 'Archived GmbH']);
+    $deactivated = Company::factory()->deactivated()->create(['name' => 'Deactivated GmbH']);
     $someoneElses = Company::factory()->create(['name' => 'Theirs GmbH']);
 
-    $user->companies()->attach([$mine->getKey(), $archived->getKey()]);
+    $user->companies()->attach([$mine->getKey(), $deactivated->getKey()]);
 
     $tenants = $user->getTenants(Filament::getPanel('admin'));
 
     // Three assertions because each rules out a different wrong
-    // implementation: returning everything, returning archived companies, and
+    // implementation: returning everything, returning deactivated companies, and
     // returning nothing at all.
     expect($tenants->pluck('name')->all())->toBe(['Mine GmbH'])
-        ->and($tenants->contains($archived))->toBeFalse()
+        ->and($tenants->contains($deactivated))->toBeFalse()
         ->and($tenants->contains($someoneElses))->toBeFalse();
 });
 
-it('still lets the user into an archived company they are linked to', function (): void {
-    // An archived company leaves the switcher but keeps its URL, because its
+it('still lets the user into an deactivated company they are linked to', function (): void {
+    // An deactivated company leaves the switcher but keeps its URL, because its
     // historical documents have to stay readable.
     $user = User::factory()->create();
-    $archived = Company::factory()->archived()->create();
+    $deactivated = Company::factory()->deactivated()->create();
 
-    $user->companies()->attach($archived);
+    $user->companies()->attach($deactivated);
 
-    expect($user->canAccessTenant($archived))->toBeTrue();
+    expect($user->canAccessTenant($deactivated))->toBeTrue();
 });
 
 it('keeps the user out of a company they are not linked to', function (): void {

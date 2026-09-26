@@ -37,7 +37,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     /**
      * The companies offered in the switcher.
      *
-     * Archived companies are excluded here but still pass
+     * Deactivated companies are excluded here but still pass
      * `canAccessTenant()`: they are out of use, so they leave the switcher,
      * while their URL keeps working because their documents stay readable.
      *
@@ -50,7 +50,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     public function getTenants(Panel $panel): Collection
     {
         return $this->companies()
-            ->whereNull('archived_at')
+            ->whereNull('deactivated_at')
             ->orderBy('name')
             ->get();
     }

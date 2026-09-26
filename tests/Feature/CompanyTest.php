@@ -120,22 +120,22 @@ it('resolves a german label for every enum case', function (): void {
     }
 });
 
-it('reports a fresh company as not archived', function (): void {
-    expect(Company::factory()->create()->isArchived())->toBeFalse()
-        ->and(Company::factory()->archived()->create()->isArchived())->toBeTrue();
+it('reports a fresh company as not deactivated', function (): void {
+    expect(Company::factory()->create()->isDeactivated())->toBeFalse()
+        ->and(Company::factory()->deactivated()->create()->isDeactivated())->toBeTrue();
 });
 
-it('archives a company while another active one remains', function (): void {
+it('deactivates a company while another active one remains', function (): void {
     $keep = Company::factory()->create();
     $company = Company::factory()->create();
 
-    $company->archive();
+    $company->deactivate();
 
-    expect($company->fresh()?->isArchived())->toBeTrue()
-        ->and($keep->fresh()?->isArchived())->toBeFalse();
+    expect($company->fresh()?->isDeactivated())->toBeTrue()
+        ->and($keep->fresh()?->isDeactivated())->toBeFalse();
 });
 
-it('archives the last active company', function (): void {
+it('deactivates the last active company', function (): void {
     // This used to be refused: with no active company left, Filament forced
     // every request into registration and nothing outside a company existed to
     // recover from. /admin now renders without a company and never forces
@@ -145,30 +145,30 @@ it('archives the last active company', function (): void {
     $user = User::factory()->create();
     $user->companies()->attach($only);
 
-    $only->archive();
+    $only->deactivate();
 
-    expect($only->fresh()?->isArchived())->toBeTrue();
+    expect($only->fresh()?->isDeactivated())->toBeTrue();
 });
 
-it('leaves the archive date of an already archived company alone', function (): void {
+it('leaves the deactivation date of an already deactivated company alone', function (): void {
     // Archiving twice must not move the date: it records when the company went
     // out of use, and a second click is not that moment.
-    $company = Company::factory()->create(['archived_at' => now()->subYear()]);
-    $stored = fn (): mixed => DB::table('companies')->where('id', $company->getKey())->value('archived_at');
+    $company = Company::factory()->create(['deactivated_at' => now()->subYear()]);
+    $stored = fn (): mixed => DB::table('companies')->where('id', $company->getKey())->value('deactivated_at');
     $original = $stored();
 
-    $company->archive();
+    $company->deactivate();
 
     expect($original)->not->toBeNull()
         ->and($stored())->toBe($original);
 });
 
-it('unarchives a company', function (): void {
-    $company = Company::factory()->archived()->create();
+it('reactivates a company', function (): void {
+    $company = Company::factory()->deactivated()->create();
 
-    $company->unarchive();
+    $company->reactivate();
 
-    expect($company->fresh()?->isArchived())->toBeFalse();
+    expect($company->fresh()?->isDeactivated())->toBeFalse();
 });
 
 it('draws initials from the first letters of the first two words', function (string $name, string $initials): void {

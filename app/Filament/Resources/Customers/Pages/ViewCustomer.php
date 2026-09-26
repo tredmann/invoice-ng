@@ -52,8 +52,8 @@ class ViewCustomer extends ViewRecord
     {
         return [
             EditAction::make()->label(__('customer.actions.edit')),
-            CustomerActions::archive(),
-            CustomerActions::unarchive(),
+            CustomerActions::deactivate(),
+            CustomerActions::reactivate(),
         ];
     }
 }

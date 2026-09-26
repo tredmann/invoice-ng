@@ -54,10 +54,10 @@ class CompanyFactory extends Factory
         ]);
     }
 
-    public function archived(): static
+    public function deactivated(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'archived_at' => now(),
+            'deactivated_at' => now(),
         ]);
     }
 }

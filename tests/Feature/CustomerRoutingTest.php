@@ -102,7 +102,7 @@ it('shows a business customer with its contact person and a private person witho
     $this->get('/admin/alpha-gmbh/customers/K-0002')
         ->assertOk()
         ->assertSee('Dr. Annika Vogel')
-        ->assertSee('Privatperson')
+        ->assertSee('Privatkunde')
         ->assertDontSee('Ansprechpartner');
 });
 

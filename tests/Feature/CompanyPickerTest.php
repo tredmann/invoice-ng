@@ -50,16 +50,16 @@ it('links each tile to its company by slug', function (): void {
         ->assertSeeHtml('href="'.url('/admin/acme-gmbh').'"');
 });
 
-it('leaves archived companies and other users companies off the picker', function (): void {
+it('leaves deactivated companies and other users companies off the picker', function (): void {
     /** @var TestCase $this */
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create(['name' => 'Mine GmbH']));
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Archived GmbH']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Deactivated GmbH']));
     Company::factory()->create(['name' => 'Theirs GmbH']);
 
     $this->actingAs($user)
         ->get('/admin')
-        ->assertOk()->assertSee('Mine GmbH')->assertDontSeeHtml('href="'.url('/admin/archived-gmbh').'"')
+        ->assertOk()->assertSee('Mine GmbH')->assertDontSeeHtml('href="'.url('/admin/deactivated-gmbh').'"')
         ->assertDontSee('Theirs GmbH');
 });
 
@@ -95,12 +95,12 @@ it('shows an empty state, not registration, to a user with no company', function
         ->assertSeeHtml('href="'.url('/admin/new').'"');
 });
 
-it('shows the empty state to a user whose companies are all archived', function (): void {
+it('shows the empty state to a user whose companies are all deactivated', function (): void {
     /** @var TestCase $this */
-    // Review focus 2: archived companies leave getTenants(), so this user has
-    // nothing to pick — and must not get a tile for the archived one.
+    // Review focus 2: deactivated companies leave getTenants(), so this user has
+    // nothing to pick — and must not get a tile for the deactivated one.
     $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Gone GmbH']));
 
     $this->actingAs($user)
         ->get('/admin')
@@ -171,7 +171,7 @@ it('shows the switcher in the top bar on /admin, listing the active companies', 
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create(['name' => 'Alpha GmbH']));
     $user->companies()->attach(Company::factory()->create(['name' => 'Zeta GmbH']));
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Gone GmbH']));
     Company::factory()->create(['name' => 'Theirs GmbH']);
 
     $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin')->assertOk()->getContent());
@@ -203,12 +203,12 @@ it('shows the current company in the switcher inside a company, and lists it mar
         ->toContain('data-current-company');
 });
 
-it('names an archived company opened by URL in the trigger but does not list it', function (): void {
+it('names an deactivated company opened by URL in the trigger but does not list it', function (): void {
     /** @var TestCase $this */
     // Review focus 2.
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create(['name' => 'Active GmbH']));
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Gone GmbH']));
 
     $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin/gone-gmbh')->assertOk()->getContent());
 
@@ -262,57 +262,57 @@ it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', f
         ->toContain('href="'.url('/admin/acme-gmbh/settings').'"');
 });
 
-it('archives a company from its tile', function (): void {
+it('deactivates a company from its tile', function (): void {
     $company = Company::factory()->create(['name' => 'Acme GmbH']);
     $user = User::factory()->create();
     $user->companies()->attach($company);
 
     Livewire::actingAs($user)
         ->test(SelectCompany::class)
-        ->callAction(TestAction::make('archive')->schemaComponent("company-{$company->getKey()}"));
+        ->callAction(TestAction::make('deactivate')->schemaComponent("company-{$company->getKey()}"));
 
-    expect($company->fresh()?->isArchived())->toBeTrue();
+    expect($company->fresh()?->isDeactivated())->toBeTrue();
 });
 
-it('restores an archived company from the Deaktiviert section', function (): void {
-    $company = Company::factory()->archived()->create(['name' => 'Gone GmbH']);
+it('restores an deactivated company from the Deaktiviert section', function (): void {
+    $company = Company::factory()->deactivated()->create(['name' => 'Gone GmbH']);
     $user = User::factory()->create();
     $user->companies()->attach($company);
 
     Livewire::actingAs($user)
         ->test(SelectCompany::class)
-        ->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$company->getKey()}"));
+        ->callAction(TestAction::make('reactivate')->schemaComponent("deactivated-company-{$company->getKey()}"));
 
-    expect($company->fresh()?->isArchived())->toBeFalse();
+    expect($company->fresh()?->isDeactivated())->toBeFalse();
 });
 
-it('cannot archive or restore another users company', function (): void {
+it('cannot deactivate or restore another users company', function (): void {
     // Review focus 3: the actions exist only on components built from the
     // acting user's own companies, so a forged key finds nothing to act on.
     $theirs = Company::factory()->create(['name' => 'Theirs GmbH']);
-    $theirsArchived = Company::factory()->archived()->create(['name' => 'Theirs Old GmbH']);
+    $theirsDeactivated = Company::factory()->deactivated()->create(['name' => 'Theirs Old GmbH']);
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create());
 
     $page = Livewire::actingAs($user)->test(SelectCompany::class);
 
-    expect(fn () => $page->callAction(TestAction::make('archive')->schemaComponent("company-{$theirs->getKey()}")))
+    expect(fn () => $page->callAction(TestAction::make('deactivate')->schemaComponent("company-{$theirs->getKey()}")))
         ->toThrow(ActionNotResolvableException::class);
-    expect(fn () => $page->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$theirsArchived->getKey()}")))
+    expect(fn () => $page->callAction(TestAction::make('reactivate')->schemaComponent("deactivated-company-{$theirsDeactivated->getKey()}")))
         ->toThrow(ActionNotResolvableException::class);
 
-    expect($theirs->fresh()?->isArchived())->toBeFalse()
-        ->and($theirsArchived->fresh()?->isArchived())->toBeTrue();
+    expect($theirs->fresh()?->isDeactivated())->toBeFalse()
+        ->and($theirsDeactivated->fresh()?->isDeactivated())->toBeTrue();
 });
 
-it('shows the Deaktiviert section only when the user has an archived company', function (): void {
+it('shows the Deaktiviert section only when the user has an deactivated company', function (): void {
     /** @var TestCase $this */
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
 
     $this->actingAs($user)->get('/admin')->assertOk()->assertDontSee('Deaktiviert (');
 
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Gone GmbH']));
 
     $this->actingAs($user)->get('/admin')->assertOk()
         ->assertSee('Deaktiviert (1)')
@@ -322,7 +322,7 @@ it('shows the Deaktiviert section only when the user has an archived company', f
 it('shows the Deaktiviert section beside the empty state', function (): void {
     /** @var TestCase $this */
     $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Gone GmbH']));
 
     $this->actingAs($user)->get('/admin')->assertOk()
         ->assertSee('Noch keine Firma angelegt.')
@@ -378,7 +378,7 @@ it('reloads the picker after archiving and restoring, so nothing on it is stale'
     $user->companies()->attach([$company->getKey(), Company::factory()->create(['name' => 'Beta GmbH'])->getKey()]);
 
     Livewire::actingAs($user)->test(SelectCompany::class)
-        ->callAction(TestAction::make('archive')->schemaComponent("company-{$company->getKey()}"))
+        ->callAction(TestAction::make('deactivate')->schemaComponent("company-{$company->getKey()}"))
         ->assertRedirect(url('/admin'));
 
     $this->actingAs($user)->get('/admin')->assertOk()
@@ -386,7 +386,7 @@ it('reloads the picker after archiving and restoring, so nothing on it is stale'
         ->assertDontSeeHtml('href="'.url('/admin/acme-gmbh').'"');
 
     Livewire::actingAs($user)->test(SelectCompany::class)
-        ->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$company->getKey()}"))
+        ->callAction(TestAction::make('reactivate')->schemaComponent("deactivated-company-{$company->getKey()}"))
         ->assertRedirect(url('/admin'));
 
     $this->actingAs($user)->get('/admin')->assertOk()
@@ -394,14 +394,14 @@ it('reloads the picker after archiving and restoring, so nothing on it is stale'
         ->assertSeeHtml('href="'.url('/admin/acme-gmbh').'"');
 });
 
-it('offers Neue Firma exactly once after the last active company is archived', function (): void {
+it('offers Neue Firma exactly once after the last active company is deactivated', function (): void {
     /** @var TestCase $this */
     $only = Company::factory()->create(['name' => 'Only GmbH']);
     $user = User::factory()->create();
     $user->companies()->attach($only);
 
     Livewire::actingAs($user)->test(SelectCompany::class)
-        ->callAction(TestAction::make('archive')->schemaComponent("company-{$only->getKey()}"))
+        ->callAction(TestAction::make('deactivate')->schemaComponent("company-{$only->getKey()}"))
         ->assertRedirect(url('/admin'));
 
     $html = (string) $this->actingAs($user)->get('/admin')->assertOk()
@@ -414,12 +414,12 @@ it('offers Neue Firma exactly once after the last active company is archived', f
 
 it('offers Neue Firma again after restoring from an empty picker', function (): void {
     /** @var TestCase $this */
-    $gone = Company::factory()->archived()->create(['name' => 'Gone GmbH']);
+    $gone = Company::factory()->deactivated()->create(['name' => 'Gone GmbH']);
     $user = User::factory()->create();
     $user->companies()->attach($gone);
 
     Livewire::actingAs($user)->test(SelectCompany::class)
-        ->callAction(TestAction::make('unarchive')->schemaComponent("archived-company-{$gone->getKey()}"))
+        ->callAction(TestAction::make('reactivate')->schemaComponent("deactivated-company-{$gone->getKey()}"))
         ->assertRedirect(url('/admin'));
 
     $html = (string) $this->actingAs($user)->get('/admin')->assertOk()
@@ -432,9 +432,9 @@ it('offers Neue Firma again after restoring from an empty picker', function (): 
 it('escapes company names in the Deaktiviert section', function (): void {
     /** @var TestCase $this */
     // On /admin with no active company the switcher is hidden, so only the
-    // archived row can print the name.
+    // deactivated row can print the name.
     $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Müller & Söhne <b>GmbH</b>']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Müller & Söhne <b>GmbH</b>']));
 
     $html = (string) $this->actingAs($user)->get('/admin')->assertOk()->getContent();
 
@@ -442,12 +442,12 @@ it('escapes company names in the Deaktiviert section', function (): void {
     expect($html)->not->toContain('<b>GmbH</b>');
 });
 
-it('shows the switcher inside an archived company even with no active company', function (): void {
+it('shows the switcher inside an deactivated company even with no active company', function (): void {
     /** @var TestCase $this */
     // Review focus 4. Top-bar trail spec §2.5: the dropdown always has
     // Firmen verwalten and Neue Firma now, so it is never empty.
     $user = User::factory()->create();
-    $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
+    $user->companies()->attach(Company::factory()->deactivated()->create(['name' => 'Gone GmbH']));
 
     $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin/gone-gmbh')->assertOk()->getContent());
 

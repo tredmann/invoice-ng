@@ -43,7 +43,7 @@ class SelectCompany extends Page
     }
 
     /**
-     * The same list as the switcher, so the two cannot disagree — archived
+     * The same list as the switcher, so the two cannot disagree — deactivated
      * companies stay out of both.
      *
      * @return Collection<int, Company>
@@ -67,34 +67,34 @@ class SelectCompany extends Page
             : Grid::make(['default' => 1, 'md' => 2, 'xl' => 3])
                 ->schema($companies->map(fn (Company $company): Section => $this->companyTile($company))->all());
 
-        $archived = static::getArchivedCompanies();
+        $deactivated = static::getDeactivatedCompanies();
 
         return $schema->components([
             $main,
-            ...($archived->isEmpty() ? [] : [
-                Section::make(__('company.picker.archived', ['count' => $archived->count()]))
+            ...($deactivated->isEmpty() ? [] : [
+                Section::make(__('company.picker.deactivated', ['count' => $deactivated->count()]))
                     ->collapsible()
                     ->collapsed()
-                    ->schema($archived->map(fn (Company $company): Flex => Flex::make([
+                    ->schema($deactivated->map(fn (Company $company): Flex => Flex::make([
                         Text::make($company->name),
                         Actions::make([
-                            Action::make('unarchive')
-                                ->label(__('company.actions.unarchive'))
+                            Action::make('reactivate')
+                                ->label(__('company.actions.reactivate'))
                                 ->icon(Heroicon::OutlinedArrowUturnLeft)
                                 ->link()
                                 ->action(function () use ($company): void {
-                                    $company->unarchive();
+                                    $company->reactivate();
                                     $this->refreshAfterChange();
                                 }),
                         ])->alignEnd(),
-                    ])->key("archived-company-{$company->getKey()}"))->all()),
+                    ])->key("deactivated-company-{$company->getKey()}"))->all()),
             ]),
         ]);
     }
 
     /**
      * A tile: the name links into the company, the legal form sits beneath,
-     * and the ⋮ menu carries the archive action. The name — not the whole card
+     * and the ⋮ menu carries the deactivation action. The name — not the whole card
      * — is the link, because a button inside a link is invalid HTML.
      */
     private function companyTile(Company $company): Section
@@ -109,12 +109,12 @@ class SelectCompany extends Page
             ->description($company->legal_form->getLabel())
             ->headerActions([
                 ActionGroup::make([
-                    Action::make('archive')
-                        ->label(__('company.actions.archive'))
+                    Action::make('deactivate')
+                        ->label(__('company.actions.deactivate'))
                         ->icon(Heroicon::OutlinedArchiveBox)
                         ->requiresConfirmation()
                         ->action(function () use ($company): void {
-                            $company->archive();
+                            $company->deactivate();
                             $this->refreshAfterChange();
                         }),
                 ]),
@@ -123,17 +123,17 @@ class SelectCompany extends Page
     }
 
     /**
-     * The user's archived companies, for the Deaktiviert section. Through the
+     * The user's deactivated companies, for the Deaktiviert section. Through the
      * join table, like every other boundary here.
      *
      * @return Collection<int, Company>
      */
-    public static function getArchivedCompanies(): Collection
+    public static function getDeactivatedCompanies(): Collection
     {
         /** @var User $user */
         $user = Filament::auth()->user();
 
-        return $user->companies()->whereNotNull('archived_at')->orderBy('name')->get();
+        return $user->companies()->whereNotNull('deactivated_at')->orderBy('name')->get();
     }
 
     /**

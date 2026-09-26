@@ -121,7 +121,7 @@ it('marks a deactivated customer in the list and leaves the rest unmarked', func
         ->assertOk()
         ->assertDontSee('Deaktiviert');
 
-    Customer::factory()->for($company)->archived()->create(['name' => 'Weber Haustechnik e.K.']);
+    Customer::factory()->for($company)->deactivated()->create(['name' => 'Weber Haustechnik e.K.']);
 
     $this->actingAs($user)
         ->get('/admin/alpha-gmbh/customers')
@@ -130,14 +130,14 @@ it('marks a deactivated customer in the list and leaves the rest unmarked', func
         ->assertSee('Deaktiviert');
 });
 
-it('escapes a customer name exactly once in the list and in the heading', function (bool $archived): void {
+it('escapes a customer name exactly once in the list and in the heading', function (bool $deactivated): void {
     /** @var TestCase $this */
     // The name reaches the page through an HtmlString, so the escaping is
     // this code's job: raw would let "<Söhne>" through as markup, and escaping
     // twice would print "&amp;amp;".
     $company = Company::factory()->create(['name' => 'Alpha GmbH']);
     $factory = Customer::factory()->for($company);
-    ($archived ? $factory->archived() : $factory)->create(['name' => 'Bauer & <Söhne> GmbH']);
+    ($deactivated ? $factory->deactivated() : $factory)->create(['name' => 'Bauer & <Söhne> GmbH']);
     $user = memberOf($company);
 
     foreach (['/admin/alpha-gmbh/customers', '/admin/alpha-gmbh/customers/K-0001'] as $url) {
@@ -187,23 +187,23 @@ it('deactivates and reactivates a customer from its row menu', function (): void
     actInCompany($company);
 
     Livewire::test(ListCustomers::class)
-        ->assertActionHidden(TestAction::make('unarchive')->table($customer))
-        ->callAction(TestAction::make('archive')->table($customer));
+        ->assertActionHidden(TestAction::make('reactivate')->table($customer))
+        ->callAction(TestAction::make('deactivate')->table($customer));
 
-    expect($customer->fresh()?->isArchived())->toBeTrue();
+    expect($customer->fresh()?->isDeactivated())->toBeTrue();
 
     Livewire::test(ListCustomers::class)
-        ->assertActionHidden(TestAction::make('archive')->table($customer))
-        ->callAction(TestAction::make('unarchive')->table($customer));
+        ->assertActionHidden(TestAction::make('deactivate')->table($customer))
+        ->callAction(TestAction::make('reactivate')->table($customer));
 
-    expect($customer->fresh()?->isArchived())->toBeFalse();
+    expect($customer->fresh()?->isDeactivated())->toBeFalse();
 });
 
 it('does not let a table action touch another company\'s customer', function (): void {
     // Table actions resolve their record by re-querying the table's own
     // query, which Filament scopes to the tenant. Fails if that record
     // resolution ever ignores the tenant scope — the action would then
-    // silently archive another company's customer instead of throwing.
+    // silently deactivate another company's customer instead of throwing.
     $a = Company::factory()->create();
     $b = Company::factory()->create();
     $theirs = Customer::factory()->for($b)->create();
@@ -211,10 +211,10 @@ it('does not let a table action touch another company\'s customer', function ():
 
     $page = Livewire::test(ListCustomers::class);
 
-    expect(fn () => $page->callAction(TestAction::make('archive')->table($theirs)))
+    expect(fn () => $page->callAction(TestAction::make('deactivate')->table($theirs)))
         ->toThrow(ActionNotResolvableException::class);
 
-    expect($theirs->fresh()?->archived_at)->toBeNull();
+    expect($theirs->fresh()?->deactivated_at)->toBeNull();
 });
 
 it('deactivates and reactivates a customer from its page', function (): void {
@@ -223,15 +223,15 @@ it('deactivates and reactivates a customer from its page', function (): void {
     actInCompany($company);
 
     Livewire::test(ViewCustomer::class, ['record' => 'K-0001'])
-        ->callAction('archive')
-        ->assertActionHidden('archive')
-        ->assertActionVisible('unarchive');
+        ->callAction('deactivate')
+        ->assertActionHidden('deactivate')
+        ->assertActionVisible('reactivate');
 
-    expect($customer->fresh()?->isArchived())->toBeTrue();
+    expect($customer->fresh()?->isDeactivated())->toBeTrue();
 
     Livewire::test(ViewCustomer::class, ['record' => 'K-0001'])
         ->assertSee('Deaktiviert')
-        ->callAction('unarchive');
+        ->callAction('reactivate');
 
-    expect($customer->fresh()?->isArchived())->toBeFalse();
+    expect($customer->fresh()?->isDeactivated())->toBeFalse();
 });

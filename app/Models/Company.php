@@ -16,14 +16,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Normalizer;
 
 /**
- * Declared because Larastan types `legal_form` as a string despite the enum
- * cast in casts(), and calling getLabel() on it then fails analysis.
+ * `legal_form` is declared because Larastan types it as a string despite the
+ * enum cast in casts(), and calling getLabel() on it then fails analysis.
+ * `deactivated_at` is declared because the column is renamed by a later
+ * migration rather than created under that name, which Larastan does not
+ * follow — Customer carries the same declaration.
  *
  * @property LegalForm $legal_form
+ * @property Carbon|null $deactivated_at
  */
 #[Fillable([
     'name',
@@ -52,7 +57,7 @@ class Company extends Model
     use HasFactory, HasUuids;
 
     /**
-     * The slug is never mass-assigned and `archived_at` is written only through
+     * The slug is never mass-assigned and `deactivated_at` is written only through
      * the archiving methods, so neither appears in the fillable list above.
      *
      * @var array<string, mixed>
@@ -87,9 +92,9 @@ class Company extends Model
         return $slug;
     }
 
-    public function isArchived(): bool
+    public function isDeactivated(): bool
     {
-        return $this->archived_at !== null;
+        return $this->deactivated_at !== null;
     }
 
     /**
@@ -139,28 +144,28 @@ class Company extends Model
     }
 
     /**
-     * Archives the company. An already archived company keeps its original
-     * archive date.
+     * Deactivates the company. An already deactivated company keeps its
+     * original deactivation date.
      *
      * There is no guard against archiving the user's last active company. One
      * existed while that was a dead end — Filament forced a user with no
      * companies into registration — and went when /admin became a page that
      * renders without a company (company-picker spec §2.5).
      */
-    public function archive(): void
+    public function deactivate(): void
     {
-        if ($this->isArchived()) {
+        if ($this->isDeactivated()) {
             return;
         }
 
-        // forceFill because archived_at is deliberately not fillable: it is
+        // forceFill because deactivated_at is deliberately not fillable: it is
         // state, changed through these two methods and nowhere else.
-        $this->forceFill(['archived_at' => now()])->save();
+        $this->forceFill(['deactivated_at' => now()])->save();
     }
 
-    public function unarchive(): void
+    public function reactivate(): void
     {
-        $this->forceFill(['archived_at' => null])->save();
+        $this->forceFill(['deactivated_at' => null])->save();
     }
 
     /**
@@ -196,7 +201,7 @@ class Company extends Model
         return [
             'legal_form' => LegalForm::class,
             'vat_scheme' => VatScheme::class,
-            'archived_at' => 'datetime',
+            'deactivated_at' => 'datetime',
         ];
     }
 }
