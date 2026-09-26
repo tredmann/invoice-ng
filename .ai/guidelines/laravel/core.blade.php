@@ -41,9 +41,16 @@ This project has no PHP on the host — every Artisan command below runs through
   are names, not words, the way `Inc.` is.
 - So the §19 UStG Kleinunternehmer flag is the `VatScheme` enum
   (`Standard`/`SmallBusiness`), not `is_small_business` or a German name, and
-  the invoicing wave's Storno, Gutschrift and Mahnung become
-  `CancellationInvoice`, `CreditNote` and `PaymentReminder` in code while the
-  German terms stay in the specs and in `lang/de/`.
+  the invoicing wave's Storno, Teilstorno, Gutschrift and Mahnung become
+  `Cancellation`, `PartialCancellation`, `SelfBilledInvoice` and
+  `DunningNotice` in code while the German terms stay in the specs and in
+  `lang/de/`.
+- **`CONTEXT.md` is the authority on that mapping.** Read it before naming
+  anything in the domain rather than translating term by term, because several
+  of these words mean close to the opposite of what they look like: a
+  `Gutschrift` is not a credit note but a self-billed invoice under §14 Abs. 2
+  Satz 2 UStG, and the credit note is a `Teilstorno`. Deciding a translation
+  per column is how a codebase ends up bilingual.
 
 ## Vite Error
 - This project has no Vite build. An "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error means a view references `@vite` and should not — remove the reference instead of trying to build assets.

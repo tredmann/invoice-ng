@@ -37,8 +37,8 @@ From the point of view of someone using it, rather than building it:
   entry and the old entry is cleared, rather than left behind to print on a
   later document.
 - **Customers, kept per company.** Under Kunden, each company keeps its own
-  customers — a Firma, with an optional contact person and USt-IdNr., or a
-  Privatperson — with billing address and billing email. Every new customer
+  customers — a Geschäftskunde, with an optional contact person and USt-IdNr.,
+  or a Privatkunde — with billing address and billing email. Every new customer
   gets its company's next customer number (K-0001, K-0002, …) automatically,
   and that number is its address: `/admin/acme-gmbh/customers/K-0004` always
   opens the same customer. One search box finds customers by number, name,
@@ -46,9 +46,9 @@ From the point of view of someone using it, rather than building it:
 - **Customers are deactivated, never deleted.** A deactivated customer stays in
   the list, greyed and marked "Deaktiviert", keeps its page and its number, and
   can be reactivated from its ⋮ menu or its page.
-- **Companies are deactivated, never deleted.** An archived company drops out of
-  the switcher but keeps its URL, so everything it is attached to stays
-  readable. Archive and restore from the ⋮ menu on its tile and the
+- **Companies are deactivated, never deleted.** A deactivated company drops out
+  of the switcher but keeps its URL, so everything it is attached to stays
+  readable. Deactivate and reactivate from the ⋮ menu on its tile and the
   "Deaktiviert" section of the start page — your last active company included.
 - **German throughout.** The interface is German, and the application runs with
   the `de` locale and `Europe/Berlin`.
@@ -56,10 +56,12 @@ From the point of view of someone using it, rather than building it:
 ### Not built yet
 
 The entire document side: ZUGFeRD invoice PDFs, gapless invoice
-numbering, Storno and Gutschrift, recording payments, sending email, reminders,
-recurring invoices, the period export for the tax advisor, and dashboard
-reporting. `docs/superpowers/specs/2026-09-23-invoice-system-design.md`
-describes all of it. None of it exists yet.
+numbering, Storno and Teilstorno, Gutschriften over a Vermittlungsprovision,
+recording payments, sending email, Mahnungen, recurring invoices, the period
+export for the tax advisor, and dashboard reporting.
+`docs/superpowers/specs/2026-09-23-invoice-system-design.md` describes all of
+it, and `CONTEXT.md` settles what each of those documents is called and why.
+None of it exists yet.
 
 ## Prerequisites
 
@@ -135,6 +137,9 @@ target, etc.) — read it before changing anything here.
   system does
 - `docs/superpowers/specs/2026-09-23-invoice-tech-stack-design.md` — what
   it is built from
+- `CONTEXT.md` — what every concept in the domain is called, in German and in
+  code
+- `docs/adr/` — decisions that were hard to reverse, with the reasoning
 
 Read the relevant spec before changing behaviour. The specs are the
 authority.
