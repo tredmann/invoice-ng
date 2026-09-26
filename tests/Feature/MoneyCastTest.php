@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Casts\MoneyCast;
 use App\Models\Company;
+use App\Money\Euro;
 use Brick\Money\Money;
 
 it('reads a bigint of cents as euro', function (): void {
@@ -38,4 +39,15 @@ it('refuses anything that is not money', function (mixed $value): void {
     'float' => [19.99],
     'int' => [1999],
     'string' => ['19.99'],
+]);
+
+it('formats money the way a German screen reads it', function (string $amount, string $formatted): void {
+    // Thousands separated by a point and the decimal by a comma — the opposite
+    // of the string brick/money returns from getAmount(), which is why this
+    // goes through one helper rather than through sprintf at each call site.
+    expect(Euro::format(Money::of($amount, 'EUR')))->toContain($formatted);
+})->with([
+    'thousands' => ['2345.20', '2.345,20'],
+    'under a thousand' => ['95.00', '95,00'],
+    'zero' => ['0.00', '0,00'],
 ]);
