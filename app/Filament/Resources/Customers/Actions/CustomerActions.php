@@ -16,23 +16,23 @@ use Filament\Support\Icons\Heroicon;
  */
 final class CustomerActions
 {
-    public static function archive(): Action
+    public static function deactivate(): Action
     {
-        return Action::make('archive')
-            ->label(__('customer.actions.archive'))
+        return Action::make('deactivate')
+            ->label(__('customer.actions.deactivate'))
             ->icon(Heroicon::OutlinedArchiveBox)
             ->color('gray')
-            ->hidden(fn (Customer $record): bool => $record->isArchived())
-            ->action(fn (Customer $record) => $record->archive());
+            ->hidden(fn (Customer $record): bool => $record->isDeactivated())
+            ->action(fn (Customer $record) => $record->deactivate());
     }
 
-    public static function unarchive(): Action
+    public static function reactivate(): Action
     {
-        return Action::make('unarchive')
-            ->label(__('customer.actions.unarchive'))
+        return Action::make('reactivate')
+            ->label(__('customer.actions.reactivate'))
             ->icon(Heroicon::OutlinedArrowUturnLeft)
             ->color('gray')
-            ->visible(fn (Customer $record): bool => $record->isArchived())
-            ->action(fn (Customer $record) => $record->unarchive());
+            ->visible(fn (Customer $record): bool => $record->isDeactivated())
+            ->action(fn (Customer $record) => $record->reactivate());
     }
 }

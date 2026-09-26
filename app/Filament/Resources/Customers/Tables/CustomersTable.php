@@ -38,7 +38,7 @@ class CustomersTable
                     ->label(__('customer.fields.name'))
                     ->formatStateUsing(fn (Customer $record): Htmlable => CustomerResource::nameWithStatus($record))
                     ->weight(FontWeight::Medium)
-                    ->color(fn (Customer $record): ?string => $record->isArchived() ? 'gray' : null)
+                    ->color(fn (Customer $record): ?string => $record->isDeactivated() ? 'gray' : null)
                     ->sortable(),
                 TextColumn::make('type')
                     ->label(__('customer.fields.type'))
@@ -59,8 +59,8 @@ class CustomersTable
                         ->icon(Heroicon::OutlinedArrowTopRightOnSquare),
                     EditAction::make()
                         ->label(__('customer.actions.edit')),
-                    CustomerActions::archive(),
-                    CustomerActions::unarchive(),
+                    CustomerActions::deactivate(),
+                    CustomerActions::reactivate(),
                 ]),
             ])
             ->emptyStateIcon(Heroicon::OutlinedUsers)

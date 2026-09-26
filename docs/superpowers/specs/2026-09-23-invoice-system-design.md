@@ -38,6 +38,19 @@ Outbound billing only.
 - Dashboard reporting
 - Audit timeline
 
+> **Corrected 2026-09-26.** Two of these names changed and one item joined the
+> list, after the ubiquitous-language session recorded in `CONTEXT.md`. The
+> partial take-back of an invoice is a **Teilstorno**, not a Gutschrift: §14
+> Abs. 2 Satz 2 UStG reserves *Gutschrift* for an invoice issued by the
+> recipient of a supply, and that document now genuinely occurs here.
+> **Gutschrift** is therefore a separate, added scope item — the self-billed
+> invoice over a **Vermittlungsprovision** paid to a **Vermittler** who
+> referred a customer. It does not breach "outbound billing only" below: we
+> issue and send it like any other document, and what inverts is the direction
+> of the *supply*, not of the document. A **Berichtigung** (§31 Abs. 5 UStDV,
+> particulars only) is named and reserved but stays out. See
+> `docs/adr/0001-belegnamen.md` and `docs/adr/0002-gutschriften-im-umfang.md`.
+
 ### Out, deliberately
 
 - Quotes / Angebote
@@ -178,6 +191,11 @@ prevented structurally.
 > invoice numbers must be gapless. See
 > `docs/superpowers/specs/2026-09-25-customers-design.md` §3.
 
+> **Corrected 2026-09-26.** The two types are named **Geschäftskunde** and
+> **Privatkunde**. They were labelled „Firma" and „Privatperson" — and „Firma"
+> is what the interface also calls the company the user is working in, so one
+> word stood for two concepts on adjacent screens. See `CONTEXT.md`.
+
 **Global, shared:**
 
 - The unit list (Stück, Stunde, Tag, Pauschal, km, …). Each unit carries
@@ -189,7 +207,7 @@ each invoice and reference nothing. If a catalog is ever added it will be
 a convenience that writes values into line items, never something line
 items depend on.
 
-### 3.4 Archiving
+### 3.4 Deactivating
 
 Nothing referenced by an issued document is ever deleted. Customers, tax
 rates and companies are deactivated: they disappear from pickers and
@@ -197,6 +215,13 @@ remain intact on every document that references them.
 
 Drafts are the exception — they never received a number and can be
 deleted outright.
+
+> **Corrected 2026-09-26.** The heading of this section used to read
+> „Archiving" while its text said „deactivated". Deactivating is what it is,
+> and the code now says so too: `deactivate()` and `deactivated_at`. In German
+> bookkeeping *Archivierung* means the ten-year retention of issued documents
+> (§147 AO, §14b UStG) — something this application genuinely does — so the
+> word is kept free for it. See `CONTEXT.md`.
 
 ### 3.5 Documents
 
@@ -225,6 +250,18 @@ reference.
 The rest of the system asks a document what it can do rather than
 inspecting its type.
 
+> **Corrected 2026-09-26.** Four types, not three, and one of the names above
+> has moved. Read the „Gutschrift" row of the table and its bullet as
+> **Teilstorno** — that is the partial take-back described there. The real
+> **Gutschrift** is a further row and inverts the supplying party: we issue it,
+> but the **Vermittler** is the supplier. It therefore takes no payment from a
+> customer, carries no due date, references no invoice, needs the supplier's
+> own tax number and bank details, and gains a state no invoice has —
+> **widersprochen** (§14 Abs. 2 Satz 3 UStG). The **Mahnung** is deliberately
+> absent from this table: it is not a **Beleg**, and it has its own model,
+> table and number range. See `CONTEXT.md` and
+> `docs/adr/0002-gutschriften-im-umfang.md`.
+
 Status: `draft` → `issued` → `sent` → `paid`, plus `cancelled`. A
 `partially_paid` status is reserved for when partial payments are enabled
 (§10, Later); it is unreachable in v1, where a payment always settles the
@@ -242,6 +279,13 @@ Rows against a document: date, amount, note.
 In v1 the interface offers "mark as paid", writing a single row for the
 full open amount. Because it is a row rather than a flag, enabling
 partial payments later is a user-interface change with no data migration.
+
+> **Corrected 2026-09-26.** Payments here are money coming *in*, against a
+> **Rechnung**. A **Gutschrift** is money going *out* — we owe the
+> **Vermittler** — so it takes no payment row of this kind and has no due date
+> or open amount in this sense. Whatever records that we paid the
+> Vermittlungsprovision is a separate thing, and v1 need not have it. See
+> `docs/adr/0002-gutschriften-im-umfang.md`.
 
 ### 3.8 Audit timeline
 
@@ -294,6 +338,19 @@ A Mahnung is **not** an invoice and does not consume an invoice number.
 It has its own separate sequence. Placing reminders in the invoice
 sequence would leave permanent holes in the bookkeeping record.
 
+> **Corrected 2026-09-26.** Four document types share the sequence, not three:
+> the **Gutschrift** joins it. The criterion this section already applies is
+> whether a document is an invoice within the meaning of §14 UStG, and a
+> Gutschrift is one — only issued by the recipient of the supply (§14 Abs. 2
+> Satz 2), which is why the number still comes from *our* range. UStAE 14.5
+> Abs. 10 would also permit a separate range; sharing is the simpler claim to
+> uniqueness. The **Mahnung** stays out for exactly the reason given above.
+>
+> One consequence for the interface: the prefix is configured per **Firma**, so
+> it prints on every document drawn from the range — a Storno and a Gutschrift
+> included. The settings page must say so, or a company that picks `RE-` will
+> find it on documents that are not Rechnungen.
+
 ## 6. Tax and rounding
 
 Tax rates belong to the company, one marked default. Each **line item**
@@ -328,6 +385,11 @@ The XML is validated against the EN16931 schema **inside the issue
 transaction**. A document that would not pass the recipient's software
 never becomes an issued invoice.
 
+> **Corrected 2026-09-26.** A **Gutschrift** carries a different document type
+> code: UNTDID 1001 **389** (self-billed invoice) rather than **380**. Its XML
+> also names the **Vermittler** as the supplying party and us as the customer —
+> the seller and buyer blocks are swapped against every other document here.
+
 **Layout:** one house template for all companies in the first iteration,
 with each company's logo and identity block substituted in.
 
@@ -336,6 +398,14 @@ address, customer number, invoice number, issue date, Leistungsdatum
 (one date or period per invoice — line items do not carry their own),
 line items, VAT summary by rate, totals, payment terms and due date, bank
 details.
+
+> **Corrected 2026-09-26.** „One date or period" cannot be one field. EN16931
+> maps the two differently — **BT-72** for a single **Leistungsdatum**,
+> **BG-14** (BT-73/BT-74) for a **Leistungszeitraum** — so they are two named
+> things, and a document carries exactly one of them. §11 below already used
+> the second name for what this paragraph calls the first. A calendar month,
+> which §31 Abs. 4 UStDV permits, is a Leistungszeitraum rather than a third
+> form.
 
 Intro and closing texts are fixed in the PDF template and are not
 editable per invoice from the interface. There are no reference fields
@@ -383,6 +453,14 @@ A separate and deliberately slower action: it opens a **draft
 Gutschrift** referencing the invoice. The user types the credited lines
 and issues it. The invoice remains valid and open for the remainder.
 
+> **Corrected 2026-09-26.** The document this opens is a **Teilstorno**. The
+> two operations are named for the documents they produce: §8.2 is
+> **stornieren**, §8.3 produces a **Teilstorno** and needs no verb of its own,
+> because it simply drafts a document and **ausstellt** it like any other. The
+> heading „Correct an invoice" on §8.2 is misleading in German: *korrigieren*
+> and *berichtigen* belong to the **Berichtigung**, which changes particulars
+> and not amounts, and which is not built. See `CONTEXT.md` and ADR 0001.
+
 ### 8.4 Open amount
 
     open = total − payments − credits
@@ -422,6 +500,12 @@ A dashboard, scoped to the current company:
 - Open receivables
 - Overdue invoices needing attention
 - Worklists: reminders awaiting release, drafts awaiting issue
+
+> **Corrected 2026-09-26.** Revenue excludes **Gutschriften**. They sit in the
+> same table and draw from the same number range, so to any query that sums
+> over that range they look exactly like invoices — but their amount is an
+> expense, and their VAT is our input tax rather than tax we owe. See
+> `docs/adr/0002-gutschriften-im-umfang.md`.
 
 Reports are looked at, not exported, in the first iterations. VAT per
 period is available as a figure for the owner's USt-Voranmeldung.
@@ -488,6 +572,14 @@ Dunning levels are configuration rows, with one seeded
 The user **releases each one by hand** — an automatic reminder reaching a
 customer who paid yesterday is a different class of error from an
 automatic invoice.
+
+> **Corrected 2026-09-26.** The document type is the **Mahnung**; the
+> **Mahnstufe** carries the printed title, and stage one's title is
+> „Zahlungserinnerung". §286 Abs. 1 BGB makes any unambiguous demand for
+> payment after the due date a Mahnung whatever the page is headed, so the
+> title is a question of tone and not of legal effect. The identifiers are
+> `DunningNotice` and `DunningLevel`; `PaymentReminder` translates the stage,
+> not the document. See `CONTEXT.md`.
 
 Releasing renders a **Mahnung document** (stored PDF, own number
 sequence, per §5) and writes an audit entry. The original amount is
@@ -598,3 +690,10 @@ coverage.
 | Migration | None |
 | Customer number | Assigned per company on creation, never editable; gaps allowed — added 2026-09-25 |
 | Customer URL | Carries the customer number (`K-0004`), not the UUID; the UUID stays the key — added 2026-09-25, see §3.1 |
+| Ubiquitous language | German is canonical for domain terms, English for identifiers; the mapping is settled once in `CONTEXT.md` — added 2026-09-26 |
+| Document names | Storno = full reversal, Teilstorno = partial, Berichtigung = particulars only, Gutschrift = self-billed. Supersedes the "Storno vs Gutschrift" row above — added 2026-09-26, see ADR 0001 |
+| Gutschriften | In scope: self-billed invoices over a Vermittlungsprovision, drawn from the same number range as invoices — added 2026-09-26, see ADR 0002 |
+| Berichtigung | Named and reserved, not built; until then an error in particulars costs a Storno — added 2026-09-26 |
+| Deactivating | „archivieren" is kept for §147 AO retention; customers and companies are deactivated (`deactivate`) — added 2026-09-26 |
+| Leistungsdatum | A document carries either a Leistungsdatum (BT-72) or a Leistungszeitraum (BG-14), never both — added 2026-09-26 |
+| Mahnung | One type (`DunningNotice`) with a Mahnstufe for the printed title; not a Beleg, own number range — added 2026-09-26 |

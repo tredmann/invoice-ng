@@ -26,7 +26,7 @@ return [
     'picker' => [
         'title' => 'Firma wählen',
         'empty' => 'Noch keine Firma angelegt.',
-        'archived' => 'Deaktiviert (:count)',
+        'deactivated' => 'Deaktiviert (:count)',
     ],
 
     'switcher' => [
@@ -45,8 +45,8 @@ return [
     ],
 
     'actions' => [
-        'archive' => 'Deaktivieren',
-        'unarchive' => 'Wieder aktivieren',
+        'deactivate' => 'Deaktivieren',
+        'reactivate' => 'Wieder aktivieren',
         'create' => 'Neue Firma',
     ],
 
@@ -77,6 +77,6 @@ return [
         'bank_name' => 'Bank',
         'iban' => 'IBAN',
         'bic' => 'BIC',
-        'archived_at' => 'Deaktiviert',
+        'deactivated_at' => 'Deaktiviert',
     ],
 ];

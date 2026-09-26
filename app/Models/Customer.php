@@ -21,11 +21,11 @@ use LogicException;
  *
  * @property CustomerType $type
  * @property int $number
- * @property Carbon|null $archived_at
+ * @property Carbon|null $deactivated_at
  */
-// `number`, `company_id` and `archived_at` are absent from the list below: the
-// number is assigned here, the company is the tenant, and `archived_at`
-// changes only through archive() and unarchive().
+// `number`, `company_id` and `deactivated_at` are absent from the list below: the
+// number is assigned here, the company is the tenant, and `deactivated_at`
+// changes only through deactivate() and reactivate().
 //
 // Filament's tenancy hooks `creating` too, to associate a new record with the
 // current tenant. When the next wave creates a customer for a company other
@@ -123,28 +123,28 @@ class Customer extends Model
             : $query->where('number', $number);
     }
 
-    public function isArchived(): bool
+    public function isDeactivated(): bool
     {
-        return $this->archived_at !== null;
+        return $this->deactivated_at !== null;
     }
 
     /**
      * Deactivates the customer. An already deactivated customer keeps its
      * original date.
      */
-    public function archive(): void
+    public function deactivate(): void
     {
-        if ($this->isArchived()) {
+        if ($this->isDeactivated()) {
             return;
         }
 
-        // forceFill because archived_at is deliberately not fillable.
-        $this->forceFill(['archived_at' => now()])->save();
+        // forceFill because deactivated_at is deliberately not fillable.
+        $this->forceFill(['deactivated_at' => now()])->save();
     }
 
-    public function unarchive(): void
+    public function reactivate(): void
     {
-        $this->forceFill(['archived_at' => null])->save();
+        $this->forceFill(['deactivated_at' => null])->save();
     }
 
     /**
@@ -189,7 +189,7 @@ class Customer extends Model
         });
 
         // A hidden form field is not dehydrated, so switching a Firma to a
-        // Privatperson would otherwise leave its contact person and VAT ID in
+        // A Privatkunde would otherwise leave its contact person and VAT ID in
         // the database — where a later document would print them. Done here
         // rather than in the form so that every save path clears them, and
         // decided by isBusiness(), the predicate the form renders them by.
@@ -229,7 +229,7 @@ class Customer extends Model
         return [
             'type' => CustomerType::class,
             'number' => 'integer',
-            'archived_at' => 'datetime',
+            'deactivated_at' => 'datetime',
         ];
     }
 }

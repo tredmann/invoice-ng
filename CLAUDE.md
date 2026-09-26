@@ -64,9 +64,15 @@ Each was expensive to reach. Read the reason before changing one.
   user-facing labels, which live in `lang/de/`, and in legal designations that
   print verbatim and have no English equivalent — `GmbH` is a name, not a word.
   So the §19 UStG flag is a `vat_scheme` enum, and the document types of the
-  next wave are `CancellationInvoice`, `CreditNote` and `PaymentReminder`
-  rather than Storno, Gutschrift and Mahnung. Deciding this per column is how
-  a codebase ends up bilingual.
+  next wave are `Cancellation`, `PartialCancellation`, `SelfBilledInvoice`
+  and `DunningNotice` rather than Storno, Teilstorno, Gutschrift and Mahnung.
+  Deciding this per column is how a codebase ends up bilingual, so the mapping
+  is settled once and written down: **`CONTEXT.md` is the authority on what
+  each domain concept is called in both languages.** Read it before naming
+  anything in the domain, because several of these words mean close to the
+  opposite of what they look like — a `Gutschrift` is not a credit note, it is
+  a self-billed invoice under §14 Abs. 2 Satz 2 UStG, and the credit note is a
+  `Teilstorno`.
 - **Table row actions go in one vertical-ellipsis dropdown.** Never a row of
   buttons. Filament's `ActionGroup` already defaults to that trigger.
 - **Simplicity over density in the interface.** Where a screen could show more
@@ -145,27 +151,48 @@ Deliberately parked, so they are not mistaken for oversights:
   recurring-invoice run — sees every company's customers and must scope
   explicitly. Livewire tests must boot the panel for the same reason
   (`actInCompany()` in `tests/Pest.php`).
+- The **Berichtigung** (§31 Abs. 5 UStDV) is named and reserved in
+  `CONTEXT.md`, but not built. Until it is, an error that leaves the amount
+  untouched — a missing USt-IdNr., a wrong address — costs a full Storno, and
+  on an invoice that was already paid the payment is left sitting on the
+  cancelled document while its replacement stands open. See ADR 0001.
+- The **Gutschrift** and the **Vermittler** are decided but unmodelled. A
+  Vermittler needs what no `Customer` carries — their own tax number and bank
+  details — because on a Gutschrift they are the supplying party and we are
+  not. ADR 0002 carries the full list, including the `widersprochen` state
+  that no invoice has and why revenue figures must exclude these documents
+  even though they share the invoice number range.
 
 ## Where things are written down
 
 - `docs/superpowers/specs/2026-09-23-invoice-system-design.md` — what the system does
 - `docs/superpowers/specs/2026-09-23-invoice-tech-stack-design.md` — what it is built from
+- `CONTEXT.md` — the German ubiquitous language of the domain, with the
+  English identifier beside each term. A change to it is a change to what
+  things are called everywhere.
+- `docs/adr/` — decisions that were expensive to reach and would otherwise
+  read as arbitrary
 - `docs/agents-md-maintenance.md` — read before editing `AGENTS.md`; it is generated
-- The Outline collection **Invoice** — <https://heimdall.tail1ec8f7.ts.net/collection/invoice-BgP8lxR8dF>
 
 The specs are the authority. Read the relevant one before changing behaviour.
 
 ## A change usually makes more than one document wrong
 
-The specs above are mirrored in Outline as many small linked pages, and
-**nothing syncs the two**. A repo-only edit leaves the copy people actually
-read quietly wrong — that is how one false claim about font subsetting
-survived in three places at once.
+The same claim tends to be written down in several places, and **nothing syncs
+them**. A change that corrects only one leaves the others read as current —
+that is how one false claim about font subsetting survived in three places at
+once.
 
 So after changing the stack or behaviour, correct what the change falsified:
-`README.md`, this file, the specs, and the Outline collection. `AGENTS.md`
-carries the same list in full, including how to search and patch Outline —
-and it is generated, so change it through `.ai/guidelines/`, never directly.
+`README.md`, this file, `CONTEXT.md` when a name moved, the specs, and any ADR
+the change contradicts. `AGENTS.md` carries the same list in full — and it is
+generated, so change it through `.ai/guidelines/`, never directly.
+
+> Everything above lives **in this repository**. There was also an Outline
+> collection mirroring the specs as many small linked pages, and keeping the
+> two in step cost more than it returned; the obligation was dropped on
+> 2026-09-26. Everything that was only there — the troubleshooting section — is
+> now in `README.md`. Treat that collection as history if you meet it.
 
 **A wave that adds something a user can see also owes `README.md` a feature
 entry.** Its "What it does today" section is the only thing here written for

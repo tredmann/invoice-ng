@@ -71,13 +71,13 @@ class CustomerResource extends Resource
     {
         $name = e($customer->name);
 
-        if (! $customer->isArchived()) {
+        if (! $customer->isDeactivated()) {
             return new HtmlString($name);
         }
 
         $badge = Blade::render(
             '<x-filament::badge color="gray" size="sm">{{ $label }}</x-filament::badge>',
-            ['label' => __('customer.status.archived')],
+            ['label' => __('customer.status.deactivated')],
         );
 
         // Inline style rather than utility classes: Filament's pre-built CSS

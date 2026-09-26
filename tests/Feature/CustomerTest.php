@@ -147,25 +147,25 @@ it('reads a search term leniently', function (string $search, ?int $number): voi
     ['99999999999', null],
 ]);
 
-it('archives and restores a customer, keeping the first archive date', function (): void {
+it('deactivates and restores a customer, keeping the first deactivation date', function (): void {
     /** @var TestCase $this */
     $customer = Customer::factory()->for(Company::factory())->create();
 
     $this->travelTo(now()->subDay());
-    $customer->archive();
-    $archivedAt = $customer->fresh()?->archived_at;
+    $customer->deactivate();
+    $deactivatedAt = $customer->fresh()?->deactivated_at;
     $this->travelBack();
 
-    $customer->archive();
+    $customer->deactivate();
 
-    $freshArchivedAt = $customer->fresh()?->archived_at;
-    expect($archivedAt)->not->toBeNull();
-    expect($freshArchivedAt)->not->toBeNull();
-    /** @var Carbon $archivedAt */
-    /** @var Carbon $freshArchivedAt */
-    expect($freshArchivedAt->equalTo($archivedAt))->toBeTrue();
+    $freshDeactivatedAt = $customer->fresh()?->deactivated_at;
+    expect($deactivatedAt)->not->toBeNull();
+    expect($freshDeactivatedAt)->not->toBeNull();
+    /** @var Carbon $deactivatedAt */
+    /** @var Carbon $freshDeactivatedAt */
+    expect($freshDeactivatedAt->equalTo($deactivatedAt))->toBeTrue();
 
-    $customer->unarchive();
+    $customer->reactivate();
 
-    expect($customer->fresh()?->isArchived())->toBeFalse();
+    expect($customer->fresh()?->isDeactivated())->toBeFalse();
 });

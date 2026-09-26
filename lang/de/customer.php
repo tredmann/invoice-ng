@@ -7,12 +7,12 @@ return [
     'plural_label' => 'Kunden',
 
     'type' => [
-        'business' => 'Firma',
-        'private_person' => 'Privatperson',
+        'business' => 'Geschäftskunde',
+        'private_person' => 'Privatkunde',
     ],
 
     'status' => [
-        'archived' => 'Deaktiviert',
+        'deactivated' => 'Deaktiviert',
     ],
 
     'list' => [
@@ -25,8 +25,8 @@ return [
         'create' => 'Neuer Kunde',
         'open' => 'Öffnen',
         'edit' => 'Bearbeiten',
-        'archive' => 'Deaktivieren',
-        'unarchive' => 'Wieder aktivieren',
+        'deactivate' => 'Deaktivieren',
+        'reactivate' => 'Wieder aktivieren',
     ],
 
     'sections' => [

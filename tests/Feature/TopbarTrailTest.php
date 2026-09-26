@@ -118,7 +118,7 @@ it('shows a deactivated customer by its plain name, without the badge', function
     // Review focus 1: the heading is an HtmlString carrying a badge; the
     // trail takes the record title, which must stay plain text.
     [$company, $user] = acme();
-    Customer::factory()->for($company)->archived()->create(['name' => 'Weber Haustechnik e.K.']);
+    Customer::factory()->for($company)->deactivated()->create(['name' => 'Weber Haustechnik e.K.']);
 
     $html = (string) $this->actingAs($user)->get('/admin/acme-gmbh/customers/K-0001')->assertOk()->getContent();
 

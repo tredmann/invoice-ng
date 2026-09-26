@@ -103,7 +103,7 @@ it('rejects an email that is not an address', function (): void {
         ->assertHasFormErrors(['email' => 'email']);
 });
 
-it('shows contact person and vat id for a Firma only', function (): void {
+it('shows contact person and vat id for a Geschäftskunde only', function (): void {
     // Both directions: always-visible and never-visible each fail one half.
     actInCompany(Company::factory()->create());
 
@@ -153,10 +153,10 @@ it('shows the number read-only on edit and not at all on create', function (): v
 });
 
 it('keeps number and deactivation when a deactivated customer is edited', function (): void {
-    // The save path must not renumber the customer or clear archived_at — the
+    // The save path must not renumber the customer or clear deactivated_at — the
     // form knows neither field as writable.
     $company = Company::factory()->create();
-    $customer = Customer::factory()->for($company)->archived()->create();
+    $customer = Customer::factory()->for($company)->deactivated()->create();
     Customer::factory()->for($company)->create();
     actInCompany($company);
 
@@ -170,7 +170,7 @@ it('keeps number and deactivation when a deactivated customer is edited', functi
 
     expect($customer->city)->toBe('Regensburg')
         ->and($customer->number)->toBe(1)
-        ->and($customer->isArchived())->toBeTrue();
+        ->and($customer->isDeactivated())->toBeTrue();
 });
 
 it('edits only the current company\'s customer when numbers collide', function (): void {
@@ -196,7 +196,7 @@ it('edits only the current company\'s customer when numbers collide', function (
         ->and($theirs->fresh()?->city)->toBe('Hamburg');
 });
 
-it('clears contact person and vat id when the form switches a Firma to a Privatperson', function (): void {
+it('clears contact person and vat id when the form switches a Geschäftskunde to a Privatkunde', function (): void {
     // End to end through the form, because a hidden field is exactly what the
     // form does not send.
     $company = Company::factory()->create();
