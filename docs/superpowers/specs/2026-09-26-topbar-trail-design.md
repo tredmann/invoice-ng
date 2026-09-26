@@ -131,11 +131,19 @@ Each unit has one job.
 
 Applied from 64rem and only with a sidebar (`.fi-body-has-navigation`):
 
-- `.fi-topbar-start` is as wide as the sidebar, less the top bar's own inline
-  padding.
-- The trail column is `flex: 1`, and within it a box with `fi-main`'s maximum
-  width (`80rem`), `margin-inline: auto` and its desktop inline padding
-  (`2rem`).
+- The trail column is laid **over** the top bar rather than placed in its flow:
+  positioned absolutely from the sidebar's edge (`--sidebar-width`) to the
+  right edge — the width the page content spans. In the flow, the user menu
+  would narrow the column and shift its centring.
+- Within it, a box with `fi-main`'s maximum width (`80rem`), `margin-inline:
+  auto` and its desktop inline padding (`2rem`; `5rem` at the end, to keep a
+  long trail clear of the user menu).
+- The column ignores the pointer except over its own content, and the user
+  menu is lifted above it (`z-index: 1`), so nothing underneath stops
+  working.
+
+Measured at the spike and again after building: the switcher and the page
+heading share their left edge at 1280 px (352 px) and 1920 px (512 px).
 
 There is no frontend build (`CLAUDE.md`); these are plain CSS rules in the
 injected `<style>`, and inline styles where a single element needs one.
