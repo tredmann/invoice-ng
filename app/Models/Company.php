@@ -92,6 +92,30 @@ class Company extends Model
     }
 
     /**
+     * Up to two letters for the company's avatar: the first character of each
+     * of the name's first two words (top-bar trail spec §2.6). Words are runs
+     * of letters and digits, so "(Neu) Handel" gives "NH"; characters, not
+     * bytes, so "Übersee" keeps its "Ü". A name with no letter or digit at all
+     * falls back to its first character, so the avatar is never empty.
+     */
+    public function initials(): string
+    {
+        $name = trim((string) $this->name);
+        $words = preg_split('/[^\p{L}\p{N}]+/u', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($words === []) {
+            return mb_substr($name, 0, 1);
+        }
+
+        $letters = array_map(
+            fn (string $word): string => mb_substr($word, 0, 1),
+            array_slice($words, 0, 2),
+        );
+
+        return mb_strtoupper(implode('', $letters));
+    }
+
+    /**
      * Stored without spaces and upper-cased, so the same account is one value
      * however it was typed. Normalized through `Iban::normalize()`, shared
      * with the validation rule so storage and validation cannot drift apart.

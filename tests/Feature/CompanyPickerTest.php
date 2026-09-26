@@ -179,8 +179,12 @@ it('shows the switcher in the top bar on /admin, listing the active companies', 
         ->toContain('href="'.url('/admin/zeta-gmbh').'"');
     expect($switcher)->not->toContain('Gone GmbH');
     expect($switcher)->not->toContain('Theirs GmbH');
-    // Only switches: none of the old menu entries.
-    expect($switcher)->not->toContain('Neue Firma');
+    // Top-bar trail spec §2.5: the label, then the companies, then Neue Firma.
+    // Firmen verwalten would link to this very page, so it is left out here.
+    expect($switcher)->toContain('Firma wechseln')
+        ->toContain('href="'.url('/admin/new').'"')
+        ->toContain('Neue Firma');
+    expect($switcher)->not->toContain('Firmen verwalten');
     expect($switcher)->not->toContain('Firmendaten');
 });
 
@@ -350,12 +354,16 @@ it('renders no search box while nothing is searchable', function (): void {
 });
 
 /**
- * How often the page links to company registration: the header action and
- * the empty state's action must never both be there.
+ * How often the page's content links to company registration: the header
+ * action and the empty state's action must never both be there. Counted in
+ * <main> only — the switcher's dropdown in the top bar carries its own Neue
+ * Firma (top-bar trail spec §2.5), which is not the page offering it twice.
  */
 function registrationLinks(string $html): int
 {
-    return substr_count($html, 'href="'.url('/admin/new').'"');
+    expect($html)->toContain('id="fi-main-content"');
+
+    return substr_count((string) str($html)->after('id="fi-main-content"'), 'href="'.url('/admin/new').'"');
 }
 
 it('reloads the picker after archiving and restoring, so nothing on it is stale', function (): void {
@@ -432,13 +440,53 @@ it('escapes company names in the Deaktiviert section', function (): void {
     expect($html)->not->toContain('<b>GmbH</b>');
 });
 
-it('shows no switcher inside an archived company when no company is active', function (): void {
+it('shows the switcher inside an archived company even with no active company', function (): void {
     /** @var TestCase $this */
-    // Spec §2.1: with no active company there is nothing to switch to. The
-    // archived company's URL still works, but its dropdown would be empty.
+    // Review focus 4. Top-bar trail spec §2.5: the dropdown always has
+    // Firmen verwalten and Neue Firma now, so it is never empty.
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->archived()->create(['name' => 'Gone GmbH']));
 
-    $this->actingAs($user)->get('/admin/gone-gmbh')->assertOk()
-        ->assertDontSeeHtml('<div data-company-switcher=');
+    $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin/gone-gmbh')->assertOk()->getContent());
+
+    expect($switcher)->toContain('Gone GmbH')
+        ->toContain('href="'.url('/admin').'"')
+        ->toContain('Firmen verwalten')
+        ->toContain('href="'.url('/admin/new').'"');
+    expect($switcher)->not->toContain('data-current-company');
+    expect($switcher)->not->toContain('Firma wechseln');
+});
+
+it('offers Firmen verwalten and Neue Firma inside a company, and marks the current one', function (): void {
+    /** @var TestCase $this */
+    $user = User::factory()->create();
+    $user->companies()->attach(Company::factory()->create(['name' => 'Kranz Ingenieurbüro GmbH']));
+    $user->companies()->attach(Company::factory()->create(['name' => 'Hofgarten Immobilien GmbH']));
+
+    $switcher = switcherMarkup((string) $this->actingAs($user)->get('/admin/kranz-ingenieurburo-gmbh')->assertOk()->getContent());
+
+    expect($switcher)->toContain('Firma wechseln')
+        ->toContain('href="'.url('/admin').'"')
+        ->toContain('Firmen verwalten')
+        ->toContain('href="'.url('/admin/new').'"')
+        ->toContain('>KI<')
+        ->toContain('>HI<');
+    // Exactly one company is marked: the one in the URL. Counted in the
+    // desktop copy; the phone copy repeats the list.
+    expect(substr_count((string) str($switcher)->before('data-company-switcher="phone"'), 'data-current-company='))->toBe(1);
+});
+
+it('draws company avatars locally, never from ui-avatars.com', function (): void {
+    /** @var TestCase $this */
+    // The switcher only: the user menu's avatar is Filament's and out of
+    // scope (top-bar trail spec §8).
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+
+    // The desktop copy, which ends where the phone copy starts — before the
+    // user menu.
+    $switcher = (string) str(switcherMarkup((string) $this->actingAs(memberOf($company))->get('/admin/acme-gmbh')->assertOk()->getContent()))
+        ->before('data-company-switcher="phone"');
+
+    expect($switcher)->toContain('>AG<');
+    expect($switcher)->not->toContain('ui-avatars.com');
 });

@@ -170,3 +170,17 @@ it('unarchives a company', function (): void {
 
     expect($company->fresh()?->isArchived())->toBeFalse();
 });
+
+it('draws initials from the first letters of the first two words', function (string $name, string $initials): void {
+    // Fails with byte-wise substr, which cuts "Ü" in half, and with a split on
+    // spaces alone, which makes "(Neu)" start with a parenthesis.
+    expect(Company::factory()->make(['name' => $name])->initials())->toBe($initials);
+})->with([
+    'two words and a legal form' => ['Kranz Ingenieurbüro GmbH', 'KI'],
+    'umlaut first' => ['Übersee Handel', 'ÜH'],
+    'lower case' => ['bauer & kollegen', 'BK'],
+    'one word' => ['Balt', 'B'],
+    'punctuation first' => ['(Neu) Handel', 'NH'],
+    'digits' => ['3D Druck GmbH', '3D'],
+    'no letters at all' => ['!!!', '!'],
+]);
