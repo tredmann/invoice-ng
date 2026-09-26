@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Normalizer;
@@ -191,6 +192,18 @@ class Company extends Model
     public function taxRates(): HasMany
     {
         return $this->hasMany(TaxRate::class);
+    }
+
+    /**
+     * The company's Nummernkreis, or none until its settings tab has been
+     * saved once. Absent rather than auto-created on purpose: that is what
+     * lets the Bereitschaftsprüfung say „noch nicht konfiguriert" truthfully.
+     *
+     * @return HasOne<NumberRange, $this>
+     */
+    public function numberRange(): HasOne
+    {
+        return $this->hasOne(NumberRange::class);
     }
 
     /**
