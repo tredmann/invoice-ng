@@ -167,6 +167,15 @@ This is the clearest case for a package in the project: explicit rounding
 modes map directly onto the EN16931 rounding order, and the type system
 makes float arithmetic on money impossible rather than merely discouraged.
 
+> **Built 2026-09-26.** `App\Casts\MoneyCast` takes a `Money` and nothing
+> else — a float is the mistake it exists to prevent, and an int is refused too,
+> because `1999` reads equally well as nineteen euros and as nineteen ninety-
+> nine. The "impossible rather than discouraged" claim turned out to be
+> stronger than written: in this version `Brick\Math\BigNumber::of()` accepts
+> `BigNumber|int|string` and no float at all, so under `strict_types` a float
+> quantity or amount is a `TypeError` at the boundary rather than a rounding
+> error three steps later.
+
 ### 6.3 The frozen snapshot block
 
 A `jsonb` column with a plain custom cast to a readonly DTO.
@@ -232,6 +241,17 @@ writing everything around it.
 
 Gaplessness is the property the system most needs to be able to defend.
 It should be readable in this project's own code.
+
+> **Built 2026-09-26.** Roughly as estimated, with two things the sketch above
+> does not mention. `DrawNextNumber` **refuses to run outside a transaction**,
+> because outside one the `FOR UPDATE` lock is released as the select returns
+> and gaplessness quietly stops being true while every single-threaded test
+> passes. And `next_value` may only be raised once anything has been drawn,
+> guarded by an `updating` hook on the model rather than by one named method,
+> so a console command or an import cannot go round it. The range lives in its
+> own table for the reason §7.4 gives: the row is locked for the length of a
+> PDF render, and locking the company row would block the settings page and the
+> switcher along with it.
 
 ## 7. The document pipeline
 
@@ -409,6 +429,24 @@ no gap. `pcntl` is installed in the image for this purpose, and
 It is the most awkward test in the suite and the one that actually
 protects the guarantee.
 
+> **Built 2026-09-26, and it could not live in `tests/Feature`.**
+> `RefreshDatabase` holds an open transaction for the length of a test, and a
+> forked child receives a copy of the parent's PDO socket: it cannot see rows
+> the parent has not committed, so the range the children draw from would not
+> exist for them. There is now a third suite, `tests/Concurrency`, bound to
+> `DatabaseTruncation` — which also makes `DB::transactionLevel()` genuinely 0
+> there, the only way to test that `DrawNextNumber` refuses to run outside a
+> transaction. Three details that took a try to get right: the parent closes
+> its connection before forking, because a child inheriting an open PDO shares
+> one server-side connection and whichever closes it first takes the other
+> down; the children are released on a common clock so they genuinely overlap;
+> and each ends with `posix_kill` rather than `exit`, so the PHPUnit shutdown
+> handlers do not report a child as a second test run. `docker/verify-image.sh`
+> now guards `posix` alongside `pcntl`.
+>
+> Verified by deleting `lockForUpdate()`: the concurrency suite goes red and all
+> 275 Feature tests stay green. That is the measurement the suite exists for.
+
 ### 11.4 Golden fixtures for e-Rechnung
 
 The KoSIT validator job runs against a fixed set of generated documents:
@@ -458,10 +496,25 @@ Plain Laravel layout. No `src/`, no modules, no DDD folder structure.
 - **`app/Models`** — `Company`, `Customer`, `Document` with its three
   parental children, `DocumentLine`, `Payment`, `TaxRate`,
   `PaymentTerm`, `NumberRange`, `EmailTemplate`, `AuditEntry`, `Unit`
+
+  > **Corrected 2026-09-26.** `PaymentTerm` and `Unit` are **enums**, not
+  > models. This list was written before §3.6 of the feature design was held
+  > against it: a Position „references no master data", so a Position carrying a
+  > foreign key into a `units` table contradicts it outright — and a deleted or
+  > renamed unit row would retroactively change an issued Beleg that §4 makes
+  > immutable. Neither list is data a user invents, and a table would cost a
+  > seeder, a UUID key and a migration for five immutable rows. `TaxRate` and
+  > `NumberRange` stay models, because a Steuersatz is per-company data the
+  > owner edits and deactivates. See `docs/adr/0003-stammdatenlisten.md`.
+  >
+  > Also landed with them: `App\Money\{LineInput, TaxGroup, Totals}` and
+  > `App\Company\{Readiness, ReadinessItem, Severity}`, two small namespaces
+  > of value objects that are neither models nor actions.
 - **`app/Actions`** — one invokable class per named operation:
   `IssueDocument`, `CorrectInvoice`, `CreditInvoice`, `DrawNextNumber`,
   `RecordPayment`, `SendDocument`, `DuplicateDocument`. Plain classes, no
-  package.
+  package. `DrawNextNumber`, `CalculateTotals` and `CheckReadiness` exist as of
+  2026-09-26; the rest arrive with the documents.
 - **`app/Pdf`** — the WeasyPrint render step and the horstoeko assembly
   step, separately, so each is testable alone
 - **`app/Filament`** — resources and pages

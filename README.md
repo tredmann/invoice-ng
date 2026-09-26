@@ -36,6 +36,36 @@ From the point of view of someone using it, rather than building it:
   is never asked for them. Change a company's legal form to one with no register
   entry and the old entry is cleared, rather than left behind to print on a
   later document.
+- **Settings in four tabs.** Under Einstellungen a company keeps its Firma
+  (name, legal form, address, Handelsregister entry and logo), its Steuer, its
+  Bank and its Nummernkreis. Everything saves together with one button.
+- **Tax rates you can edit, with one marked as the default.** Every company
+  starts with 19 %, 7 % and 0 %; you can rename them, add your own and mark a
+  different one as the default a new invoice line will start from. Removing a
+  rate never deletes it — it stops being offered, so an invoice already
+  computed with it stays intact, and putting it back later picks the same rate
+  up again. A Kleinunternehmer is not shown the list at all: §19 UStG means 0 %
+  and there is nothing to choose.
+- **A Zahlungsziel, per company and per customer.** The company sets the
+  default — 14 Tage netto unless you say otherwise — and a customer can be
+  given their own. A customer left on the company's default keeps following it;
+  one with an agreed term of their own keeps that, even when the company's
+  default changes later.
+- **An invoice number range that cannot skip or repeat.** Choose a prefix, how
+  many digits, where to start, whether the year appears in the number and
+  whether counting restarts each January; the page shows the next number as you
+  type. Numbers are drawn only at the moment of issuing, under a lock, so two
+  invoices can never share one and a failure part-way through gives the number
+  back instead of leaving a hole. Once a number has been issued the starting
+  value can only be raised, never lowered, so nothing already sent to a customer
+  can be handed out twice. The prefix prints on every document drawn from the
+  range — a Storno and a Gutschrift included, not just Rechnungen.
+- **The dashboard says what is still missing.** Instead of an empty screen, a
+  company shows three first steps. The first is the honest one: it lists what
+  §14 UStG still wants before an invoice can be issued — address, Steuernummer
+  or USt-IdNr., the register entry of a GmbH or UG, and the number range — and
+  separately what is merely recommended, like the bank details and the logo.
+  A missing logo never stops an invoice.
 - **Customers, kept per company.** Under Kunden, each company keeps its own
   customers — a Geschäftskunde, with an optional contact person and USt-IdNr.,
   or a Privatkunde — with billing address and billing email. Every new customer
@@ -62,13 +92,19 @@ From the point of view of someone using it, rather than building it:
 
 ### Not built yet
 
-The entire document side: ZUGFeRD invoice PDFs, gapless invoice
-numbering, Storno and Teilstorno, Gutschriften over a Vermittlungsprovision,
-recording payments, sending email, Mahnungen, recurring invoices, the period
-export for the tax advisor, and dashboard reporting.
+The entire document side: invoices and their ZUGFeRD PDFs, Storno and
+Teilstorno, Gutschriften over a Vermittlungsprovision, recording payments,
+sending email, Mahnungen, recurring invoices, the period export for the tax
+advisor, and dashboard figures. Sending is not set up either — the E-Mail tab
+in the settings is not built.
+
+The groundwork the documents will stand on *is* built and tested: the number
+range and the locked, gapless draw, the money type and the VAT rounding, the
+tax rates, the Zahlungsziel and the unit list. What is missing is the document
+that would use them.
+
 `docs/superpowers/specs/2026-09-23-invoice-system-design.md` describes all of
 it, and `CONTEXT.md` settles what each of those documents is called and why.
-None of it exists yet.
 
 ## Prerequisites
 
@@ -86,6 +122,7 @@ cp .env.example .env
 docker compose run --rm app composer install
 docker compose run --rm app php artisan key:generate
 docker compose run --rm app php artisan migrate
+docker compose run --rm app php artisan storage:link
 docker compose run --rm app php artisan make:filament-user
 docker compose up -d
 ```
@@ -102,10 +139,13 @@ What each step does:
 4. `php artisan key:generate` — writes an `APP_KEY` into `.env`.
 5. `php artisan migrate` — creates the schema on the `db` service (started
    automatically as a dependency of `app`).
-6. `php artisan make:filament-user` — creates the account you'll actually
+6. `php artisan storage:link` — links `public/storage` so uploaded company
+   logos are served. Without it the logo field saves the file and the preview
+   shows nothing.
+7. `php artisan make:filament-user` — creates the account you'll actually
    log in with at `/admin`. It prompts for name, email, and password (or
    pass `--name=`, `--email=`, `--password=` non-interactively).
-7. `docker compose up -d` — starts the stack in the background. The app
+8. `docker compose up -d` — starts the stack in the background. The app
    serves at <http://localhost:8080>, and the admin panel is at
    <http://localhost:8080/admin>. A freshly created user belongs to no
    company yet, so the first login shows an empty start page with a button to

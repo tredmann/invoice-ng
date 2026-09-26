@@ -292,7 +292,10 @@ shows.
 
 ## 8. Out of scope
 
-- A per-customer default payment term (§3.1)
+- ~~A per-customer default payment term (§3.1)~~ — **built 2026-09-26**, with
+  the wave that brought payment terms. `customers.payment_term` is nullable and
+  null means „use the company's"; see
+  `docs/superpowers/specs/2026-09-26-company-master-data-design.md` §3.4.
 - A customer picker, and refusing deactivated customers in it — invoicing wave
 - Deleting a customer
 - A country field

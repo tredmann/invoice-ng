@@ -271,10 +271,18 @@ A range with no row is a programming error at this point, not a user error: the
 
 **`next_value` may never be lowered once `drawn_count` is above zero.** Enforced
 twice, the way the customer number already is: a validation rule on the settings
-form, so the owner sees a message; and a guard in `NumberRange::reconfigure()`,
-so a path that bypasses the form still cannot do it. The yearly reset goes
-through `DrawNextNumber` and not through `reconfigure()`, so the two cannot
-fight over the same column.
+form, so the owner sees a message, and a guard on the model so a path that
+bypasses the form still cannot do it.
+
+> **Corrected during implementation.** This section first put the model guard in
+> a `NumberRange::reconfigure()` method — the single door the settings page was
+> to write through. It is an `updating` hook instead, because a guard on one
+> named method protects only the callers who remember to use it, while the hook
+> covers a console command, a future import and a plain `fill()->save()` as
+> well. The yearly reset is the one writer that legitimately lowers the value,
+> and it is told apart by `drawn_count`, which every draw increments and nothing
+> else touches — cheaper and harder to forget than a flag the draw has to
+> remember to set.
 
 Raising it stays allowed, always: a company migrating in continues from where its
 previous system stopped, which system design §5 requires.
@@ -534,7 +542,7 @@ This spec is dated and is not itself updated when the stack later moves.
 | Units | An enum backed by the UN/ECE code, not a table; a Position references no master data |
 | Number range storage | Its own table, because the lock is held for the length of a PDF render |
 | Number range creation | No row until the settings tab is saved, so „not configured" can be true |
-| Startwert | Freely settable until the first draw, raise-only afterwards; guarded in the form and on the model |
+| Startwert | Freely settable until the first draw, raise-only afterwards; guarded in the form and by a model `updating` hook, not by one named method |
 | Drawing outside a transaction | Refused, because the lock would otherwise be released immediately |
 | Kleinunternehmer | Decided in `selectableTaxRates()`, never inside the rounding |
 | Rounding | Per Steuersatz group, as a pure unit with no Eloquent, tested against hand-derived values |
