@@ -71,7 +71,6 @@ return [
         'performed' => 'Leistungszeitraum',
         'performed_single' => 'Leistungsdatum',
         'payment_term' => 'Zahlungsziel',
-        'draft_note' => 'Entwurf – frei änderbar. Nummer, Festschreibung und PDF entstehen erst beim Ausstellen.',
         'status' => 'Status',
         'total' => 'Betrag',
         'due' => 'Fällig',

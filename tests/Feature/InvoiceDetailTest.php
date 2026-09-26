@@ -96,7 +96,11 @@ it('says a draft has no number and no Fälligkeitsdatum yet', function (): void 
     $this->actingAs($user)
         ->get(InvoiceResource::getUrl('view', ['record' => $invoice]))
         ->assertOk()
-        ->assertSee('Entwurf – frei änderbar. Nummer, Festschreibung und PDF entstehen erst beim Ausstellen.')
+        // The page says what a draft is without a sentence explaining it: the
+        // heading reads Entwurf, the Nummer is „—", and the Fälligkeitsdatum
+        // is still only a duration.
+        ->assertSee('Entwurf')
+        ->assertSee('Nummer')
         // „14 Tage netto ab Ausstellung" carried „netto" for no reason, and
         // the same sentence built from the label would read „Sofort fällig ab
         // Ausstellung" for an immediate term. PaymentTerm::dueHint() settles

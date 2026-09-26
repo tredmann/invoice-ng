@@ -296,9 +296,16 @@ Two columns — unlike the customer page, which deliberately dropped its right
 column; this is what the board draws for a document.
 
 - Left: a **Beleg** card (Rechnungsempfänger with the Kundennr., Nummer `—`,
-  Rechnungsdatum, Leistung, Zahlungsziel) carrying the note „Entwurf – frei
-  änderbar. Nummer, Festschreibung und PDF entstehen erst beim Ausstellen.";
-  then **Positionen** with the VAT summary and the Gesamtbetrag.
+  Rechnungsdatum, Leistung, Zahlungsziel), then **Positionen** with the VAT
+  summary and the Gesamtbetrag.
+
+> **Corrected during implementation.** The board carries a note under the Beleg
+> card — „Entwurf – frei änderbar. Nummer, … und PDF entstehen erst beim
+> Ausstellen." — and it was built, then removed along with the two explanatory
+> lines on the create form. All three described the design rather than telling
+> the reader anything they needed while working. The page says what a draft is
+> without them: the heading reads **Entwurf**, the status badge repeats it, and
+> the Nummer reads `—`.
 - Right: a **Status** card (badge, the Betrag large, „:term ab Ausstellung"),
   and **Verlauf**.
 - Header: **Bearbeiten**, **Rechnung ausstellen** rendered *disabled with a

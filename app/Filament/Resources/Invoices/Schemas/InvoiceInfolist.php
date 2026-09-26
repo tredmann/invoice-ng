@@ -17,7 +17,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\TextSize;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
@@ -48,11 +47,6 @@ class InvoiceInfolist
                                 ->listWithLineBreaks(),
                             Text::make(fn (Document $record): Htmlable => self::belegRows($record)),
                         ]),
-                        Text::make(fn (Document $record): string => $record->status->isDraft()
-                            ? __('invoice.view.draft_note')
-                            : '')
-                            ->color('gray')
-                            ->size(TextSize::Small),
                     ]),
 
                 Section::make(__('invoice.sections.positions'))
