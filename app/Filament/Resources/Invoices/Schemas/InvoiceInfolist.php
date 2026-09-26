@@ -13,6 +13,7 @@ use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
@@ -30,64 +31,67 @@ class InvoiceInfolist
 {
     public static function configure(Schema $schema): Schema
     {
+        // Two independent columns, not a three-column grid of cards. A grid
+        // lays out in *rows*, so Positionen would wait for the taller of
+        // Beleg and Status and leave a gap beneath the shorter one — which is
+        // exactly what it did.
         return $schema->columns(3)->components([
-            Section::make(__('invoice.view.beleg'))
-                ->columnSpan(2)
-                ->schema([
-                    Grid::make(2)->schema([
-                        TextEntry::make('recipient')
-                            ->label(__('invoice.view.recipient'))
-                            // An array with line breaks rather than built-up
-                            // HTML, so Filament escapes each line once.
-                            ->state(fn (Document $record): array => self::recipient($record))
-                            ->listWithLineBreaks(),
-                        Text::make(fn (Document $record): Htmlable => self::belegRows($record)),
+            Group::make()->columnSpan(2)->schema([
+                Section::make(__('invoice.view.beleg'))
+                    ->schema([
+                        Grid::make(2)->schema([
+                            TextEntry::make('recipient')
+                                ->label(__('invoice.view.recipient'))
+                                // An array with line breaks rather than built-up
+                                // HTML, so Filament escapes each line once.
+                                ->state(fn (Document $record): array => self::recipient($record))
+                                ->listWithLineBreaks(),
+                            Text::make(fn (Document $record): Htmlable => self::belegRows($record)),
+                        ]),
+                        Text::make(fn (Document $record): string => $record->status->isDraft()
+                            ? __('invoice.view.draft_note')
+                            : '')
+                            ->color('gray')
+                            ->size(TextSize::Small),
                     ]),
-                    Text::make(fn (Document $record): string => $record->status->isDraft()
-                        ? __('invoice.view.draft_note')
-                        : '')
-                        ->color('gray')
-                        ->size(TextSize::Small),
-                ]),
 
-            Section::make(__('invoice.view.status'))
-                ->columnSpan(1)
-                ->schema([
-                    Text::make(fn (Document $record): string => $record->status->getLabel())
-                        ->badge()
-                        ->color(fn (Document $record): string => $record->status->getColor()),
-                    Text::make(__('invoice.view.total'))->size(TextSize::Small)->color('gray'),
-                    Text::make(fn (Document $record): string => Euro::format($record->totals()->gross))
-                        ->size(TextSize::Large)
-                        ->weight(FontWeight::Bold)
-                        ->color('neutral'),
-                    Text::make(__('invoice.view.due'))->size(TextSize::Small)->color('gray'),
-                    // No Fälligkeitsdatum yet: it is the Ausstellungsdatum plus
-                    // the Zahlungsziel, and the first half does not exist until
-                    // the document is issued.
-                    Text::make(fn (Document $record): string => __('invoice.view.due_after_issue', [
-                        'term' => $record->payment_term->getLabel(),
-                    ]))->weight(FontWeight::Medium),
-                ]),
+                Section::make(__('invoice.sections.positions'))
+                    ->schema([
+                        Text::make(fn (Document $record): Htmlable => self::positions($record))->columnSpanFull(),
+                    ]),
+            ]),
 
-            Section::make(__('invoice.sections.positions'))
-                ->columnSpan(2)
-                ->schema([
-                    Text::make(fn (Document $record): Htmlable => self::positions($record))->columnSpanFull(),
-                ]),
+            Group::make()->columnSpan(1)->schema([
+                Section::make(__('invoice.view.status'))
+                    ->schema([
+                        Text::make(fn (Document $record): string => $record->status->getLabel())
+                            ->badge()
+                            ->color(fn (Document $record): string => $record->status->getColor()),
+                        Text::make(__('invoice.view.total'))->size(TextSize::Small)->color('gray'),
+                        Text::make(fn (Document $record): string => Euro::format($record->totals()->gross))
+                            ->size(TextSize::Large)
+                            ->weight(FontWeight::Bold)
+                            ->color('neutral'),
+                        Text::make(__('invoice.view.due'))->size(TextSize::Small)->color('gray'),
+                        // No Fälligkeitsdatum yet: it is the Ausstellungsdatum plus
+                        // the Zahlungsziel, and the first half does not exist until
+                        // the document is issued.
+                        Text::make(fn (Document $record): string => $record->payment_term->dueHint())
+                            ->weight(FontWeight::Medium),
+                    ]),
 
-            Section::make(__('invoice.view.history'))
-                ->columnSpan(1)
-                ->schema([
-                    // One derived line, the way the customer page shows „Kunde
-                    // seit". A real Verlauf needs AuditEntry, and the events
-                    // worth recording — issued, PDF written, sent, paid — are
-                    // all in the wave that can perform them.
-                    Text::make(__('invoice.view.created'))->weight(FontWeight::Medium),
-                    Text::make(fn (Document $record): string => $record->created_at?->translatedFormat('d.m.Y, H:i') ?? '')
-                        ->size(TextSize::Small)
-                        ->color('gray'),
-                ]),
+                Section::make(__('invoice.view.history'))
+                    ->schema([
+                        // One derived line, the way the customer page shows „Kunde
+                        // seit". A real Verlauf needs AuditEntry, and the events
+                        // worth recording — issued, PDF written, sent, paid — are
+                        // all in the wave that can perform them.
+                        Text::make(__('invoice.view.created'))->weight(FontWeight::Medium),
+                        Text::make(fn (Document $record): string => $record->created_at?->translatedFormat('d.m.Y, H:i') ?? '')
+                            ->size(TextSize::Small)
+                            ->color('gray'),
+                    ]),
+            ]),
         ]);
     }
 

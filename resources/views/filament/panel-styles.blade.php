@@ -50,4 +50,26 @@
     .dark .app-positions td { color: var(--color-white) }
     .dark .app-positions tbody tr + tr td { border-top-color: var(--gray-800) }
     .dark .app-positions .app-positions-note { color: var(--gray-400) }
+
+    /* Filament renders a Text component as an inline-block span, so a block
+       inside one shrinks to its contents — which left the invoice totals at
+       225px in a 1068px card. Widened only where our own totals are inside. */
+    .fi-sc-text:has(> .app-invoice-totals) { display: block; width: 100% }
+
+    /* Pos. numbers as a counter over the repeater's rows, so dragging a
+       Position into another order renumbers them without anything in the
+       form state knowing its own index. */
+    .app-positions-repeater tbody { counter-reset: app-position }
+    .app-positions-repeater tbody > tr { counter-increment: app-position }
+    /* Counted from the end, because the start moves: Filament adds a leading
+       drag-handle cell only once there are two rows to reorder, so the Pos.
+       cell is first with one row and second with more. What never changes is
+       what follows it — Bezeichnung, Menge, Einheit, Einzelpreis, Steuer,
+       Netto and the actions cell, seven in all. */
+    .app-positions-repeater tbody > tr > td:nth-last-child(8) { color: var(--gray-400); font-size: 0.875rem; text-align: center; vertical-align: middle }
+    .app-positions-repeater tbody > tr > td:nth-last-child(8)::before { content: counter(app-position) }
+    .dark .app-positions-repeater tbody > tr > td:nth-last-child(8) { color: var(--gray-500) }
+
+    /* Numbers line up on the right, the way they do on the document. */
+    .app-input-end { text-align: end }
 </style>

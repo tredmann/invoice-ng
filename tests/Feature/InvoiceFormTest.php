@@ -246,3 +246,30 @@ it('preselects a customer named in the url, and only a real one', function (): v
         ->test(CreateInvoice::class)
         ->assertFormSet(['customer_id' => null]);
 });
+
+it('says which day the Zahlungsziel falls due on', function (): void {
+    // The board computes it live. „14 Tage netto" is a setting; „Fällig am
+    // 09.10.2026" is the thing a reader can check — and September having 30
+    // days is what an off-by-one would show up as.
+    $company = Company::factory()->create();
+    Customer::factory()->for($company)->create();
+    actInCompany($company);
+
+    Livewire::test(CreateInvoice::class)
+        ->fillForm(['issued_on' => '2026-09-25', 'payment_term' => PaymentTerm::Net14->value])
+        ->assertSee('Fällig am 09.10.2026');
+});
+
+it('numbers the Positionen and offers to reorder them', function (): void {
+    $company = Company::factory()->create();
+    Customer::factory()->for($company)->create();
+    actInCompany($company);
+
+    $html = (string) Livewire::test(CreateInvoice::class)->html();
+
+    // The header the counter sits under, and the class the counter is keyed
+    // to — without the class the numbers silently disappear, since there is
+    // no CSS build to fail loudly.
+    expect($html)->toContain('Pos.')
+        ->and($html)->toContain('app-positions-repeater');
+});

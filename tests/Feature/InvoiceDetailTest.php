@@ -97,7 +97,12 @@ it('says a draft has no number and no Fälligkeitsdatum yet', function (): void 
         ->get(InvoiceResource::getUrl('view', ['record' => $invoice]))
         ->assertOk()
         ->assertSee('Entwurf – frei änderbar. Nummer, Festschreibung und PDF entstehen erst beim Ausstellen.')
-        ->assertSee('14 Tage netto ab Ausstellung');
+        // „14 Tage netto ab Ausstellung" carried „netto" for no reason, and
+        // the same sentence built from the label would read „Sofort fällig ab
+        // Ausstellung" for an immediate term. PaymentTerm::dueHint() settles
+        // one phrase per case.
+        ->assertSee('14 Tage ab Ausstellung')
+        ->assertDontSee('14 Tage netto ab Ausstellung');
 });
 
 it('labels a single Leistungsdatum as one', function (): void {

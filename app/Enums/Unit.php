@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\FromFormState;
 use Filament\Support\Contracts\HasLabel;
 
 /**
@@ -20,26 +21,13 @@ use Filament\Support\Contracts\HasLabel;
  */
 enum Unit: string implements HasLabel
 {
+    use FromFormState;
+
     case Piece = 'H87';
     case Hour = 'HUR';
     case Day = 'DAY';
     case LumpSum = 'LS';
     case Kilometre = 'KMT';
-
-    /**
-     * Coerces a form's state — the enum itself, its backing code, or nothing
-     * yet — to a unit, in the shape of `CustomerType::fromFormState()`. A
-     * Select over an enum hands back the enum, and a string cast of one is a
-     * fatal error rather than the code.
-     */
-    public static function fromFormState(mixed $state): ?self
-    {
-        if ($state instanceof self) {
-            return $state;
-        }
-
-        return is_string($state) ? self::tryFrom($state) : null;
-    }
 
     public function getLabel(): string
     {

@@ -23,12 +23,18 @@ class InvoicesTable
 {
     public static function configure(Table $table): Table
     {
+        // A company with no invoices at all gets no column headers, no search
+        // box and no pagination — just the invitation. A fruitless *search*
+        // keeps its furniture, because there the table is the thing that came
+        // back empty. Same trick as CustomersTable.
+        $hasAny = self::hasAnyInvoice();
+
         return $table
             // The Betrag of every row is computed from its Positionen, so
             // without this the list is one query per invoice. The empty query
             // log in DocumentTest is what makes the eager load worth having.
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['customer', 'lineItems']))
-            ->columns([
+            ->columns($hasAny ? [
                 TextColumn::make('number')
                     ->label(__('invoice.columns.number'))
                     ->placeholder(__('invoice.not_yet'))
@@ -53,9 +59,10 @@ class InvoicesTable
                     ->alignEnd()
                     ->weight(FontWeight::Medium)
                     ->state(fn (Invoice $record): string => self::money($record)),
-            ])
+            ] : [])
             ->defaultSort('issued_on', 'desc')
-            ->searchable()
+            ->searchable($hasAny)
+            ->paginated($hasAny)
             ->searchUsing(fn (Builder $query, string $search) => self::applySearch($query, $search))
             ->recordActions([
                 ActionGroup::make([
@@ -80,6 +87,11 @@ class InvoicesTable
                     ->url(fn (): string => InvoiceResource::getUrl('create'))
                     ->hidden(fn (HasTable $livewire): bool => self::isSearching($livewire)),
             ]);
+    }
+
+    private static function hasAnyInvoice(): bool
+    {
+        return InvoiceResource::getEloquentQuery()->exists();
     }
 
     /**

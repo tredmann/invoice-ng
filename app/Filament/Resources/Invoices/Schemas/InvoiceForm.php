@@ -15,7 +15,9 @@ use App\Models\TaxRate;
 use App\Money\Euro;
 use App\Money\LineInput;
 use App\Money\Totals;
+use Carbon\CarbonImmutable;
 use Exception;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -29,6 +31,7 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\TextSize;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
@@ -41,57 +44,76 @@ class InvoiceForm
         // which would set the cards side by side.
         return $schema->columns(1)->components([
             Section::make(__('invoice.sections.header'))->schema([
-                Select::make('customer_id')
-                    ->label(__('invoice.fields.customer'))
-                    ->options(fn (?Document $record): array => self::customerOptions($record))
-                    // Preselected when the customer page sent us here, so
-                    // „Neue Rechnung" on a customer arrives with that customer
-                    // already chosen rather than at an empty picker.
-                    ->default(fn (): ?string => self::customerFromRequest())
-                    ->searchable()
-                    ->required()
-                    // The Zahlungsziel follows the chosen customer, so the form
-                    // has to re-render when it changes.
-                    ->live()
-                    ->afterStateUpdated(function (mixed $state, Set $set): void {
-                        $customer = is_string($state) ? Customer::query()->find($state) : null;
+                // One row, in the board's proportions: of its 1008px card,
+                // Kunde is 576, Rechnungsdatum 180 and Zahlungsziel 220 —
+                // seven, two and three twelfths.
+                Grid::make(12)->schema([
+                    Select::make('customer_id')
+                        ->label(__('invoice.fields.customer'))
+                        ->columnSpan(7)
+                        ->options(fn (?Document $record): array => self::customerOptions($record))
+                        // Preselected when the customer page sent us here, so
+                        // „Neue Rechnung" on a customer arrives with that
+                        // customer already chosen rather than an empty picker.
+                        ->default(fn (): ?string => self::customerFromRequest())
+                        ->searchable()
+                        ->required()
+                        // The Zahlungsziel follows the chosen customer, so the
+                        // form has to re-render when it changes.
+                        ->live()
+                        ->afterStateUpdated(function (mixed $state, Set $set): void {
+                            $customer = is_string($state) ? Customer::query()->find($state) : null;
 
-                        if ($customer instanceof Customer) {
-                            $set('payment_term', $customer->effectivePaymentTerm()->value);
-                        }
-                    }),
-
-                Grid::make(3)->schema([
+                            if ($customer instanceof Customer) {
+                                $set('payment_term', $customer->effectivePaymentTerm()->value);
+                            }
+                        }),
                     DatePicker::make('issued_on')
                         ->label(__('invoice.fields.issued_on'))
+                        ->columnSpan(2)
                         ->native(false)
                         ->displayFormat('d.m.Y')
                         ->default(today())
-                        ->required(),
+                        ->required()
+                        // The Fälligkeitsdatum below follows from this and the
+                        // Zahlungsziel, so both have to re-render on change.
+                        ->live(onBlur: true),
                     Select::make('payment_term')
                         ->label(__('invoice.fields.payment_term'))
+                        ->columnSpan(3)
                         ->options(PaymentTerm::class)
                         ->default(fn (): string => self::companyDefaultTerm()->value)
-                        ->required(),
+                        ->required()
+                        ->live()
+                        // Shown, not stored: the Fälligkeitsdatum is derived at
+                        // issue from the Ausstellungsdatum and the Zahlungsziel.
+                        // Saying it here is what turns „14 Tage netto" from a
+                        // setting into a date the reader can check.
+                        ->helperText(fn (Get $get): ?string => self::dueHint($get)),
                 ]),
 
-                Grid::make(3)->schema([
+                Grid::make(12)->schema([
                     // The form sends these two; the model decides from them
                     // whether the Beleg carries a Leistungsdatum (BT-72) or a
                     // Leistungszeitraum (BG-14), and stores exactly one.
                     DatePicker::make('performed_from')
                         ->label(__('invoice.fields.performed_from'))
+                        ->columnSpan(3)
                         ->native(false)
                         ->displayFormat('d.m.Y')
                         ->default(today())
                         ->required(),
                     DatePicker::make('performed_to')
                         ->label(__('invoice.fields.performed_to'))
+                        ->columnSpan(3)
                         ->native(false)
                         ->displayFormat('d.m.Y')
-                        ->afterOrEqual('performed_from')
-                        ->helperText(__('invoice.fields.performed_help')),
+                        ->afterOrEqual('performed_from'),
                 ]),
+
+                Text::make(__('invoice.fields.performed_help'))
+                    ->size(TextSize::Small)
+                    ->color('gray'),
             ]),
 
             Section::make(__('invoice.sections.positions'))
@@ -103,15 +125,29 @@ class InvoiceForm
                         ->minItems(1)
                         ->defaultItems(1)
                         ->live(onBlur: true)
+                        // Positionen can be dragged into another order; the
+                        // Pos. column is a CSS counter over the rows, so it
+                        // renumbers itself as they move rather than fighting
+                        // the handles for the same cell.
+                        ->reorderable()
+                        // Grey, not red: removing an unsaved row of a draft is
+                        // not the destructive act the colour promises, and it
+                        // sits next to six fields a beginner is still filling.
+                        ->deleteAction(fn (Action $action): Action => $action->color('gray'))
+                        ->extraAttributes(['class' => 'app-positions-repeater'])
                         ->table([
+                            TableColumn::make(__('invoice.fields.position'))->width('3rem'),
                             TableColumn::make(__('invoice.fields.title')),
-                            TableColumn::make(__('invoice.fields.quantity'))->width('7rem'),
-                            TableColumn::make(__('invoice.fields.unit'))->width('9rem'),
-                            TableColumn::make(__('invoice.fields.unit_price'))->width('9rem'),
-                            TableColumn::make(__('invoice.fields.tax_rate'))->width('8rem'),
-                            TableColumn::make(__('invoice.fields.net'))->width('8rem')->alignEnd(),
+                            TableColumn::make(__('invoice.fields.quantity'))->width('6rem')->alignEnd(),
+                            TableColumn::make(__('invoice.fields.unit'))->width('8rem'),
+                            TableColumn::make(__('invoice.fields.unit_price'))->width('8rem')->alignEnd(),
+                            TableColumn::make(__('invoice.fields.tax_rate'))->width('7rem'),
+                            TableColumn::make(__('invoice.fields.net'))->width('7rem')->alignEnd(),
                         ])
                         ->schema([
+                            // Filled by the counter in panel-styles; an empty
+                            // cell is all the markup the number needs.
+                            Text::make(''),
                             // Bezeichnung and Beschreibung share one cell, as
                             // the mockup stacks them: a seventh column would
                             // squeeze every other one.
@@ -129,6 +165,7 @@ class InvoiceForm
                             TextInput::make('quantity')
                                 ->hiddenLabel()
                                 ->required()
+                                ->extraInputAttributes(['class' => 'app-input-end'])
                                 ->rule('regex:/^\d{1,8}([.,]\d{1,3})?$/')
                                 ->live(onBlur: true),
                             Select::make('unit')
@@ -140,6 +177,7 @@ class InvoiceForm
                                 ->hiddenLabel()
                                 ->suffix('€')
                                 ->required()
+                                ->extraInputAttributes(['class' => 'app-input-end'])
                                 ->rule('regex:/^\d{1,9}([.,]\d{1,2})?$/')
                                 ->live(onBlur: true),
                             Select::make('tax_rate')
@@ -181,6 +219,30 @@ class InvoiceForm
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
+    }
+
+    /**
+     * „Fällig am 09.10.2026" — what the Zahlungsziel means for this invoice.
+     *
+     * Null while either half is missing or unparseable, which is a state the
+     * form passes through while a date is being typed.
+     */
+    private static function dueHint(Get $get): ?string
+    {
+        $term = PaymentTerm::fromFormState($get('payment_term'));
+        $issued = $get('issued_on');
+
+        if (! $term instanceof PaymentTerm || ! is_string($issued) || $issued === '') {
+            return null;
+        }
+
+        try {
+            $date = CarbonImmutable::parse($issued);
+        } catch (Exception) {
+            return null;
+        }
+
+        return __('invoice.fields.due_hint', ['date' => $term->dueDateFrom($date)->format('d.m.Y')]);
     }
 
     /**

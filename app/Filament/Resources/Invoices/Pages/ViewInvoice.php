@@ -13,6 +13,8 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 
 class ViewInvoice extends ViewRecord
 {
@@ -27,9 +29,24 @@ class ViewInvoice extends ViewRecord
         return $this->heading();
     }
 
+    /**
+     * The heading carries the status as a badge, as the board draws it. It is
+     * repeated in the Status card on purpose: the header answers „what am I
+     * looking at" at a glance, the card answers „what is true of it".
+     */
     public function getHeading(): string|Htmlable
     {
-        return $this->heading();
+        $status = $this->document()->status;
+
+        return new HtmlString(
+            '<span style="display: inline-flex; align-items: center; gap: 0.75rem">'
+            .e($this->heading())
+            .Blade::render(
+                '<x-filament::badge color="{{ $color }}" size="sm">{{ $label }}</x-filament::badge>',
+                ['color' => $status->getColor(), 'label' => $status->getLabel()],
+            )
+            .'</span>'
+        );
     }
 
     #[\Override]

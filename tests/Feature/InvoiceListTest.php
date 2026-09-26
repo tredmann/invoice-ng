@@ -125,3 +125,38 @@ it('says something different when a search finds nothing', function (): void {
         ->assertSee('Keine Rechnung gefunden.')
         ->assertDontSee('Noch keine Rechnungen.');
 });
+
+it('shows no table furniture at all until there is an invoice', function (): void {
+    // Not just an empty table: no column headers, no search box, no
+    // pagination. Both directions, because a page that never showed headers
+    // would pass the first assertion on its own.
+    $company = Company::factory()->create();
+    actInCompany($company);
+
+    // „Betrag" and not „Nummer": the empty state's own sentence says „…
+    // bekommen ihre Nummer erst beim Ausstellen", so that word is on the page
+    // either way and would have made this assertion meaningless.
+    Livewire::test(ListInvoices::class)
+        ->assertDontSee('Betrag')
+        ->assertDontSee('Suche')
+        ->assertSee('Noch keine Rechnungen.');
+
+    invoiceFor($company);
+
+    Livewire::test(ListInvoices::class)
+        ->assertSee('Betrag')
+        ->assertSee('Fällig');
+});
+
+it('keeps the table furniture when a search finds nothing', function (): void {
+    // The other case the empty list must not be confused with: here the table
+    // is the thing that came back empty, so its headers and search box stay.
+    $company = Company::factory()->create();
+    invoiceFor($company);
+    actInCompany($company);
+
+    Livewire::test(ListInvoices::class)
+        ->searchTable('gibtesnicht')
+        ->assertSee('Betrag')
+        ->assertSee('Keine Rechnung gefunden.');
+});

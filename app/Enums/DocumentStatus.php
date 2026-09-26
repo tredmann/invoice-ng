@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\FromFormState;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
@@ -20,24 +21,13 @@ use Filament\Support\Contracts\HasLabel;
  */
 enum DocumentStatus: string implements HasColor, HasLabel
 {
+    use FromFormState;
+
     case Draft = 'draft';
     case Issued = 'issued';
     case Sent = 'sent';
     case Paid = 'paid';
     case Cancelled = 'cancelled';
-
-    /**
-     * Coerces a form's state — the enum itself, its backing string, or nothing
-     * yet — to a status, in the shape of `CustomerType::fromFormState()`.
-     */
-    public static function fromFormState(mixed $state): ?self
-    {
-        if ($state instanceof self) {
-            return $state;
-        }
-
-        return is_string($state) ? self::tryFrom($state) : null;
-    }
 
     /**
      * Whether the document is still freely editable and deletable.
