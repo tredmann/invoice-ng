@@ -17,9 +17,9 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -62,37 +62,62 @@ class InvoiceInfolist
             ]),
 
             Group::make()->columnSpan(1)->schema([
-                Section::make(__('invoice.view.status'))
+                // No card heading: „Status" is a label in the same small grey
+                // as „Betrag" and „Fällig", not a title over them. One block
+                // rather than five components, because the gap between the
+                // label and its value is a quarter of the gap between pairs —
+                // a schema puts the same gap everywhere.
+                Section::make()
                     ->schema([
-                        Text::make(fn (Document $record): string => $record->status->getLabel())
-                            ->badge()
-                            ->color(fn (Document $record): string => $record->status->getColor()),
-                        Text::make(__('invoice.view.total'))->size(TextSize::Small)->color('gray'),
-                        Text::make(fn (Document $record): string => Euro::format($record->totals()->gross))
-                            ->size(TextSize::Large)
-                            ->weight(FontWeight::Bold)
-                            ->color('neutral'),
-                        Text::make(__('invoice.view.due'))->size(TextSize::Small)->color('gray'),
-                        // No Fälligkeitsdatum yet: it is the Ausstellungsdatum plus
-                        // the Zahlungsziel, and the first half does not exist until
-                        // the document is issued.
-                        Text::make(fn (Document $record): string => $record->payment_term->dueHint())
-                            ->weight(FontWeight::Medium),
+                        Text::make(fn (Document $record): Htmlable => self::statusBlock($record)),
                     ]),
 
                 Section::make(__('invoice.view.history'))
                     ->schema([
-                        // One derived line, the way the customer page shows „Kunde
-                        // seit". A real Verlauf needs AuditEntry, and the events
-                        // worth recording — issued, PDF written, sent, paid — are
-                        // all in the wave that can perform them.
-                        Text::make(__('invoice.view.created'))->weight(FontWeight::Medium),
-                        Text::make(fn (Document $record): string => $record->created_at?->translatedFormat('d.m.Y, H:i') ?? '')
-                            ->size(TextSize::Small)
-                            ->color('gray'),
+                        // One derived entry, the way the customer page shows
+                        // „Kunde seit". A real Verlauf needs AuditEntry, and the
+                        // events worth recording — issued, PDF written, sent,
+                        // paid — are all in the wave that can perform them.
+                        Text::make(fn (Document $record): Htmlable => self::historyBlock($record)),
                     ]),
             ]),
         ]);
+    }
+
+    private static function statusBlock(Document $record): Htmlable
+    {
+        $status = $record->status;
+
+        $badge = Blade::render(
+            '<x-filament::badge color="{{ $color }}" size="sm">{{ $label }}</x-filament::badge>',
+            ['color' => $status->getColor(), 'label' => $status->getLabel()],
+        );
+
+        return new HtmlString(
+            '<dl class="app-status">'
+            .'<div><dt>'.e(__('invoice.view.status')).'</dt><dd>'.$badge.'</dd></div>'
+            .'<div><dt>'.e(__('invoice.view.total')).'</dt>'
+            .'<dd class="app-status-amount">'.e(Euro::format($record->totals()->gross)).'</dd></div>'
+            // No Fälligkeitsdatum yet: it is the Ausstellungsdatum plus the
+            // Zahlungsziel, and the first half does not exist until the
+            // document is issued.
+            .'<div><dt>'.e(__('invoice.view.due')).'</dt>'
+            .'<dd>'.e($record->payment_term->dueHint()).'</dd></div>'
+            .'</dl>'
+        );
+    }
+
+    private static function historyBlock(Document $record): Htmlable
+    {
+        return new HtmlString(
+            '<ul class="app-history"><li>'
+            .'<span class="app-history-dot"></span>'
+            .'<div><span class="app-history-event">'.e(__('invoice.view.created')).'</span>'
+            .'<span class="app-history-when">'
+            .e($record->created_at?->translatedFormat('d.m.Y, H:i') ?? '')
+            .'</span></div>'
+            .'</li></ul>'
+        );
     }
 
     /**
@@ -157,7 +182,7 @@ class InvoiceInfolist
     private static function positions(Document $record): Htmlable
     {
         $head = '<thead><tr>'
-            .'<th></th>'
+            .'<th>'.e(__('invoice.fields.position')).'</th>'
             .'<th>'.e(__('invoice.fields.title')).'</th>'
             .'<th class="app-positions-end">'.e(__('invoice.fields.quantity')).'</th>'
             .'<th class="app-positions-end">'.e(__('invoice.fields.unit_price')).'</th>'
@@ -181,7 +206,7 @@ class InvoiceInfolist
         }
 
         return new HtmlString(
-            '<table class="app-positions">'.$head.'<tbody>'.$body.'</tbody></table>'
+            '<table class="app-positions app-positions-ruled">'.$head.'<tbody>'.$body.'</tbody></table>'
             .self::totals($record)
         );
     }

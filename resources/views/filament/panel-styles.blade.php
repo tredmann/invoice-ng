@@ -82,6 +82,35 @@
        before the actions one, with or without a drag handle. */
     .app-positions-repeater tbody > tr > td:nth-last-child(2) { text-align: end }
 
+    /* The Status card: a label over its value, three times. Measured off the
+       board — label 12px/500 in gray-500, the Betrag 20px/600, a quarter of a
+       line between a label and its value and a full line between the pairs.
+       A schema would put the same gap everywhere, which is what made this
+       card look airy. */
+    .app-status { display: flex; flex-direction: column; gap: 1rem; margin: 0 }
+    .app-status > div { display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-start }
+    .app-status dt { font-size: 0.75rem; font-weight: 500; color: var(--gray-500) }
+    .app-status dd { margin: 0; font-size: 0.875rem; color: var(--gray-950) }
+    .app-status .app-status-amount { font-size: 1.25rem; font-weight: 600; line-height: 1.4 }
+    .dark .app-status dt { color: var(--gray-400) }
+    .dark .app-status dd { color: var(--color-white) }
+
+    /* The Verlauf: a marker, then the event over its timestamp. */
+    .app-history { display: flex; flex-direction: column; gap: 0.875rem; margin: 0; padding: 0; list-style: none }
+    .app-history > li { display: flex; align-items: flex-start; gap: 0.625rem }
+    .app-history-dot { flex: none; width: 0.5rem; height: 0.5rem; margin-top: 0.375rem; border-radius: 9999px; background: var(--primary-500) }
+    .app-history > li > div { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0 }
+    .app-history-event { font-size: 0.875rem; font-weight: 500; color: var(--gray-950) }
+    .app-history-when { font-size: 0.75rem; color: var(--gray-500) }
+    .dark .app-history-event { color: var(--color-white) }
+    .dark .app-history-when { color: var(--gray-400) }
+
+    /* The Positionen table closes with a rule before the sums, as the board
+       draws it. Only on a document's own table — the customer page reuses
+       these styles for a list that has nothing after it. */
+    .app-positions-ruled { border-bottom: 1px solid var(--gray-200) }
+    .dark .app-positions-ruled { border-bottom-color: var(--gray-700) }
+
     /* Numbers line up on the right, the way they do on the document. */
     .app-input-end { text-align: end }
 </style>

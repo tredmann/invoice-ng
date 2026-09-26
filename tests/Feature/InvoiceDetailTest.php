@@ -196,3 +196,43 @@ it('answers a url that is not a uuid with a 404', function (): void {
         ->get('/admin/alpha-gmbh/invoices/RE-2026-0001')
         ->assertNotFound();
 });
+
+it('heads the Positionen with Pos. and closes them before the sums', function (): void {
+    /** @var TestCase $this */
+    // The header was an empty cell and the sums began with no rule between
+    // them and the last Position, so the two blocks ran together.
+    $company = Company::factory()->create();
+    $invoice = mockupInvoice($company);
+    $user = actInCompany($company);
+
+    $html = (string) $this->actingAs($user)
+        ->get(InvoiceResource::getUrl('view', ['record' => $invoice]))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('<th>Pos.</th>')
+        // The modifier the closing rule hangs on. The customer page reuses
+        // these table styles for a list with nothing after it, so the rule is
+        // deliberately not part of the base class.
+        ->and($html)->toContain('app-positions app-positions-ruled');
+});
+
+it('gives the Status and Verlauf cards the shape the board draws', function (): void {
+    /** @var TestCase $this */
+    // „Status" is a label in the same small grey as „Betrag" and „Fällig",
+    // not a heading over them — so the card carries no title at all. And the
+    // Verlauf entry has a marker, which is what made it read as a timeline
+    // rather than two loose lines.
+    $company = Company::factory()->create();
+    $invoice = mockupInvoice($company);
+    $user = actInCompany($company);
+
+    $html = (string) $this->actingAs($user)
+        ->get(InvoiceResource::getUrl('view', ['record' => $invoice]))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('app-status-amount')
+        ->and($html)->toContain('app-history-dot')
+        ->and($html)->toContain('<dt>Status</dt>');
+});
