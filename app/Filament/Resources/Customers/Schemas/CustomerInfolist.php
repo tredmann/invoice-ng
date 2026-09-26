@@ -62,6 +62,12 @@ class CustomerInfolist
                     TextEntry::make('email')
                         ->label(__('customer.fields.email'))
                         ->placeholder('—'),
+                    // Always the term the next Rechnung would actually use,
+                    // company default included — the mockup shows a value
+                    // here, not a blank for „not set".
+                    TextEntry::make('payment_term')
+                        ->label(__('customer.fields.payment_term'))
+                        ->state(fn (Customer $record): string => $record->effectivePaymentTerm()->getLabel()),
                 ]),
 
             // Zero until the invoicing wave lands. Built from Section and Text

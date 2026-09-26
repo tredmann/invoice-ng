@@ -12,4 +12,17 @@ return [
      */
     'documents_disk' => env('INVOICE_DOCUMENTS_DISK', 'local'),
 
+    /*
+     * The filesystem disk that company logos are written to.
+     *
+     * A separate disk from the documents one on purpose. The two have
+     * different lifetimes and different rules: a document is the legal record,
+     * written once and never touched again, on a versioned bucket; a logo is
+     * master data the owner replaces whenever the branding changes, and
+     * replacing it must not disturb the PDFs already issued with the old one.
+     * Keeping them apart also means the retention policy for the documents
+     * bucket does not have to make an exception.
+     */
+    'logos_disk' => env('INVOICE_LOGOS_DISK', 'public'),
+
 ];

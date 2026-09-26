@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Customer;
+use App\Models\NumberRange;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -82,4 +83,44 @@ it('generates version 7 uuids for customers', function (): void {
     $customer = Customer::factory()->for(Company::factory())->create();
 
     expect($customer->getKey()[14])->toBe('7');
+});
+
+it('gives tax rates a uuid key and a uuid company foreign key', function (): void {
+    $columns = DB::select(
+        'select column_name, data_type from information_schema.columns
+         where table_name = ? and column_name in (?, ?)',
+        ['tax_rates', 'id', 'company_id']
+    );
+
+    expect($columns)->toHaveCount(2);
+
+    foreach ($columns as $column) {
+        expect($column->data_type)->toBe('uuid');
+    }
+});
+
+it('generates version 7 uuids for tax rates', function (): void {
+    $rate = Company::factory()->create()->taxRates()->where('rate', 1900)->sole();
+
+    expect($rate->getKey()[14])->toBe('7');
+});
+
+it('gives number ranges a uuid key and a uuid company foreign key', function (): void {
+    $columns = DB::select(
+        'select column_name, data_type from information_schema.columns
+         where table_name = ? and column_name in (?, ?)',
+        ['number_ranges', 'id', 'company_id']
+    );
+
+    expect($columns)->toHaveCount(2);
+
+    foreach ($columns as $column) {
+        expect($column->data_type)->toBe('uuid');
+    }
+});
+
+it('generates version 7 uuids for number ranges', function (): void {
+    $range = NumberRange::factory()->for(Company::factory())->create();
+
+    expect($range->getKey()[14])->toBe('7');
 });

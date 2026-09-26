@@ -62,6 +62,7 @@ return [
     ],
 
     'help' => [
+        'payment_term' => 'Leer lassen, um der Vorgabe der Firma zu folgen.',
         'type' => 'Bestimmt, welche Angaben die Rechnung braucht – und steht auf dem Beleg.',
         'address' => 'Erscheint unverändert auf jeder Rechnung an diesen Kunden.',
         'vat_id' => 'Nur bei Geschäftskunden.',
@@ -69,6 +70,7 @@ return [
     ],
 
     'placeholders' => [
+        'payment_term' => 'Vorgabe der Firma (:term)',
         'business_name' => 'z. B. Weber Haustechnik e.K.',
         'private_name' => 'z. B. Sofia Kraus',
         'contact_person' => 'Optional',
@@ -80,6 +82,7 @@ return [
     ],
 
     'fields' => [
+        'payment_term' => 'Zahlungsziel',
         'number' => 'Kundennr.',
         'type' => 'Typ',
         'name' => 'Name',

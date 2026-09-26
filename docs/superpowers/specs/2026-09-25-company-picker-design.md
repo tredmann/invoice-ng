@@ -54,6 +54,12 @@ between companies happens in one place: a switcher in the top bar.**
 
 ### 2.2 Inside a company, `/admin/{company}`
 
+> **Corrected 2026-09-26.** The settings page is labelled **Einstellungen**
+> throughout — sidebar entry, page heading and top-bar trail — as the Penpot
+> mockups name it. Read every „Firmendaten" below as that label. The word is not
+> retired: the dashboard's first step still reads „Firmendaten
+> vervollständigen", because there it names the *data* rather than the page.
+
 - **Sidebar:** two entries — **Dashboard** and **Firmendaten** (the company's
   settings, `/admin/{company}/settings`, highlighted while open). Filament's
   company menu at the top of the sidebar is gone.

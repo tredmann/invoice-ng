@@ -2,14 +2,25 @@
 
 A multi-company German invoicing application. Laravel 13 + Filament 5, PHP 8.5.
 
-**Current state: companies, the tenancy backbone and customers are in place.** A
-company can be created, completed and archived, and every company-scoped screen
-sits behind a Filament tenant boundary keyed on the company's slug. Each company
-keeps its own customers — listed, created, viewed, edited and deactivated under
-`/admin/{company}/customers`. Documents, invoice numbering and money handling do
-not exist yet. If you are looking for an `Invoice` model, it has not been
-written. What works is the container stack, the test harness, a proven PDF
-renderer, and a Filament panel with login, tenancy and customers.
+**Current state: companies, tenancy, customers, and the master data an
+Ausstellvorgang needs are in place.** A company can be created, completed and
+deactivated, and every company-scoped screen sits behind a Filament tenant
+boundary keyed on the company's slug. Each company keeps its own customers under
+`/admin/{company}/customers`, and its settings at `/admin/{company}/settings` now
+span four tabs — Firma, Steuer, Bank, Nummernkreis.
+
+The money foundation landed with them: `TaxRate` rows in basis points,
+`PaymentTerm` and `Unit` enums, a `NumberRange` per company with
+`DrawNextNumber` doing the locked, gapless draw, `MoneyCast` over integer cents,
+`CalculateTotals` implementing the per-group VAT rounding of §6, and
+`CheckReadiness` reporting what still stands between a company and its first
+Beleg.
+
+**No document exists.** If you are looking for an `Invoice` model, it has not
+been written — nor `Document`, `LineItem` or `Payment`, and `tightenco/parental`
+is still unused. Nothing draws a number in anger yet, and no PDF or ZUGFeRD XML
+is produced. What works is the container stack, the test harness, a proven PDF
+renderer, and a panel with login, tenancy, customers and company master data.
 
 ## Everything runs in the container
 
@@ -80,6 +91,15 @@ Each was expensive to reach. Read the reason before changing one.
   `.ai/guidelines/ui/core.blade.php` carries the UI rules in full — including
   that cancel sits at the far left of a form's action row and the saving
   action at the far right, dialogs included.
+- **Three master data lists, three different shapes.** `TaxRate` is a
+  per-company table, `PaymentTerm` and `Unit` are PHP enums. This looks
+  inconsistent and is not: the question each answers is "who may change it?".
+  Tax rates are per-company data the owner edits and deactivates (§3.4);
+  payment terms and units are closed sets nobody invents, and a Position
+  „references no master data" (§3.6), so a foreign key into a `units` table
+  would contradict the spec outright. This supersedes tech-stack spec §12,
+  which lists `PaymentTerm` and `Unit` under `app/Models`. See
+  `docs/adr/0003-stammdatenlisten.md` before moving any of them.
 - **Rector covers `app/` and `tests/` only.** `config/` and `bootstrap/` ship with
   Laravel and are replaced wholesale by framework upgrades; rewriting them turns
   every future skeleton diff into a merge conflict. Run Rector *before* Pint —
@@ -108,6 +128,14 @@ populated whether or not the font contains the glyph — so a missing font yield
 valid PDF full of empty boxes and a green suite. Look at the rendered page after
 changing fonts, the base image, or the WeasyPrint version.
 
+**The concurrency suite is not optional decoration.** `tests/Concurrency` forks
+two processes that draw from one `NumberRange` and asserts they get distinct,
+consecutive numbers. Deleting `lockForUpdate()` from `DrawNextNumber` turns that
+suite red and leaves all 275 Feature tests green — which is precisely why it
+exists and why it needs its own `DatabaseTruncation` binding rather than
+`RefreshDatabase`. If you change the numbering, break the lock on purpose once
+and confirm the suite notices.
+
 **A green suite says nothing about the development database.** Pest runs against
 `invoice_test`, and `RefreshDatabase` rebuilds that schema on every run — so the
 suite structurally cannot notice that `invoice`, the database the application at
@@ -135,12 +163,27 @@ Deliberately parked, so they are not mistaken for oversights:
   eight files there — `documentation/` and `rector/` — are additions rather
   than forks, and have no upstream to drift from.)
 - A company created through registration has only a name and a legal form; its
-  identity block — address, tax identifier, and for a registered legal form its
-  register entry — is incomplete until the settings page has been saved once.
-  Safe today because nothing in the application can issue a document yet. It
-  stops being safe the moment the invoicing wave can: issuing from a company
-  whose identity block is incomplete would not satisfy §14 UStG, so that wave
-  must refuse to issue from one until it checks out complete.
+  identity block is incomplete until the settings page has been saved once.
+  **This is now detected but not enforced.** `App\Actions\CheckReadiness`
+  reports it, and the dashboard's „Erste Schritte" card names what is missing —
+  but nothing refuses anything, because nothing issues yet. The invoicing wave
+  owes the enforcement: `IssueDocument` must call `CheckReadiness` before it
+  opens its transaction and refuse on `canIssue() === false`. The check
+  distinguishes blockers (what §14 UStG and §35a GmbHG require) from warnings
+  (bank details, logo); only the blockers may refuse.
+- **Nothing yet seeds a Nummernkreis, on purpose.** A company has no
+  `number_ranges` row until its settings tab is saved once — that is what lets
+  the readiness check say „noch nicht konfiguriert" truthfully instead of always
+  finding a default nobody chose. Tax rates *are* seeded (19/7/0) in
+  `Company::booted()`, because those are a fact about the law rather than a
+  choice. A company created before 2026-09-26 therefore has no tax rates; only
+  one such company exists and it has been filled in by hand, so no backfill
+  migration was written.
+- `DrawNextNumber` throws outside a transaction, and that is load-bearing rather
+  than defensive. Under `RefreshDatabase` the transaction level is always 1, so
+  the guard can only be tested from `tests/Concurrency`, which uses
+  `DatabaseTruncation`. Keep it that way: a Feature test of the guard would pass
+  against a `DrawNextNumber` that had no guard at all.
 - `company_user`'s only index is its composite primary key `(company_id,
   user_id)`. `User::getTenants()` filters on `user_id` alone — the trailing
   column of that composite — so it has no usable index path, while
@@ -169,6 +212,9 @@ Deliberately parked, so they are not mistaken for oversights:
 
 - `docs/superpowers/specs/2026-09-23-invoice-system-design.md` — what the system does
 - `docs/superpowers/specs/2026-09-23-invoice-tech-stack-design.md` — what it is built from
+- `docs/superpowers/specs/2026-09-26-company-master-data-design.md` — the master
+  data and money foundation an Ausstellvorgang needs, and why the readiness
+  check blocks on some things and only warns about others
 - `CONTEXT.md` — the German ubiquitous language of the domain, with the
   English identifier beside each term. A change to it is a change to what
   things are called everywhere.

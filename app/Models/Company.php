@@ -5,17 +5,20 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\LegalForm;
+use App\Enums\PaymentTerm;
 use App\Enums\VatScheme;
 use App\Rules\Iban;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Normalizer;
@@ -28,6 +31,8 @@ use Normalizer;
  * follow — Customer carries the same declaration.
  *
  * @property LegalForm $legal_form
+ * @property PaymentTerm $payment_term
+ * @property VatScheme $vat_scheme
  * @property Carbon|null $deactivated_at
  */
 #[Fillable([
@@ -45,6 +50,8 @@ use Normalizer;
     'bank_name',
     'iban',
     'bic',
+    'payment_term',
+    'logo_path',
 ])]
 // Filament builds tenant URLs with `route(..., ['tenant' => $company])`,
 // which calls `getRouteKey()`. The panel identifies a tenant by querying the
@@ -65,6 +72,7 @@ class Company extends Model
     #[\Override]
     protected $attributes = [
         'vat_scheme' => 'standard',
+        'payment_term' => 'net_14',
     ];
 
     public static function uniqueSlugFrom(string $name): string
@@ -184,12 +192,187 @@ class Company extends Model
         return $this->hasMany(Customer::class);
     }
 
+    /**
+     * @return HasMany<TaxRate, $this>
+     */
+    public function taxRates(): HasMany
+    {
+        return $this->hasMany(TaxRate::class);
+    }
+
+    /**
+     * The company's Nummernkreis, or none until its settings tab has been
+     * saved once. Absent rather than auto-created on purpose: that is what
+     * lets the Bereitschaftsprüfung say „noch nicht konfiguriert" truthfully.
+     *
+     * @return HasOne<NumberRange, $this>
+     */
+    public function numberRange(): HasOne
+    {
+        return $this->hasOne(NumberRange::class);
+    }
+
+    /**
+     * The Steuersätze a Position of this company may carry, highest first.
+     *
+     * The single place the Besteuerung is consulted. A Kleinunternehmer issues
+     * at 0 % under §19 and has no choice to make, so exactly one rate comes
+     * back — and it comes back even if it was deactivated while the company was
+     * still on the standard scheme, because the law does not consult that flag.
+     *
+     * Deliberately not a question the rounding of §6 asks: were the scheme read
+     * inside the arithmetic, the same Positionen would total differently
+     * depending on who asked.
+     *
+     * @return Collection<int, TaxRate>
+     */
+    public function selectableTaxRates(): Collection
+    {
+        $rates = $this->taxRates()->orderByDesc('rate')->get();
+
+        if ($this->vat_scheme->isSmallBusiness()) {
+            return $rates->where('rate', 0)->values();
+        }
+
+        return $rates->reject(fn (TaxRate $rate): bool => $rate->isDeactivated())->values();
+    }
+
+    /**
+     * Brings the company's Steuersätze in line with what the settings form
+     * sent: rows are created or updated, and rows the form dropped are
+     * **deactivated, never deleted** (system design §3.4) so a rate an issued
+     * Beleg was computed with stays intact.
+     *
+     * Re-adding a rate that was dropped earlier reuses its row rather than
+     * inserting a second one — `unique(company_id, rate)` would refuse the
+     * insert, and a user who removes 7 % and changes their mind should not
+     * meet a database error.
+     *
+     * Exactly one default is settled here rather than trusted from the form.
+     * A request flagging two would otherwise be decided by save order, which
+     * is not a decision anyone made.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     */
+    public function syncTaxRates(array $rows): void
+    {
+        $rows = array_values($rows);
+
+        if ($rows === []) {
+            return;
+        }
+
+        $defaultIndex = null;
+
+        foreach ($rows as $index => $row) {
+            if (($row['is_default'] ?? false) === true) {
+                $defaultIndex = $index;
+                break;
+            }
+        }
+
+        if ($defaultIndex === null) {
+            foreach ($rows as $index => $row) {
+                if ($defaultIndex === null || (int) $row['rate'] > (int) $rows[$defaultIndex]['rate']) {
+                    $defaultIndex = $index;
+                }
+            }
+        }
+
+        $kept = [];
+
+        foreach ($rows as $index => $row) {
+            $rate = (int) $row['rate'];
+            $attributes = [
+                'rate' => $rate,
+                'name' => (string) $row['name'],
+                'is_default' => $index === $defaultIndex,
+            ];
+
+            $existing = isset($row['id']) && is_string($row['id'])
+                ? $this->taxRates()->whereKey($row['id'])->first()
+                : null;
+
+            $existing ??= $this->taxRates()->where('rate', $rate)->first();
+
+            if ($existing instanceof TaxRate) {
+                $existing->forceFill(['deactivated_at' => null])->fill($attributes)->save();
+                $kept[] = $existing->getKey();
+
+                continue;
+            }
+
+            $kept[] = $this->taxRates()->create($attributes)->getKey();
+        }
+
+        $dropped = $this->taxRates()
+            ->whereNotIn('id', $kept)
+            ->whereNull('deactivated_at')
+            ->get();
+
+        foreach ($dropped as $rate) {
+            $rate->deactivate();
+        }
+    }
+
+    /**
+     * Creates the company's Nummernkreis or updates it in place.
+     *
+     * The row is absent until this runs for the first time, which is what lets
+     * the Bereitschaftsprüfung report it missing. Lowering `next_value` after
+     * a draw is refused by the model, not here.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function configureNumberRange(array $attributes): NumberRange
+    {
+        $range = $this->numberRange()->first();
+
+        if ($range instanceof NumberRange) {
+            $range->fill($attributes)->save();
+
+            return $range;
+        }
+
+        return $this->numberRange()->create($attributes);
+    }
+
+    /**
+     * The three rates German law offers, given to every company on creation.
+     *
+     * Here rather than in a seeder because a company created through
+     * RegisterCompany must get them too, and no seeder runs on that path. The
+     * Nummernkreis is deliberately *not* seeded alongside them: the rates are a
+     * fact about the law that every company shares, while a prefix and a
+     * starting value are a choice only the owner can make.
+     */
+    private function seedTaxRates(): void
+    {
+        $seeds = [
+            ['rate' => 1900, 'key' => 'standard', 'is_default' => true],
+            ['rate' => 700, 'key' => 'reduced', 'is_default' => false],
+            ['rate' => 0, 'key' => 'exempt', 'is_default' => false],
+        ];
+
+        foreach ($seeds as $seed) {
+            $this->taxRates()->create([
+                'rate' => $seed['rate'],
+                'name' => (string) __("company.tax_rate.seed.{$seed['key']}"),
+                'is_default' => $seed['is_default'],
+            ]);
+        }
+    }
+
     protected static function booted(): void
     {
         // Set on create and never again: the slug is a stable public
         // identifier, and a rename must not break a bookmarked URL.
         static::creating(function (Company $company): void {
             $company->slug ??= self::uniqueSlugFrom((string) $company->name);
+        });
+
+        static::created(function (Company $company): void {
+            $company->seedTaxRates();
         });
     }
 
@@ -201,6 +384,7 @@ class Company extends Model
         return [
             'legal_form' => LegalForm::class,
             'vat_scheme' => VatScheme::class,
+            'payment_term' => PaymentTerm::class,
             'deactivated_at' => 'datetime',
         ];
     }

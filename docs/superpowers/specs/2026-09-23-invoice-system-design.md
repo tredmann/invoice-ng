@@ -184,6 +184,14 @@ prevented structurally.
   billing email, and a default payment term. The type is visible on the
   invoice.
 
+> **Corrected 2026-09-26.** The per-customer default payment term now exists:
+> `customers.payment_term` is nullable, and null means „use the company's",
+> resolved by `Customer::effectivePaymentTerm()` rather than copied, so a
+> company changing its default does not rewrite what an existing customer is
+> invoiced under. The Zahlungsziel itself is a `PaymentTerm` enum and the unit
+> list a `Unit` enum, not the tables §12 of the tech-stack spec listed — see
+> `docs/adr/0003-stammdatenlisten.md`. The logo is a path on its own disk.
+>
 > **Corrected 2026-09-25.** The customers wave built customers without the
 > default payment term: payment terms do not exist yet, and a per-customer
 > default arrives with them. Customer numbers are assigned per company on
@@ -338,6 +346,19 @@ A Mahnung is **not** an invoice and does not consume an invoice number.
 It has its own separate sequence. Placing reminders in the invoice
 sequence would leave permanent holes in the bookkeeping record.
 
+> **Built 2026-09-26.** The range and the draw exist; the document that would
+> carry a number does not. `number_ranges` holds one row per company — its own
+> table rather than columns on `companies`, because the row is locked for the
+> length of a PDF render and locking the company row would block the settings
+> page with it. `App\Actions\DrawNextNumber` does the locked
+> read-and-increment and **refuses to run outside a transaction**: outside one
+> the `FOR UPDATE` lock is released as the select returns, two concurrent draws
+> read the same value, and every single-threaded test still passes. The row is
+> absent until the settings tab is saved once, which is what lets the
+> Bereitschaftsprüfung report it missing. The Startwert may be set freely until
+> the first draw and only raised afterwards. See
+> `docs/superpowers/specs/2026-09-26-company-master-data-design.md` §5.
+
 > **Corrected 2026-09-26.** Four document types share the sequence, not three:
 > the **Gutschrift** joins it. The criterion this section already applies is
 > whether a document is an invoice within the meaning of §14 UStG, and a
@@ -374,6 +395,15 @@ Rounding happens per group — not per line, not at the end. This is what
 makes the PDF agree to the cent with the recipient's accounting software.
 
 Totals are stored on the document, not recomputed on display.
+
+> **Built 2026-09-26.** The rule is `App\Actions\CalculateTotals`, a pure unit
+> over `App\Money\{LineInput, TaxGroup, Totals}` with no Eloquent in it, and
+> `App\Casts\MoneyCast` casts a `bigint` of cents to a `Brick\Money\Money`.
+> Tax rates are `tax_rates` rows in **basis points** (1900 is 19 %), one default
+> per company enforced by a partial unique index. The Kleinunternehmer is
+> deliberately not a branch in the arithmetic: `Company::selectableTaxRates()`
+> is the single place the scheme is consulted, or the same Positionen would
+> total differently depending on who asked.
 
 ## 7. The e-Rechnung document
 
@@ -429,6 +459,20 @@ still a draft, error shown.
 Before the transaction opens, a **readiness check** runs on the company:
 number range, tax number, bank details, logo. Missing prerequisites are
 reported as a list, not raised as an exception halfway through issuing.
+
+> **Corrected and built 2026-09-26.** The list above is wrong in two ways. It
+> omits the **address** and the **register entry**, which §14 UStG and §35a
+> GmbHG require on the document and whose absence is exactly the hazard
+> `CLAUDE.md` records for a company created through registration. And it treats
+> its four items as equals, when two of them are not legally required at all: a
+> Rechnung without an IBAN is valid and awkward to pay, one without a logo is
+> valid and plain. `App\Actions\CheckReadiness` therefore **blocks** on the
+> address, a Steuernummer or USt-IdNr., the register entry of a registered legal
+> form, and a configured Nummernkreis — and only **warns** about the bank
+> details and the logo. A missing logo never stops an invoice.
+>
+> The check exists; nothing calls it before a transaction, because nothing
+> issues yet. Its only consumer today is the dashboard's „Erste Schritte" card.
 
 ### 8.2 Correct an invoice
 
@@ -697,6 +741,12 @@ coverage.
 | Deletion | Archive only; drafts deletable |
 | Scheduled price changes | Dropped |
 | Migration | None |
+| Tax rates | A per-company table in basis points; one default per company enforced by a partial unique index — added 2026-09-26 |
+| Payment terms and units | Enums, not tables: neither is data a user invents, and a Position references no master data — added 2026-09-26, see ADR 0003 |
+| Number range storage | Its own table, because the row is locked for the length of a PDF render — added 2026-09-26 |
+| Drawing a number | Refused outside a transaction; the Startwert is raise-only once anything has been drawn — added 2026-09-26 |
+| Readiness severities | Only what §14 UStG and §35a GmbHG require blocks; bank details and logo warn — added 2026-09-26, supersedes the §8.1 list |
+| Logo storage | Its own disk, separate from the frozen documents — added 2026-09-26 |
 | Customer number | Assigned per company on creation, never editable; gaps allowed — added 2026-09-25 |
 | Customer URL | Carries the customer number (`K-0004`), not the UUID; the UUID stays the key — added 2026-09-25, see §3.1 |
 | Ubiquitous language | German is canonical for domain terms, English for identifiers; the mapping is settled once in `CONTEXT.md` — added 2026-09-26 |

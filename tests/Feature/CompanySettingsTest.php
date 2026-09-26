@@ -2,11 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Actions\DrawNextNumber;
 use App\Enums\LegalForm;
+use App\Enums\PaymentTerm;
+use App\Enums\VatScheme;
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Models\Company;
+use App\Models\NumberRange;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\DB;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -288,4 +294,211 @@ it('never lets the slug be edited', function (): void {
         ->assertHasNoFormErrors();
 
     expect($company->fresh()?->slug)->toBe('acme-gmbh');
+});
+
+/**
+ * Signs in and makes $company the tenant, for the tabbed settings form.
+ *
+ * @return Testable<CompanySettings>
+ */
+function settingsFormFor(Company $company): Testable
+{
+    Livewire::actingAs(userOf([$company]));
+    Filament::setCurrentPanel('admin');
+    Filament::setTenant($company);
+
+    return Livewire::test(CompanySettings::class);
+}
+
+it('saves the Zahlungsziel from the bank tab', function (): void {
+    $company = Company::factory()->create();
+
+    settingsFormFor($company)
+        ->fillForm(['payment_term' => PaymentTerm::Net30->value])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($company->fresh()?->payment_term)->toBe(PaymentTerm::Net30);
+});
+
+it('creates the Nummernkreis the first time the tab is saved', function (): void {
+    // The row is absent until now — that is what lets the Bereitschaftsprüfung
+    // report it missing rather than always finding a default someone invented.
+    $company = Company::factory()->create();
+
+    expect($company->numberRange()->exists())->toBeFalse();
+
+    settingsFormFor($company)
+        ->fillForm([
+            'number_range' => [
+                'prefix' => 'AR-',
+                'padding' => 5,
+                'next_value' => 43,
+                'include_year' => false,
+                'reset_yearly' => false,
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $range = $company->fresh()?->numberRange()->sole();
+
+    expect($range?->prefix)->toBe('AR-')
+        ->and($range?->padding)->toBe(5)
+        ->and($range?->next_value)->toBe(43)
+        ->and($range?->nextNumber())->toBe('AR-00043');
+});
+
+it('previews the next number without drawing one', function (): void {
+    // A preview built by calling DrawNextNumber would look identical on screen
+    // and burn a Belegnummer on every page load.
+    $company = Company::factory()->create();
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 43, 'include_year' => false,
+    ]);
+
+    settingsFormFor($company)->assertSee('RE-0043');
+
+    $range = $company->numberRange()->sole();
+
+    expect($range->drawn_count)->toBe(0)
+        ->and($range->next_value)->toBe(43);
+});
+
+it('refuses to lower the Startwert once a number has been drawn', function (): void {
+    $company = Company::factory()->create();
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 100, 'include_year' => false,
+    ]);
+    DB::transaction(fn (): string => (new DrawNextNumber)($company));
+
+    settingsFormFor($company)
+        ->fillForm(['number_range' => [
+            'prefix' => 'RE-', 'padding' => 4, 'next_value' => 50,
+            'include_year' => false, 'reset_yearly' => true,
+        ]])
+        ->call('save')
+        ->assertHasFormErrors(['number_range.next_value']);
+
+    expect($company->numberRange()->sole()->next_value)->toBe(101);
+});
+
+it('still allows the Startwert to be raised after a draw', function (): void {
+    // One direction alone cannot tell "guarded" from "always refused".
+    $company = Company::factory()->create();
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 100, 'include_year' => false,
+    ]);
+    DB::transaction(fn (): string => (new DrawNextNumber)($company));
+
+    settingsFormFor($company)
+        ->fillForm(['number_range' => [
+            'prefix' => 'RE-', 'padding' => 4, 'next_value' => 5000,
+            'include_year' => false, 'reset_yearly' => true,
+        ]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($company->numberRange()->sole()->next_value)->toBe(5000);
+});
+
+it('edits the Steuersätze through the tax tab', function (): void {
+    $company = Company::factory()->create();
+    $standard = $company->taxRates()->where('rate', 1900)->sole();
+
+    settingsFormFor($company)
+        ->fillForm(['tax_rates' => [
+            ['id' => $standard->getKey(), 'rate' => '19', 'name' => 'Regelsatz', 'is_default' => false],
+            ['id' => null, 'rate' => '7,5', 'name' => 'Sondersatz', 'is_default' => true],
+        ]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $rates = $company->taxRates()->whereNull('deactivated_at')->orderByDesc('rate')->get();
+
+    expect($rates->pluck('rate')->all())->toBe([1900, 750])
+        ->and($rates->where('is_default', true)->pluck('rate')->all())->toBe([750]);
+});
+
+it('hides the Steuersätze from a Kleinunternehmer and says why', function (): void {
+    $company = Company::factory()->create(['vat_scheme' => VatScheme::SmallBusiness]);
+
+    settingsFormFor($company)
+        ->assertDontSee('Steuersatz hinzufügen')
+        ->assertSee('ohne USt-Block');
+});
+
+it('shows the Steuersätze to a company on the standard scheme', function (): void {
+    // The other direction: without it, a card hidden by a mistake in the
+    // visibility closure would look exactly like a card hidden on purpose.
+    $company = Company::factory()->create();
+
+    settingsFormFor($company)->assertSee('Steuersatz hinzufügen');
+});
+
+it('puts the only save action at the far right', function (): void {
+    /** @var TestCase $this */
+    // Filament's default is Alignment::Start, so this fails against a page that
+    // simply does not say — which is what it was doing. There is no cancel here
+    // to separate: the rule for a page that saves in place is one action, far
+    // right (.ai/guidelines/ui/core.blade.php).
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+
+    $html = (string) $this->actingAs(userOf([$company]))
+        ->get('/admin/acme-gmbh/settings')
+        ->assertOk()
+        ->getContent();
+
+    // Scoped to the action row: the page carries other aligned elements, and an
+    // unscoped search would pass on any of them.
+    $actions = (string) str($html)->after('form-actions');
+
+    expect($actions)->toContain('fi-align-end')
+        ->and($actions)->not->toContain('fi-align-start');
+});
+
+it('sets the next Belegnummer apart in its own box', function (): void {
+    /** @var TestCase $this */
+    // It is the one thing on the Nummernkreis tab that is an answer rather than
+    // a setting. A bare placeholder reads as another field's value.
+    $company = Company::factory()->create(['name' => 'Acme GmbH']);
+    NumberRange::factory()->for($company)->create([
+        'prefix' => 'RE-', 'padding' => 4, 'next_value' => 43, 'include_year' => false,
+    ]);
+
+    $html = (string) $this->actingAs(userOf([$company]))
+        ->get('/admin/acme-gmbh/settings')
+        ->assertOk()
+        ->getContent();
+
+    // The whole box in one assertion: a label and a value inside one
+    // app-number-preview element. Asserting the two separately would pass
+    // against a layout that put them in different places on the page.
+    expect($html)->toMatch(
+        '/<div class="app-number-preview">'
+        .'<span class="app-number-preview-label">Nächste Nummer<\/span>'
+        .'<span class="app-number-preview-value">RE-0043<\/span>'
+        .'<\/div>/u'
+    );
+
+    // And the classes have to resolve to something: there is no CSS build, so
+    // a class Filament does not ship is invisible unless panel-styles says so.
+    expect($html)->toContain('.app-number-preview-value');
+});
+
+it('puts the Handelsregister fields side by side', function (): void {
+    /** @var TestCase $this */
+    // The register card is the only two-column grid a GmbH has that a sole
+    // proprietorship does not, so the difference between the two pages is
+    // exactly that card. Stacking it again drops the count to match.
+    $gmbh = Company::factory()->create(['name' => 'Acme GmbH']);
+    $sole = Company::factory()->soleProprietorship()->create(['name' => 'Bea Weber']);
+
+    $withRegister = (string) $this->actingAs(userOf([$gmbh]))
+        ->get('/admin/acme-gmbh/settings')->assertOk()->getContent();
+    $withoutRegister = (string) $this->actingAs(userOf([$sole]))
+        ->get('/admin/bea-weber/settings')->assertOk()->getContent();
+
+    expect(substr_count($withRegister, '--cols-lg: repeat(2'))
+        ->toBe(substr_count($withoutRegister, '--cols-lg: repeat(2') + 1);
 });

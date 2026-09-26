@@ -33,5 +33,9 @@ it('shows the dashboard of the users company', function (): void {
     $this->actingAs($user)
         ->get('/admin/acme-gmbh')
         ->assertOk()
-        ->assertSee('Noch keine Inhalte.');
+        // The dashboard's own content, not just a 200: „Erste Schritte" is what
+        // an empty company dashboard shows since the Bereitschaftsprüfung
+        // landed, and a page that rendered the wrong tenant would not have it
+        // under this company's slug.
+        ->assertSee('Erste Schritte');
 });

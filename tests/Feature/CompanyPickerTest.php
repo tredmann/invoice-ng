@@ -187,7 +187,7 @@ it('shows the switcher in the top bar on /admin, listing the active companies', 
         ->toContain('href="'.url('/admin/new').'"')
         ->toContain('Neue Firma');
     expect($switcher)->not->toContain('Firmen verwalten');
-    expect($switcher)->not->toContain('Firmendaten');
+    expect($switcher)->not->toContain('Einstellungen');
 });
 
 it('shows the current company in the switcher inside a company, and lists it marked', function (): void {
@@ -246,7 +246,7 @@ it('never renders Filament company menu', function (): void {
     }
 });
 
-it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', function (): void {
+it('has no sidebar on /admin, and Dashboard and Einstellungen inside a company', function (): void {
     /** @var TestCase $this */
     $user = User::factory()->create();
     $user->companies()->attach(Company::factory()->create(['name' => 'Acme GmbH']));
@@ -258,7 +258,7 @@ it('has no sidebar on /admin, and Dashboard and Firmendaten inside a company', f
 
     expect($inside)->toContain('id="fi-main-sidebar"');
     expect($sidebar)->toContain('Dashboard')
-        ->toContain('Firmendaten')
+        ->toContain('Einstellungen')
         ->toContain('href="'.url('/admin/acme-gmbh/settings').'"');
 });
 
