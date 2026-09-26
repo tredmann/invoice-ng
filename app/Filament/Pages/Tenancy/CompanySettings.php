@@ -182,4 +182,14 @@ class CompanySettings extends EditTenantProfile
 
         return $value?->isRegistered() ?? false;
     }
+
+    /**
+     * The switcher in the top bar names the company, and the top bar does not
+     * re-render with the page. Without this a rename shows in the form and
+     * nowhere else until the next navigation.
+     */
+    protected function afterSave(): void
+    {
+        $this->dispatch('refresh-topbar');
+    }
 }
