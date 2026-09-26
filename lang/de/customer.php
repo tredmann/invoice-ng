@@ -59,10 +59,6 @@ return [
         'master' => 'Stammdaten',
         'address' => 'Rechnungsanschrift',
         'billing' => 'Rechnungsstellung',
-
-        // Still read by the infolist until it is rebuilt.
-        'customer' => 'Kunde',
-        'contact' => 'Kontakt',
     ],
 
     'help' => [

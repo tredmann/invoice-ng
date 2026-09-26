@@ -43,6 +43,13 @@ From the point of view of someone using it, rather than building it:
   and that number is its address: `/admin/acme-gmbh/customers/K-0004` always
   opens the same customer. One search box finds customers by number, name,
   email or city. A customer of one company never appears under another.
+- **A customer's page gathers what you know about them.** The header carries the
+  name, whether they are a Geschäftskunde or a Privatkunde, and the customer
+  number. Below it the master data sits in one card — billing address, contact
+  person, billing email, USt-IdNr. and the date the customer was added — then
+  three figures: revenue this year, open receivables, and how much of that is
+  overdue. **Those three read 0,00 € for now**: they are counted from invoices,
+  and invoicing is the next phase. The invoice list under them says so too.
 - **Customers are deactivated, never deleted.** A deactivated customer stays in
   the list, greyed and marked "Deaktiviert", keeps its page and its number, and
   can be reactivated from its ⋮ menu or its page.
