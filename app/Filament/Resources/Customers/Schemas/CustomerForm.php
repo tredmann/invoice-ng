@@ -17,7 +17,10 @@ class CustomerForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema->components([
+        // One column, explicitly: Filament gives a schema that declares none
+        // two of them, which would render the four cards 2x2 from 1024px up
+        // and squeeze PLZ into an eighth of the width. The board stacks them.
+        return $schema->columns(1)->components([
             // The type comes first and alone: it decides which fields the
             // sections below even render, so asking it last would move the
             // form under the answer.

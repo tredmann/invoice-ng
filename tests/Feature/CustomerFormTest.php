@@ -240,3 +240,17 @@ it('tells the user on the create page that the number comes on save', function (
         ->assertSee('Die Kundennummer wird beim Speichern vergeben.')
         ->assertSee('Kunde speichern');
 });
+
+it('stacks the form cards full width rather than two by two', function (): void {
+    /** @var TestCase $this */
+    // Same Filament default as the detail page: a schema that declares no
+    // columns of its own is given two, so from 1024px up the four cards
+    // render 2x2 and PLZ lands in about an eighth of the width. The board
+    // stacks them. The two-column grids inside the cards are Grid::make(3)
+    // and Grid::make(4) and are not counted here.
+    actInCompany(Company::factory()->create(['name' => 'Alpha GmbH']));
+
+    $html = (string) $this->get('/admin/alpha-gmbh/customers/create')->assertOk()->getContent();
+
+    expect(substr_count($html, '--cols-lg: repeat(2'))->toBe(0);
+});
