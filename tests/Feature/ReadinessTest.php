@@ -45,7 +45,10 @@ it('blocks a missing Steuernummer and USt-IdNr., but not one of the two', functi
 
     expect(keysOf(readinessOf($company->refresh())->blockers()))->toBe(['tax_identifier']);
 
-    $company->update(['vat_id' => 'DE123456789']);
+    // A checksum-valid number, not a plausible-looking one: since this check
+    // began asking whether an identifier is *usable*, `DE123456789` — which is
+    // what stood here — is correctly refused.
+    $company->update(['vat_id' => 'DE811907980']);
 
     expect(readinessOf($company->refresh())->canIssue())->toBeTrue();
 });

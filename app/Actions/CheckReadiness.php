@@ -8,6 +8,8 @@ use App\Company\Readiness;
 use App\Company\ReadinessItem;
 use App\Company\Severity;
 use App\Models\Company;
+use App\Rules\TaxNumber;
+use App\Rules\VatId;
 
 /**
  * The Bereitschaftsprüfung of system design §8.1.
@@ -33,11 +35,7 @@ final class CheckReadiness
                 $this->allPresent($company, ['street', 'postal_code', 'city']),
                 Severity::Blocking,
             ),
-            new ReadinessItem(
-                'tax_identifier',
-                $this->anyPresent($company, ['tax_number', 'vat_id']),
-                Severity::Blocking,
-            ),
+            $this->taxIdentifier($company),
         ];
 
         // Only asked of a legal form that has a register entry. An
@@ -72,10 +70,39 @@ final class CheckReadiness
     }
 
     /**
-     * @param  list<string>  $columns
+     * §14 Abs. 4 Nr. 2 UStG wants a Steuernummer **or** a USt-IdNr on every
+     * invoice. This asks for one that is actually usable, not merely for a
+     * field that is not blank.
+     *
+     * That distinction was learned from a real invoice. A company whose
+     * USt-IdNr read `iuoiuoi` passed this check, issued, froze the value into
+     * its Festschreibung and produced a ZUGFeRD file that fails BR-CO-09 —
+     * which nothing here could detect and nothing can now correct, because an
+     * issued Beleg is unveränderlich.
+     *
+     * **Every identifier that is present must be valid**, not just one of
+     * them: a valid Steuernummer does not rescue a document that also carries
+     * a malformed USt-IdNr, because both are printed and both go into the XML.
      */
-    private function anyPresent(Company $company, array $columns): bool
+    private function taxIdentifier(Company $company): ReadinessItem
     {
-        return array_any($columns, fn (string $column): bool => trim((string) $company->getAttribute($column)) !== '');
+        $taxNumber = $this->trimmed($company, 'tax_number');
+        $vatId = $this->trimmed($company, 'vat_id');
+
+        if ($taxNumber === null && $vatId === null) {
+            return new ReadinessItem('tax_identifier', false, Severity::Blocking);
+        }
+
+        $valid = ($taxNumber === null || TaxNumber::isValid($taxNumber))
+            && ($vatId === null || VatId::isValid($vatId));
+
+        return new ReadinessItem('tax_identifier', $valid, Severity::Blocking, 'invalid');
+    }
+
+    private function trimmed(Company $company, string $column): ?string
+    {
+        $value = trim((string) $company->getAttribute($column));
+
+        return $value === '' ? null : $value;
     }
 }

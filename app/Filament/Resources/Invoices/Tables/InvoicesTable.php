@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Invoices\Tables;
 
+use App\Enums\DocumentStatus;
 use App\Filament\Resources\Invoices\Actions\InvoiceActions;
 use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Models\Invoice;
@@ -16,6 +17,7 @@ use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -42,17 +44,29 @@ class InvoicesTable
                 TextColumn::make('status')
                     ->label(__('invoice.columns.status'))
                     ->badge(),
+                // Überfällig is derived, not a status (§3.5), so it is its own
+                // column rather than a sixth case in the enum — and it is blank
+                // on every row that is not late, which is most of them.
+                TextColumn::make('overdue')
+                    ->label('')
+                    ->badge()
+                    ->color('danger')
+                    ->state(fn (Invoice $record): ?string => $record->isOverdue()
+                        ? (string) __('invoice.view.overdue')
+                        : null),
                 TextColumn::make('customer.name')
                     ->label(__('invoice.columns.customer')),
                 TextColumn::make('issued_on')
                     ->label(__('invoice.columns.issued_on'))
                     ->date('d.m.Y')
                     ->sortable(),
-                // No Fälligkeitsdatum until a document is issued: it is the
-                // Ausstellungsdatum plus the Zahlungsziel, and the first half
-                // does not exist yet.
+                // Blank while a Beleg is a draft: the Fälligkeitsdatum is the
+                // Ausstellungsdatum plus the Zahlungsziel, and until the Beleg
+                // is issued the first half is only a proposal.
                 TextColumn::make('due_on')
                     ->label(__('invoice.columns.due_on'))
+                    ->date('d.m.Y')
+                    ->sortable()
                     ->placeholder(__('invoice.not_yet')),
                 TextColumn::make('total')
                     ->label(__('invoice.columns.total'))
@@ -61,6 +75,15 @@ class InvoicesTable
                     ->state(fn (Invoice $record): string => self::money($record)),
             ] : [])
             ->defaultSort('issued_on', 'desc')
+            // Earned now rather than reserved: §9 names finding overdue
+            // invoices as a task, and there is finally more than one status to
+            // filter by. A filter with a single option would have been
+            // furniture, which is why the drafts wave left it out.
+            ->filters($hasAny ? [
+                SelectFilter::make('status')
+                    ->label(__('invoice.columns.status'))
+                    ->options(DocumentStatus::class),
+            ] : [])
             ->searchable($hasAny)
             ->paginated($hasAny)
             ->searchUsing(fn (Builder $query, string $search) => self::applySearch($query, $search))
@@ -69,7 +92,11 @@ class InvoicesTable
                     ViewAction::make()
                         ->label(__('invoice.actions.open'))
                         ->icon(Heroicon::OutlinedArrowTopRightOnSquare),
-                    EditAction::make()->label(__('invoice.actions.edit')),
+                    EditAction::make()
+                        ->label(__('invoice.actions.edit'))
+                        ->visible(fn (Invoice $record): bool => $record->status->isDraft()),
+                    InvoiceActions::issue(),
+                    InvoiceActions::download(),
                     InvoiceActions::delete(),
                 ]),
             ])
@@ -95,9 +122,9 @@ class InvoicesTable
     }
 
     /**
-     * Over the Kunde and the Positionen's Bezeichnungen — the two things
-     * someone remembers about an invoice they cannot find. Not over the
-     * Belegnummer yet, because no document has one.
+     * Over the Belegnummer, the Kunde and the Positionen's Bezeichnungen — the
+     * three things someone remembers about an invoice they cannot find. The
+     * number joined the list when documents started having one.
      *
      * @param  Builder<Invoice>  $query
      */
@@ -106,14 +133,15 @@ class InvoicesTable
         $pattern = '%'.addcslashes(trim($search), '\\%_').'%';
 
         $query->where(function (Builder $query) use ($pattern): void {
-            $query->whereHas('customer', fn (Builder $customer) => $customer->where('name', 'ilike', $pattern))
+            $query->where('number', 'ilike', $pattern)
+                ->orWhereHas('customer', fn (Builder $customer) => $customer->where('name', 'ilike', $pattern))
                 ->orWhereHas('lineItems', fn (Builder $line) => $line->where('title', 'ilike', $pattern));
         });
     }
 
     private static function money(Invoice $invoice): string
     {
-        return Euro::format($invoice->totals()->gross);
+        return Euro::format($invoice->grossAmount());
     }
 
     private static function isSearching(HasTable $livewire): bool

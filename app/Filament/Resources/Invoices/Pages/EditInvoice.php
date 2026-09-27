@@ -20,6 +20,24 @@ class EditInvoice extends EditRecord
     protected static string $resource = InvoiceResource::class;
 
     /**
+     * An issued Beleg is not editable, and the page refuses rather than letting
+     * the form open and the model throw on save.
+     *
+     * §4 is enforced on the model, which is what makes it true for every
+     * writer. This is the screen saying the same thing early, so a bookmarked
+     * edit URL gives a 404 instead of a filled-in form that cannot be saved —
+     * and so `writeLineItems()` is never handed a document whose Positionen it
+     * may not touch.
+     */
+    #[\Override]
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        abort_unless($this->document()->status->isDraft(), 404);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

@@ -87,38 +87,89 @@ class InvoiceInfolist
             ['color' => $status->getColor(), 'label' => $status->getLabel()],
         );
 
+        if ($record->isOverdue()) {
+            $badge .= ' '.Blade::render(
+                '<x-filament::badge color="danger" size="sm">{{ $label }}</x-filament::badge>',
+                ['label' => __('invoice.view.overdue')],
+            );
+        }
+
         return new HtmlString(
             '<dl class="app-status">'
             .'<div><dt>'.e(__('invoice.view.status')).'</dt><dd>'.$badge.'</dd></div>'
             .'<div><dt>'.e(__('invoice.view.total')).'</dt>'
-            .'<dd class="app-status-amount">'.e(Euro::format($record->totals()->gross)).'</dd></div>'
-            // No Fälligkeitsdatum yet: it is the Ausstellungsdatum plus the
-            // Zahlungsziel, and the first half does not exist until the
-            // document is issued.
+            .'<dd class="app-status-amount">'.e(Euro::format($record->grossAmount())).'</dd></div>'
             .'<div><dt>'.e(__('invoice.view.due')).'</dt>'
-            .'<dd>'.e($record->payment_term->dueHint()).'</dd></div>'
+            // A draft has no Fälligkeitsdatum — it is the Ausstellungsdatum plus
+            // the Zahlungsziel, and the first half is only a proposal until the
+            // Beleg is issued. So it shows the Zahlungsziel until then and the
+            // date afterwards.
+            .'<dd>'.e($record->due_on === null
+                ? $record->payment_term->dueHint()
+                : __('invoice.view.due_on', ['date' => $record->due_on->format('d.m.Y')])).'</dd></div>'
             .'</dl>'
         );
     }
 
+    /**
+     * The Verlauf: the append-only AuditEntry rows, newest first, over the one
+     * derived „Erstellt" line.
+     *
+     * „Erstellt" stays derived from `created_at` rather than being written as an
+     * entry, because a draft is freely editable and is not part of the GoBD
+     * record — there is nothing to prove about when one was typed. The entries
+     * above it are written by the transactions that did the work.
+     */
     private static function historyBlock(Document $record): Htmlable
     {
-        return new HtmlString(
-            '<ul class="app-history"><li>'
-            .'<span class="app-history-dot"></span>'
+        $items = '';
+
+        foreach ($record->auditEntries as $entry) {
+            $detail = $entry->detail('number');
+
+            $items .= '<li><span class="app-history-dot"></span>'
+                .'<div><span class="app-history-event">'.e($entry->event->getLabel())
+                .(is_string($detail) ? ' · '.e(__('invoice.audit.number', ['number' => $detail])) : '')
+                .'</span>'
+                .'<span class="app-history-when">'.e($entry->occurred_at->translatedFormat('d.m.Y, H:i')).'</span>'
+                .'</div></li>';
+        }
+
+        $items .= '<li><span class="app-history-dot"></span>'
             .'<div><span class="app-history-event">'.e(__('invoice.view.created')).'</span>'
             .'<span class="app-history-when">'
             .e($record->created_at?->translatedFormat('d.m.Y, H:i') ?? '')
-            .'</span></div>'
-            .'</li></ul>'
-        );
+            .'</span></div></li>';
+
+        return new HtmlString('<ul class="app-history">'.$items.'</ul>');
     }
 
     /**
      * @return list<string>
      */
+    /**
+     * The Rechnungsempfänger, **from the Festschreibung once there is one**.
+     *
+     * Reading the live customer here would mean the detail page of an issued
+     * Beleg showed an address the PDF in the customer's hands does not, the day
+     * after they move. A draft has no frozen block, so it reads the customer —
+     * which is right, because a draft is a proposal and follows its Stammdaten.
+     *
+     * @return list<string>
+     */
     private static function recipient(Document $record): array
     {
+        $frozen = $record->frozen_block?->buyer;
+
+        if ($frozen !== null) {
+            return [
+                $frozen->name,
+                $frozen->street,
+                $frozen->postalCode.' '.$frozen->city,
+                __('invoice.view.customer_number', ['number' => $frozen->number]),
+            ];
+        }
+
         $customer = $record->customer;
 
         if (! $customer instanceof Customer) {

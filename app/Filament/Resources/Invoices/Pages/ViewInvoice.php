@@ -49,9 +49,23 @@ class ViewInvoice extends ViewRecord
         );
     }
 
+    /**
+     * The Rechnungsempfänger, from the Festschreibung once there is one.
+     *
+     * Reading the live customer would put a name on this page that the PDF in
+     * the customer's hands does not carry, the day after they rename themselves.
+     * A draft has no frozen block and follows its Stammdaten, which is right:
+     * a draft is a proposal.
+     */
     #[\Override]
     public function getSubheading(): string|Htmlable|null
     {
+        $frozen = $this->document()->frozen_block?->buyer->name;
+
+        if ($frozen !== null) {
+            return $frozen;
+        }
+
         $customer = $this->document()->customer;
 
         return $customer instanceof Customer ? $customer->name : null;
@@ -63,13 +77,19 @@ class ViewInvoice extends ViewRecord
     #[\Override]
     protected function getHeaderActions(): array
     {
+        // An issued Beleg offers neither Bearbeiten nor Löschen — both are
+        // refused by the model, and an action that always fails is worse than
+        // none. What it offers instead is the frozen file.
         return [
-            EditAction::make()->label(__('invoice.actions.edit')),
+            EditAction::make()
+                ->label(__('invoice.actions.edit'))
+                ->visible(fn (): bool => $this->document()->status->isDraft()),
             InvoiceActions::issue(),
+            InvoiceActions::download(),
             ActionGroup::make([
                 InvoiceActions::delete()
                     ->successRedirectUrl(fn (): string => InvoiceResource::getUrl('index')),
-            ]),
+            ])->visible(fn (): bool => $this->document()->status->isDraft()),
         ];
     }
 

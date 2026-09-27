@@ -77,7 +77,28 @@ return [
         'history' => 'Verlauf',
         'created' => 'Erstellt',
         'issue' => 'Rechnung ausstellen',
-        'issue_disabled' => 'Das Ausstellen ist noch nicht gebaut.',
+        'download' => 'PDF herunterladen',
+        'overdue' => 'Überfällig',
+        'due_on' => 'Fällig am :date',
+    ],
+
+    'issue' => [
+        'heading' => 'Rechnung ausstellen?',
+        'body' => 'Die Rechnung bekommt jetzt ihre Nummer und ein PDF. Danach lässt sich nichts mehr daran ändern und sie lässt sich nicht mehr löschen – ein Fehler kostet ein Storno.',
+        'confirm' => 'Ausstellen',
+        'done' => 'Rechnung :number ausgestellt.',
+        'failed' => 'Die Rechnung konnte nicht ausgestellt werden.',
+        'failed_body' => 'Es wurde keine Nummer vergeben; der Entwurf ist unverändert.',
+
+        'blocked_heading' => 'Noch nicht bereit',
+        'blocked_body' => 'Diese Angaben verlangt § 14 UStG auf jeder Rechnung. Ohne sie lässt sich keine ausstellen:',
+        'blocked_action' => 'Zu den Einstellungen',
+        'warnings_heading' => 'Empfohlen, aber kein Hindernis',
+    ],
+
+    'audit' => [
+        'issued' => 'Ausgestellt',
+        'number' => 'Nummer :number',
     ],
 
     'delete' => [

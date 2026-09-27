@@ -10,10 +10,17 @@ namespace App\Company;
  */
 final readonly class ReadinessItem
 {
+    /**
+     * @param  string  $reason  Which unsatisfied wording applies. „missing" is
+     *                          the usual one; an item that is present but wrong
+     *                          says so instead, because „fill this in" is bad
+     *                          advice for a field that is already filled in.
+     */
     public function __construct(
         public string $key,
         public bool $satisfied,
         public Severity $severity,
+        public string $reason = 'missing',
     ) {}
 
     public function label(): string
@@ -28,7 +35,7 @@ final readonly class ReadinessItem
      */
     public function hint(): string
     {
-        return (string) __("company.readiness.{$this->key}.".($this->satisfied ? 'ok' : 'missing'));
+        return (string) __("company.readiness.{$this->key}.".($this->satisfied ? 'ok' : $this->reason));
     }
 
     public function blocks(): bool

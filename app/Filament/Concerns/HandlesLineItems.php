@@ -48,7 +48,15 @@ trait HandlesLineItems
      */
     protected function writeLineItems(Document $document): void
     {
-        LineItem::query()->where('document_id', $document->getKey())->delete();
+        // Deleted one model at a time rather than with a mass delete.
+        //
+        // A mass delete fires no model events, so `LineItem`'s guard never saw
+        // it — which meant this method could wipe the Positionen of an issued
+        // Beleg while the guard that exists to forbid exactly that stood by.
+        // Nothing reached it, because the edit page refuses a non-draft, but
+        // the hole was real and it was the only writer relying on a guard it
+        // bypassed. Slower by one query per Position, on drafts only.
+        $document->lineItems()->get()->each->delete();
 
         foreach ($this->lineItemState as $index => $row) {
             $document->lineItems()->create([

@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\CustomerType;
 use App\Models\Company;
 use App\Models\Customer;
+use App\Rules\VatId;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -25,7 +26,7 @@ class CustomerFactory extends Factory
             'type' => CustomerType::Business,
             'name' => fake()->unique()->company(),
             'contact_person' => fake()->name(),
-            'vat_id' => 'DE'.fake()->numerify('#########'),
+            'vat_id' => VatId::germanFor(fake()->numerify('########')),
             'street' => fake()->streetAddress(),
             'postal_code' => fake()->numerify('#####'),
             'city' => fake()->city(),

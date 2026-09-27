@@ -202,7 +202,7 @@ it('clears contact person and vat id when the form switches a Geschäftskunde to
     $company = Company::factory()->create();
     $customer = Customer::factory()->for($company)->create([
         'contact_person' => 'Sofia Kraus',
-        'vat_id' => 'DE123456789',
+        'vat_id' => 'DE811907980',
     ]);
     actInCompany($company);
 

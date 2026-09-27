@@ -84,7 +84,7 @@ it('clears the business-only fields when a customer becomes a private person', f
     $company = Company::factory()->create();
     $switched = Customer::factory()->for($company)->create([
         'contact_person' => 'Sofia Kraus',
-        'vat_id' => 'DE123456789',
+        'vat_id' => 'DE811907980',
     ]);
     $kept = Customer::factory()->for($company)->create([
         'contact_person' => 'Markus Brenner',
