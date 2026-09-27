@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DocumentStatus;
+use App\Enums\DocumentType;
 use App\Enums\PaymentTerm;
 use App\Enums\Unit;
 use App\Models\Company;
@@ -251,4 +252,82 @@ it('never calls a draft or a cancelled Beleg overdue', function (): void {
         // Due today is not yet late: the Zahlungsziel runs to the end of the day.
         ->and($onTime->isOverdue())->toBeFalse()
         ->and($cancelled->fresh()?->isOverdue())->toBeFalse();
+});
+
+it('has a scope that agrees with isOverdue() on every status and every Fälligkeitsdatum', function (): void {
+    // isOverdue()'s docblock says the definition is centralised so the list,
+    // the detail page and the Kennzahlen cannot disagree. The dashboard needs
+    // it over a *set*, which a PHP predicate cannot filter — so there is now a
+    // second expression of the rule, in SQL, and this test is what
+    // „centralised" means from here on.
+    //
+    // The matrix is generated from DocumentStatus::cases(), so a sixth status
+    // handled on only one side turns this red without anyone remembering to
+    // extend it.
+    $company = Company::factory()->create();
+
+    $dates = [null, today()->subDay(), today(), today()->addDay()];
+
+    $expected = [];
+
+    foreach (DocumentStatus::cases() as $status) {
+        foreach ($dates as $due) {
+            $invoice = Invoice::factory()->for($company)->create([
+                'status' => $status,
+                'due_on' => $due,
+            ]);
+
+            if ($invoice->isOverdue()) {
+                $expected[] = $invoice->getKey();
+            }
+        }
+    }
+
+    sort($expected);
+
+    $fromSql = $company->documents()->whereOverdue()->pluck('id')->sort()->values()->all();
+
+    expect($fromSql)->toBe($expected)
+        // Both sides returning nothing would make the comparison vacuous —
+        // which is how this repo has shipped four tests that could not fail.
+        ->and($expected)->not->toBeEmpty();
+});
+
+it('has decided for every Belegart whether its Betrag is Umsatz', function (): void {
+    // ADR 0002: a Gutschrift shares the Nummernkreis and the table, so to a
+    // query that sums over it it looks exactly like a Rechnung — and its
+    // Betrag is Aufwand, not Umsatz. Registering one in $childTypes without
+    // deciding here would silently add it to every revenue figure. This makes
+    // that omission a failing test instead.
+    $registered = array_keys((new Document)->getChildTypes());
+    $decided = array_map(fn (DocumentType $type): string => $type->value, DocumentType::cases());
+
+    sort($registered);
+    sort($decided);
+
+    expect($decided)->toBe($registered);
+});
+
+it('counts the days a Beleg has been überfällig, and none when it is not', function (): void {
+    $company = Company::factory()->create();
+
+    $overdue = Invoice::factory()->for($company)->create([
+        'status' => DocumentStatus::Issued,
+        'due_on' => today()->subDays(7),
+    ]);
+
+    $onTime = Invoice::factory()->for($company)->create([
+        'status' => DocumentStatus::Issued,
+        'due_on' => today()->addDays(3),
+    ]);
+
+    // Past its date, but erledigt — so no „seit N Tagen" beside it.
+    $cancelled = Invoice::factory()->for($company)->create([
+        'status' => DocumentStatus::Cancelled,
+        'due_on' => today()->subDays(30),
+    ]);
+
+    expect($overdue->daysOverdue())->toBe(7)
+        ->and($onTime->daysOverdue())->toBe(0)
+        ->and($cancelled->daysOverdue())->toBe(0);
 });

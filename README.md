@@ -2,6 +2,8 @@
 
 A multi-company German invoicing application, built on Laravel 13 and Filament 5.
 
+![Die Übersicht einer Firma: vier Kacheln mit Umsatz des Monats und des Jahres, offenen Forderungen und Überfälligem; darunter der Umsatzverlauf der letzten zwölf Monate, die Entwürfe, die auf ihre Ausstellung warten, und die am längsten überfälligen Rechnungen.](docs/screenshots/dashboard.png)
+
 ## What it does today
 
 From the point of view of someone using it, rather than building it:
@@ -60,12 +62,21 @@ From the point of view of someone using it, rather than building it:
   value can only be raised, never lowered, so nothing already sent to a customer
   can be handed out twice. The prefix prints on every document drawn from the
   range — a Storno and a Gutschrift included, not just Rechnungen.
-- **The dashboard says what is still missing.** Instead of an empty screen, a
-  company shows three first steps. The first is the honest one: it lists what
-  §14 UStG still wants before an invoice can be issued — address, Steuernummer
-  or USt-IdNr., the register entry of a GmbH or UG, and the number range — and
-  separately what is merely recommended, like the bank details and the logo.
-  A missing logo never stops an invoice.
+- **The dashboard says what is still missing — until there is something to
+  show.** A company that has not invoiced yet shows three first steps. The first
+  is the honest one: it lists what §14 UStG still wants before an invoice can be
+  issued — address, Steuernummer or USt-IdNr., the register entry of a GmbH or
+  UG, and the number range — and separately what is merely recommended, like the
+  bank details and the logo. A missing logo never stops an invoice.
+- **From the first issued invoice, the dashboard shows the figures.** Umsatz
+  this month with how it compares to last month, Umsatz for the year, what is
+  still outstanding and what of it is overdue; a bar of the last twelve months;
+  the drafts still waiting to be issued; and the invoices that are overdue the
+  longest, each with how many days it has been. Umsatz is net — VAT collected is
+  not income — while the receivables are gross, because that is what the
+  customer owes; the tiles say which is which. A company that issued and then
+  cancelled everything keeps the figures, at zero, rather than being sent back
+  to the first steps.
 - **Customers, kept per company.** Under Kunden, each company keeps its own
   customers — a Geschäftskunde, with an optional contact person and USt-IdNr.,
   or a Privatkunde — with billing address and billing email. Every new customer
@@ -130,9 +141,11 @@ From the point of view of someone using it, rather than building it:
 - **A Verlauf on every invoice.** The invoice's page records when it was created
   and when it was issued, with its number. Those entries are append-only —
   nothing in the application can change or remove one.
-- **Drafts are counted nowhere**: the customer's revenue and open receivables
-  still read 0,00 €, because a draft is not revenue — and because those figures
-  wait for payments, which are not built yet.
+- **Drafts are counted as work, not as revenue.** A draft never reaches Umsatz
+  or the open receivables — it is not an invoice yet — but the dashboard lists
+  the newest ones as what is still waiting to be issued, with the amount its
+  Positionen come to. The *customer* page's three figures still read 0,00 €;
+  they arrive with payments.
 - **Only a customer of this company, and only an active one.** The picker
   offers the company's own customers, deactivated ones excluded — except on a
   draft that already names one, which keeps its recipient. A Kleinunternehmer
@@ -149,11 +162,17 @@ From the point of view of someone using it, rather than building it:
 
 ### Not built yet
 
-**Sending an invoice by email**, recording **payments** (and with them the open
-amount, the „bezahlt" status and the dashboard's and customer's figures),
-**Storno** and **Teilstorno**, **Gutschriften** over a Vermittlungsprovision,
-**Mahnungen**, recurring invoices, and the period export for the tax advisor.
-The E-Mail tab in the settings is not built either.
+**Sending an invoice by email**, recording **payments** (and with them the
+„bezahlt" status and the customer page's figures), **Storno** and **Teilstorno**,
+**Gutschriften** over a Vermittlungsprovision, **Mahnungen**, recurring invoices,
+and the period export for the tax advisor. The E-Mail tab in the settings is not
+built either.
+
+Because no payment can be recorded yet, the dashboard's „Offene Forderungen"
+counts every issued invoice as still open, and „Überfällig" every one past its
+due date. That is the truth today rather than an estimate — nothing in the
+application can mark an invoice paid — and both figures correct themselves once
+payments exist, without the screen changing.
 
 An invoice that is wrong therefore cannot yet be taken back: issuing is
 final, and the Storno that would undo it belongs to the next wave. The PDF can

@@ -115,6 +115,32 @@ When a choice is genuinely balanced, take the plainer one. It is much cheaper to
 add an affordance someone asked for than to remove one they have started relying
 on.
 
+## Spacing comes from one of two places, never from Tailwind
+
+Filament 5's shipped `public/css/filament/filament/app.css` holds **861 `.fi-*`
+classes and no Tailwind utilities** — `gap-6`, `p-5`, `text-sm` and `rounded-xl`
+are all absent, and there is no build to generate them. A utility class in a
+Blade view does nothing, and says nothing while doing it.
+
+So a screen's spacing is either a Filament schema component's own rhythm or a
+hand-written `.app-*` rule in `resources/views/filament/panel-styles.blade.php`,
+on Filament's CSS variables, with a `.dark` counterpart.
+
+Two Filament details make an override match nothing, silently — both cost a
+wave each to find:
+
+- **`extraAttributes()` on a `Section` lands on a wrapper *around*
+  `.fi-section`**, not on it. Overriding a section's padding needs
+  `.app-card > .fi-section > .fi-section-header`, not `.app-card > .fi-section-header`.
+- **A Section with a header draws a rule above its content**
+  (`.fi-section-has-header > .fi-section-content-ctn`), and its header and
+  content carry separate padding — 16 + 24 between a description and the
+  content where a design usually draws 16.
+
+Neither shows up in a test. **A page built from a design gets looked at, in both
+themes and at phone width, before it is called done.** Measure the design rather
+than estimating it; guessing is what produces a screen that is nearly right.
+
 === foundation rules ===
 
 # Laravel Boost Guidelines

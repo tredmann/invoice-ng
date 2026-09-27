@@ -35,12 +35,11 @@ return [
         'subheading' => 'Kundennr. :number',
     ],
 
+    // Die Beschriftungen der drei Kacheln stehen in lang/de/dashboard.php:
+    // es sind dieselben Kacheln wie auf der Übersicht. Hier bleibt nur der
+    // Platzhalterbetrag, den die Kundenseite zeigt, solange sie noch nicht
+    // rechnet.
     'stats' => [
-        'revenue' => 'Umsatz :year',
-        'revenue_since' => 'seit 01.01.:year',
-        'open' => 'Offene Forderungen',
-        'overdue' => 'Überfällig',
-        'invoice_count' => '{0}0 Rechnungen|{1}1 Rechnung|[2,*]:count Rechnungen',
         'zero' => '0,00 €',
     ],
 

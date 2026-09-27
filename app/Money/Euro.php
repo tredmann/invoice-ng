@@ -20,4 +20,18 @@ final class Euro
     {
         return $money->formatToLocale('de_DE');
     }
+
+    /**
+     * A raw SQL sum of cents, as Money.
+     *
+     * `SUM()` over a bigint comes back from pdo_pgsql as a numeric *string*,
+     * and over no rows at all as NULL — neither of which `MoneyCast` will
+     * accept, since it refuses anything but a Money. So every aggregate in the
+     * Kennzahlen comes through here, and „no Belege" is 0,00 € rather than an
+     * error.
+     */
+    public static function fromMinor(int|string|null $cents): Money
+    {
+        return Money::ofMinor($cents ?? 0, 'EUR');
+    }
 }
