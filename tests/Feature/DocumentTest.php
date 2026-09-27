@@ -182,3 +182,73 @@ it('totals from the Positionen already loaded, without asking again', function (
 
     expect(DB::getQueryLog())->toBe([]);
 });
+
+it('stores the issued totals as bigint cents and the Festschreibung as jsonb', function (): void {
+    // The column types, not the casts. A numeric or double column would let the
+    // arithmetic brick/money is here to prevent back in through the database,
+    // and a json column rather than jsonb would cost an index nothing can build.
+    $types = DB::select(
+        'select column_name, data_type from information_schema.columns
+         where table_name = ? and column_name in (?, ?, ?, ?, ?)',
+        ['documents', 'net_total', 'tax_total', 'gross_total', 'frozen_block', 'number']
+    );
+
+    $byColumn = array_column(array_map(fn (object $row): array => (array) $row, $types), 'data_type', 'column_name');
+
+    // toEqual, not toBe: information_schema returns rows in ordinal order and
+    // `number` was re-added after `status`, so the order here is not the order
+    // the assertion reads in.
+    expect($byColumn)->toEqual([
+        'number' => 'character varying',
+        'net_total' => 'bigint',
+        'tax_total' => 'bigint',
+        'gross_total' => 'bigint',
+        'frozen_block' => 'jsonb',
+    ]);
+});
+
+it('reads the Bruttobetrag from the stored column once issued, and from the Positionen while a draft', function (): void {
+    // grossAmount() has two sources and they must agree, because Positionen are
+    // immutable after issue. "Must" is a claim about code that can change, so
+    // this is the test that holds it.
+    $invoice = Invoice::factory()->create();
+    LineItem::factory()->for($invoice, 'document')->create([
+        'quantity' => '2',
+        'unit_price' => Money::of('95.00', 'EUR'),
+        'tax_rate' => 1900,
+    ]);
+
+    $draft = $invoice->load('lineItems');
+
+    expect((string) $draft->grossAmount()->getAmount())->toBe('226.10')
+        ->and($draft->gross_total)->toBeNull();
+
+    $draft->forceFill([
+        'status' => DocumentStatus::Issued,
+        'number' => 'RE-2026-0001',
+        'gross_total' => $draft->totals()->gross,
+    ])->save();
+
+    $issued = $draft->fresh()?->load('lineItems');
+
+    expect((string) $issued?->grossAmount()->getAmount())->toBe('226.10')
+        ->and((string) $issued?->gross_total?->getAmount())->toBe('226.10');
+});
+
+it('never calls a draft or a cancelled Beleg overdue', function (): void {
+    // Überfällig is derived (§3.5). A draft has no Fälligkeitsdatum at all, and
+    // a cancelled Beleg is erledigt rather than late — both would otherwise read
+    // as overdue the moment their date passed.
+    $draft = Invoice::factory()->create();
+    $issued = Invoice::factory()->issued()->create(['due_on' => today()->subDay()]);
+    $onTime = Invoice::factory()->issued()->create(['due_on' => today()]);
+
+    $cancelled = Invoice::factory()->issued()->create(['due_on' => today()->subDay()]);
+    $cancelled->forceFill(['status' => DocumentStatus::Cancelled])->save();
+
+    expect($draft->isOverdue())->toBeFalse()
+        ->and($issued->isOverdue())->toBeTrue()
+        // Due today is not yet late: the Zahlungsziel runs to the end of the day.
+        ->and($onTime->isOverdue())->toBeFalse()
+        ->and($cancelled->fresh()?->isOverdue())->toBeFalse();
+});

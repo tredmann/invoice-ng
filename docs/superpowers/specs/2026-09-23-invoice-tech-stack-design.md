@@ -283,6 +283,23 @@ issue transaction.
 Neither the compliance metadata nor the XML structure is code written
 here.
 
+> **Built 2026-09-28, with one setting this sequence does not mention and
+> cannot work without.** Step 5 parses the output of step 2 with FPDI's free
+> parser, which **refuses a compressed cross-reference stream** — what
+> WeasyPrint writes from PDF 1.5 on. `config/laravel-pdf.php` therefore forces
+> `pdf-version` to 1.4, which emits a classic xref table; the delivered file
+> carries whatever version the ZUGFeRD merge writes. Without it every
+> Ausstellvorgang dies at step 5 with a `CrossReferenceException`, and nothing
+> is wrong with the rendered page.
+>
+> Step 2 returns bytes rather than a file: the file is written once, at step 6,
+> and a render that produced one would leave litter on every rollback. The disk
+> in step 6 is `config('invoice.documents_disk')`, which is `local` in
+> development — Spaces is a deployment concern.
+>
+> The two halves live in `app/Pdf` as §12 asks: `RenderInvoicePdf` and
+> `AttachZugferdXml`. The XML build and its validation are `app/Zugferd`.
+
 ### 7.2 Ordering against the transaction
 
 Object storage is not transactional, so the order is deliberate:
@@ -395,6 +412,24 @@ cannot run per invoice:
   business rules the XSD cannot express. It is a **Java** tool, so it runs
   as a CI job and never enters the production image.
 
+> **Corrected and built 2026-09-28.** The second level needs neither Java nor
+> CI, and there is no CI in this repository to put it in.
+>
+> `horstoeko/zugferd` already ships the official EN16931 Schematron compiled to
+> XSLT. It cannot run through PHP's `XSLTProcessor` — the stylesheet is XSLT
+> **2.0** and libxml implements 1.0 — but **SaxonC-HE** (`saxonche`, pip) is an
+> XSLT 3.0 processor with no JVM, and the image already runs Python for
+> WeasyPrint. One pinned pip line and a 40-line script buy the official verdict,
+> run from `tests/Feature/SchematronTest` over the golden fixtures of §11.4.
+>
+> It is still test infrastructure, for the reason this section gives: a second
+> process over a 2.0 stylesheet is far too heavy to run while the Nummernkreis
+> is locked.
+>
+> **What this does not replace** is the KoSIT validator's other half: whether
+> the container is a *conforming* PDF/A-3. That needs veraPDF or KoSIT proper,
+> and remains unchecked — recorded in `CLAUDE.md`.
+
 ### 10.3 Deliberately excluded
 
 | Not used | Why |
@@ -455,7 +490,7 @@ protects the guarantee.
 
 ### 11.4 Golden fixtures for e-Rechnung
 
-The KoSIT validator job runs against a fixed set of generated documents:
+The Schematron run (§10.2) goes over a fixed set of generated documents:
 
 - An invoice mixing 19% and 7%
 - A Kleinunternehmer invoice at 0%
@@ -464,6 +499,14 @@ The KoSIT validator job runs against a fixed set of generated documents:
 
 When the validator or the standard changes, that job reports it before a
 customer's software does.
+
+> **Built 2026-09-28**, minus the two whose Belegarten do not exist yet. In
+> their place stand three cases this list did not anticipate and that turned out
+> to matter: a fractional quantity, a **Leistungszeitraum** rather than a
+> Leistungsdatum, and an invoice with no bank details. The period case is the
+> one that earned the whole exercise — it violated two published rules
+> (BR-FX-EN-04 and PEPPOL-EN16931-R008) that the XSD passed and that no
+> assertion written here would have thought to make.
 
 ### 11.5 Rounding
 
@@ -524,9 +567,22 @@ Plain Laravel layout. No `src/`, no modules, no DDD folder structure.
   `IssueDocument`, `CorrectInvoice`, `CreditInvoice`, `DrawNextNumber`,
   `RecordPayment`, `SendDocument`, `DuplicateDocument`. Plain classes, no
   package. `DrawNextNumber`, `CalculateTotals` and `CheckReadiness` exist as of
-  2026-09-26; the rest arrive with the documents.
+  2026-09-26; `IssueDocument` joined them 2026-09-28; the rest arrive with the
+  documents they operate on.
+
+  > **Named for the Belegart they produce, not for a verb that means something
+  > else.** `CorrectInvoice` and `CreditInvoice` above predate the ubiquitous
+  > language: §8.2 is **stornieren**, and §8.3 simply drafts a
+  > `PartialCancellation` and issues it like any other Beleg. See ADR 0001.
 - **`app/Pdf`** — the WeasyPrint render step and the horstoeko assembly
-  step, separately, so each is testable alone
+  step, separately, so each is testable alone: `RenderInvoicePdf` and
+  `AttachZugferdXml` as of 2026-09-28.
+- **`app/Zugferd`** — the EN16931 mapping, its XSD validation and the
+  Schematron runner. Added 2026-09-28, beside `app/Pdf` rather than inside it:
+  what goes in the XML is a question about this domain, and how it ends up
+  inside a PDF/A-3 is a question about file formats.
+- **`app/Documents`** — the `FrozenBlock` value objects, alongside `app/Money`
+  and `app/Company`. Added 2026-09-28.
 - **`app/Filament`** — resources and pages
 
 `app/Actions` is where the feature design's "issue is one named

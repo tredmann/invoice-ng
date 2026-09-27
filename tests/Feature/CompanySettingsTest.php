@@ -251,7 +251,7 @@ it('accepts a company with only a vat id', function (): void {
     Filament::setTenant($company);
 
     Livewire::test(CompanySettings::class)
-        ->fillForm(['tax_number' => '', 'vat_id' => 'DE123456789'])
+        ->fillForm(['tax_number' => '', 'vat_id' => 'DE811907980'])
         ->call('save')
         ->assertHasNoFormErrors();
 

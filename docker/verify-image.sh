@@ -23,6 +23,14 @@ docker compose run --rm --no-deps --entrypoint sh app -c '
   weasyprint --version || { echo "FAIL: weasyprint not runnable"; exit 1; }
   composer --version >/dev/null || { echo "FAIL: composer not runnable"; exit 1; }
   echo "ok: weasyprint and composer"
+
+  # SaxonC-HE runs the official EN16931 Schematron, which ships as XSLT 2.0 and
+  # therefore cannot go through PHPs libxslt. Without it the golden-fixture
+  # tests cannot tell a conforming document from a broken one, and the whole
+  # point of them is that their verdict is not ours.
+  python3 -c "from saxonche import PySaxonProcessor; PySaxonProcessor(license=False)" \
+    || { echo "FAIL: saxonche not importable"; exit 1; }
+  echo "ok: saxonche"
 '
 
-echo "PASS: image has the required toolchain (PHP, extensions, weasyprint, composer)"
+echo "PASS: image has the required toolchain (PHP, extensions, weasyprint, saxonche, composer)"

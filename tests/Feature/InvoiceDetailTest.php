@@ -126,17 +126,16 @@ it('labels a single Leistungsdatum as one', function (): void {
         ->assertDontSee('Leistungszeitraum');
 });
 
-it('offers Ausstellen as something that is not ready', function (): void {
+it('offers Ausstellen on a draft of a company that is ready', function (): void {
     /** @var TestCase $this */
-    $company = Company::factory()->create();
+    $company = issuableCompany();
     $invoice = mockupInvoice($company);
     $user = actInCompany($company);
 
     $this->actingAs($user)
         ->get(InvoiceResource::getUrl('view', ['record' => $invoice]))
         ->assertOk()
-        ->assertSee('Rechnung ausstellen')
-        ->assertSee('Das Ausstellen ist noch nicht gebaut.');
+        ->assertSee('Rechnung ausstellen');
 });
 
 it('deletes a draft and its Positionen from the detail page', function (): void {

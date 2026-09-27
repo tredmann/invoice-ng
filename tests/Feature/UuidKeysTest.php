@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\AuditEntry;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -148,4 +149,24 @@ it('generates version 7 uuids for documents and line items', function (): void {
 
     expect($invoice->getKey()[14])->toBe('7')
         ->and($line->getKey()[14])->toBe('7');
+});
+
+it('gives audit entries a uuid key and uuid foreign keys', function (): void {
+    $columns = DB::select(
+        'select column_name, data_type from information_schema.columns
+         where table_name = ? and column_name in (?, ?, ?)',
+        ['audit_entries', 'id', 'document_id', 'actor_id']
+    );
+
+    expect($columns)->toHaveCount(3);
+
+    foreach ($columns as $column) {
+        expect($column->data_type)->toBe('uuid');
+    }
+});
+
+it('generates version 7 uuids for audit entries', function (): void {
+    $entry = AuditEntry::factory()->create();
+
+    expect($entry->getKey()[14])->toBe('7');
 });

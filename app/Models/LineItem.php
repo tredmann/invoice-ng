@@ -81,6 +81,23 @@ class LineItem extends Model
     }
 
     /**
+     * The Position's Nettobetrag: §6 step 1, quantity × Einzelpreis rounded to
+     * the cent.
+     *
+     * Here rather than in the template that prints it, because it is the same
+     * arithmetic CalculateTotals performs on the way to the Bemessungsgrundlage
+     * — and a second copy of it in Blade could round differently without
+     * anything summing to a wrong total.
+     */
+    public function net(): Money
+    {
+        // Cast to string first: `decimal:3` is a string at runtime, and
+        // brick/math refuses a float outright rather than rounding it
+        // silently. Document::totals() does the same for the same reason.
+        return $this->unit_price->multipliedBy((string) $this->quantity, RoundingMode::HalfUp);
+    }
+
+    /**
      * @return BelongsTo<Document, $this>
      */
     public function document(): BelongsTo

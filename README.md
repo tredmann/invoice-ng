@@ -78,8 +78,8 @@ From the point of view of someone using it, rather than building it:
   number. Below it the master data sits in one card — billing address, contact
   person, billing email, USt-IdNr. and the date the customer was added — then
   three figures: revenue this year, open receivables, and how much of that is
-  overdue. **Those three read 0,00 € for now**: they are counted from invoices,
-  and invoicing is the next phase. The invoice list under them says so too.
+  overdue. **Those three still read 0,00 €**: two of them count payments, and
+  recording a payment is not built yet.
 - **Rechnungen, as drafts.** Under Rechnungen a company writes an invoice:
   pick the customer, the Rechnungsdatum, the Zahlungsziel and the Leistung,
   then type the Positionen — Bezeichnung, Menge, Einheit, Einzelpreis and
@@ -87,13 +87,52 @@ From the point of view of someone using it, rather than building it:
   Gesamtbetrag adding up under the rows as you go. The list shows every
   invoice with its customer, date and amount, and finds one by the customer or
   by what is written on it.
-- **A draft stays a draft.** **Nothing can be issued yet**, so an invoice has
-  no number, no due date and no PDF, and the list shows „—" where those will
-  go. A draft is freely editable and can be deleted outright; once issuing
-  exists, only its status will still be allowed to change and deleting will be
-  refused — the application already enforces that, it simply has nothing to
-  enforce it on. Drafts are counted nowhere: the customer's revenue and open
-  receivables still read 0,00 €, because a draft is not revenue.
+- **A draft stays a draft until you issue it.** An invoice has no number, no
+  due date and no PDF while it is an Entwurf, and the list shows „—" where
+  those will go. A draft is freely editable and can be deleted outright.
+- **Ausstellen, in one step that either happens or does not.** „Rechnung
+  ausstellen" first checks the company: if the address, the Steuernummer, the
+  Handelsregister entry or the Nummernkreis is missing, it says which and links
+  you to the settings instead of offering a button that would fail. A missing
+  logo or IBAN is named as a recommendation and stops nothing. When it goes
+  ahead, the invoice gets its number, the due date, and a PDF — and from then
+  on nothing about it can be changed and it cannot be deleted. If anything
+  goes wrong along the way, no number is used up and the draft is exactly as
+  it was.
+- **Your tax numbers are checked as you type them.** A USt-IdNr. has to start
+  with a country code and, for a German one, carry the right check digit — so a
+  transposed pair copied off a letterhead is caught at the settings page rather
+  than by your customer's accounting software weeks later. The Steuernummer is
+  checked for shape and length. The same check applies to a customer's USt-IdNr.
+  A company whose numbers are not usable is told so on the dashboard and cannot
+  issue: those values print on every invoice and are frozen the moment one goes
+  out, so a wrong one cannot be corrected afterwards.
+- **The PDF is an e-Rechnung, and it is written once.** Every issued invoice is
+  a ZUGFeRD file: a page a person reads, with the machine-readable EN16931
+  invoice data inside the same file, so the recipient's accounting software can
+  book it without anyone retyping it. It is generated at the moment of issuing
+  and served from storage forever after — change your logo or your address next
+  year and last year's invoices still look exactly as your customers received
+  them. Download it from the invoice's page.
+- **The number can never repeat or skip.** Numbers are handed out one at a time
+  under a lock, inside the same operation that writes the document, so two
+  invoices issued at the same second get consecutive numbers and a failure
+  hands the number back instead of leaving a hole in the books.
+- **What was true when you issued it stays on the invoice.** The seller
+  details, the customer's billing address and the payment term are copied onto
+  the document as they read at that moment. Rename a customer or move offices
+  afterwards and the issued invoice — its page, its PDF and its data — still
+  shows what it was addressed to.
+- **Überfällig, without a switch to flick.** An issued invoice past its due date
+  is marked overdue in the list and on its own page. It is worked out from the
+  date, not set by hand. The list also filters by status and finds an invoice by
+  its number.
+- **A Verlauf on every invoice.** The invoice's page records when it was created
+  and when it was issued, with its number. Those entries are append-only —
+  nothing in the application can change or remove one.
+- **Drafts are counted nowhere**: the customer's revenue and open receivables
+  still read 0,00 €, because a draft is not revenue — and because those figures
+  wait for payments, which are not built yet.
 - **Only a customer of this company, and only an active one.** The picker
   offers the company's own customers, deactivated ones excluded — except on a
   draft that already names one, which keeps its recipient. A Kleinunternehmer
@@ -110,16 +149,15 @@ From the point of view of someone using it, rather than building it:
 
 ### Not built yet
 
-**Ausstellen** — and everything that hangs off it: drawing the Belegnummer,
-freezing the identity block, the ZUGFeRD PDF, sending it by email, recording
-payments, Storno and Teilstorno, Gutschriften over a Vermittlungsprovision,
-Mahnungen, recurring invoices, the period export for the tax advisor, and the
-dashboard's figures. The E-Mail tab in the settings is not built either.
+**Sending an invoice by email**, recording **payments** (and with them the open
+amount, the „bezahlt" status and the dashboard's and customer's figures),
+**Storno** and **Teilstorno**, **Gutschriften** over a Vermittlungsprovision,
+**Mahnungen**, recurring invoices, and the period export for the tax advisor.
+The E-Mail tab in the settings is not built either.
 
-Everything an Ausstellvorgang needs *is* built and tested: the number range
-and the locked, gapless draw, the money type and the VAT rounding, the tax
-rates, the Zahlungsziel, the unit list, and now the Rechnung itself as a
-draft. What is missing is the step that turns one into a Beleg.
+An invoice that is wrong therefore cannot yet be taken back: issuing is
+final, and the Storno that would undo it belongs to the next wave. The PDF can
+be downloaded and sent by hand in the meantime.
 
 `docs/superpowers/specs/2026-09-23-invoice-system-design.md` describes all of
 it, and `CONTEXT.md` settles what each of those documents is called and why.
@@ -148,7 +186,9 @@ docker compose up -d
 What each step does:
 
 1. `docker compose build` — builds the `app` image (FrankenPHP, PHP 8.5, the
-   PostgreSQL client extension, and WeasyPrint's native rendering stack).
+   PostgreSQL client extension, WeasyPrint's native rendering stack, and
+   SaxonC-HE, which the test suite uses to run the official EN16931 rules over
+   the generated e-Rechnung XML).
 2. `cp .env.example .env` — copies the environment template. The default
    database credentials already match `compose.yaml`'s `db` service, so no
    editing is required to get a working local setup.

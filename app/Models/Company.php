@@ -8,6 +8,7 @@ use App\Enums\LegalForm;
 use App\Enums\PaymentTerm;
 use App\Enums\VatScheme;
 use App\Rules\Iban;
+use App\Rules\VatId;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -148,6 +149,22 @@ class Company extends Model
             set: fn (?string $value): ?string => $value === null
                 ? null
                 : Iban::normalize($value),
+        );
+    }
+
+    /**
+     * Stored the way it prints and the way EN16931 wants it: no spaces, no
+     * punctuation, upper case. „DE 811 907 980" off a letterhead and
+     * „de811907980" are the same number and must not become two.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function vatId(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value === null || trim($value) === ''
+                ? null
+                : VatId::normalize($value),
         );
     }
 

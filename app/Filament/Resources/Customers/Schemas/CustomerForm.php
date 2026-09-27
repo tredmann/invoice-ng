@@ -8,6 +8,7 @@ use App\Enums\CustomerType;
 use App\Enums\PaymentTerm;
 use App\Models\Company;
 use App\Models\Customer;
+use App\Rules\VatId;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -70,10 +71,13 @@ class CustomerForm
                         ->maxLength(255)
                         ->columnSpan(2)
                         ->visible(fn (Get $get): bool => self::isBusiness($get)),
+                    // The customer's USt-IdNr goes into the XML as BT-48 and
+                    // is subject to the same BR-CO-09 as ours.
                     TextInput::make('vat_id')
                         ->label(__('customer.fields.vat_id'))
                         ->placeholder(__('customer.placeholders.vat_id'))
                         ->helperText(__('customer.help.vat_id'))
+                        ->rule(new VatId)
                         ->maxLength(50)
                         ->visible(fn (Get $get): bool => self::isBusiness($get)),
                 ]),

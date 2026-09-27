@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Actions\CalculateTotals;
+use App\Casts\FrozenBlockCast;
+use App\Casts\MoneyCast;
+use App\Documents\FrozenBlock;
 use App\Enums\DocumentStatus;
 use App\Enums\PaymentTerm;
 use App\Money\LineInput;
 use App\Money\Totals;
+use Brick\Money\Money;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -41,11 +45,18 @@ use Parental\HasChildren;
  *
  * @property DocumentStatus $status
  * @property PaymentTerm $payment_term
- * @property int|null $number
+ * @property string|null $number
  * @property Carbon $issued_on
  * @property Carbon|null $performed_on
  * @property Carbon|null $performed_from
  * @property Carbon|null $performed_to
+ * @property Carbon|null $due_on
+ * @property Money|null $net_total
+ * @property Money|null $tax_total
+ * @property Money|null $gross_total
+ * @property FrozenBlock|null $frozen_block
+ * @property string|null $pdf_path
+ * @property string|null $pdf_sha256
  */
 #[Fillable([
     'customer_id',
@@ -104,6 +115,65 @@ class Document extends Model
     public function lineItems(): HasMany
     {
         return $this->hasMany(LineItem::class)->orderBy('position');
+    }
+
+    /**
+     * The Verlauf, newest first — the order it is read in.
+     *
+     * @return HasMany<AuditEntry, $this>
+     */
+    public function auditEntries(): HasMany
+    {
+        return $this->hasMany(AuditEntry::class)->latest('occurred_at');
+    }
+
+    /**
+     * Whether this Beleg has been issued: it carries a Belegnummer and a frozen
+     * PDF, and nothing about it may change but its status.
+     *
+     * The negation of isDraft() is not the same question — `cancelled` is
+     * neither a draft nor freshly issued — so this asks its own.
+     */
+    public function isIssued(): bool
+    {
+        return ! $this->status->isDraft();
+    }
+
+    /**
+     * Whether the Fälligkeitsdatum has passed with the Beleg still unpaid.
+     *
+     * **Überfällig is derived, never stored** (§3.5). It is computed here so
+     * the list, the detail page and any later Offene-Posten screen cannot
+     * disagree about what overdue means.
+     *
+     * A cancelled Beleg is never overdue — it is erledigt — and neither is a
+     * draft, which has no due date at all. Once Zahlungen exist this also has
+     * to consult the offener Betrag; today no payment can be recorded, so an
+     * issued Beleg past its date is overdue by definition.
+     */
+    public function isOverdue(): bool
+    {
+        if (! in_array($this->status, [DocumentStatus::Issued, DocumentStatus::Sent], true)) {
+            return false;
+        }
+
+        return $this->due_on !== null && $this->due_on->isBefore(today());
+    }
+
+    /**
+     * The Bruttobetrag, from wherever it is authoritative.
+     *
+     * Stored once the Beleg is issued — that figure is the one on the PDF the
+     * customer holds, and it is what a sum over many documents has to read, so
+     * it is also what a single document should show. Computed while a draft,
+     * where there is nothing else to read.
+     *
+     * The two can only ever agree: Positionen are immutable after issue. A test
+     * says so, because „can only" is a claim about code that could change.
+     */
+    public function grossAmount(): Money
+    {
+        return $this->gross_total ?? $this->totals()->gross;
     }
 
     /**
@@ -219,11 +289,15 @@ class Document extends Model
         return [
             'status' => DocumentStatus::class,
             'payment_term' => PaymentTerm::class,
-            'number' => 'integer',
             'issued_on' => 'date',
             'performed_on' => 'date',
             'performed_from' => 'date',
             'performed_to' => 'date',
+            'due_on' => 'date',
+            'net_total' => MoneyCast::class,
+            'tax_total' => MoneyCast::class,
+            'gross_total' => MoneyCast::class,
+            'frozen_block' => FrozenBlockCast::class,
         ];
     }
 }

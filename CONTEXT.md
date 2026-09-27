@@ -283,8 +283,11 @@ _Code_: `deactivate`
 _Vermeiden_: **archivieren** (siehe unten), löschen, stilllegen, sperren
 
 **Archivierung**:
-Die gesetzliche Aufbewahrung ausgestellter **Belege** über zehn Jahre
-(§147 AO, §14b UStG). *Noch nicht gebaut — der Begriff ist reserviert.*
+Die gesetzliche Aufbewahrung ausgestellter **Belege** über acht Jahre
+(§147 Abs. 3 AO, §14b Abs. 1 UStG — von zehn auf acht verkürzt durch das
+Vierte Bürokratieentlastungsgesetz, seit 2025). *Noch nicht gebaut — der
+Begriff ist reserviert; erfüllt wird die Pflicht vorerst dadurch, dass
+nichts ausgestellte Belege löscht.*
 _Vermeiden_: das Wort für das **Deaktivieren** von Kunden oder Firmen zu
 verwenden
 
@@ -376,6 +379,13 @@ _Code_: `deactivated_at`
   ist Aufwand und zählt nicht in Umsatzsummen; ihre Umsatzsteuer ist für uns
   Vorsteuer, nicht geschuldete Steuer.
 
+- **„Zehn Jahre" stand hier, „acht Jahre" in der Tech-Stack-Spec §9.** Beide
+  Dokumente meinten dieselbe Pflicht. Das Vierte Bürokratieentlastungsgesetz
+  hat die Aufbewahrungsfrist für **Buchungsbelege** — und damit für
+  Rechnungsdoppel nach §14b UStG — mit Wirkung ab 2025 von zehn auf acht
+  Jahre verkürzt; zehn Jahre gelten weiterhin für Bücher und Abschlüsse, die
+  diese Anwendung nicht führt. Auf acht Jahre vereinheitlicht 2026-09-28.
+
 ## Beispieldialog
 
 > **Entwickler:** „Der Vermittler ist selbst Kunde. Ziehen wir die 50 €
@@ -454,8 +464,8 @@ _Code_: `deactivated_at`
   2026-09-26.
 - **„archivieren" war für das Stilllegen eines Kunden vergeben.** Im
   deutschen Rechnungswesen ist Archivierung die Aufbewahrung der **Belege**
-  über zehn Jahre (§147 AO, §14b UStG) — etwas, das diese Anwendung
-  tatsächlich tut. Geklärt: Kunden und Firmen werden **deaktiviert**, der
+  über acht Jahre (§147 Abs. 3 AO, §14b Abs. 1 UStG) — etwas, das diese
+  Anwendung tatsächlich tut. Geklärt: Kunden und Firmen werden **deaktiviert**, der
   Code folgt mit `deactivate`; **Archivierung** bleibt der
   Aufbewahrungspflicht vorbehalten. Spec §3.4 trägt noch die Überschrift
   „Archiving" bei einem Text, der „deactivated" sagt. Entschieden

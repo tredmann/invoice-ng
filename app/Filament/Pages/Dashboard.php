@@ -9,6 +9,7 @@ use App\Company\Readiness;
 use App\Company\ReadinessItem;
 use App\Filament\Pages\Tenancy\CompanySettings;
 use App\Filament\Resources\Customers\CustomerResource;
+use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Models\Company;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -91,8 +92,7 @@ class Dashboard extends BaseDashboard
                                 ->icon(Heroicon::OutlinedArrowRight)
                                 ->iconPosition('after')
                                 ->link()
-                                ->disabled()
-                                ->tooltip(__('company.steps.invoice_disabled')),
+                                ->url(InvoiceResource::getUrl('create')),
                         ]),
                 ]),
         ]);

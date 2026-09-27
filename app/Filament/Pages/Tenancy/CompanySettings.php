@@ -11,6 +11,8 @@ use App\Models\Company;
 use App\Models\NumberRange;
 use App\Models\TaxRate;
 use App\Rules\Iban;
+use App\Rules\TaxNumber;
+use App\Rules\VatId;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -216,10 +218,18 @@ class CompanySettings extends EditTenantProfile
                             // scheme, so each is required only while the other
                             // is missing.
                             ->requiredWithout('vat_id')
+                            ->rule(new TaxNumber)
                             ->maxLength(50),
+                        // Checked here rather than only at issue, because
+                        // both of these print on every Beleg and are frozen
+                        // the moment one is issued. A malformed USt-IdNr makes
+                        // the ZUGFeRD file fail BR-CO-09, and by then nothing
+                        // can correct it.
                         TextInput::make('vat_id')
                             ->label(__('company.fields.vat_id'))
                             ->requiredWithout('tax_number')
+                            ->rule(new VatId)
+                            ->helperText(__('company.help.vat_id'))
                             ->maxLength(50),
                     ]),
                 ]),

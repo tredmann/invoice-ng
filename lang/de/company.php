@@ -27,8 +27,14 @@ return [
         'net_60' => '60 Tage netto',
     ],
 
+    'help' => [
+        'vat_id' => 'Mit Länderkürzel, etwa DE811907980.',
+    ],
+
     'errors' => [
         'iban' => 'Diese IBAN ist ungültig.',
+        'vat_id' => 'Diese USt-IdNr. ist ungültig. Sie beginnt mit dem Länderkürzel, etwa DE811907980.',
+        'tax_number' => 'Diese Steuernummer ist ungültig. Sie hat 10 bis 13 Ziffern, etwa 29/123/45678.',
     ],
 
     'register' => [
@@ -58,6 +64,7 @@ return [
             'label' => 'Steuernummer oder USt-IdNr.',
             'ok' => 'Hinterlegt.',
             'missing' => 'Pflichtangabe auf jeder Rechnung.',
+            'invalid' => 'Hinterlegt, aber nicht gültig – so wird die Rechnung von der Buchhaltung des Kunden abgelehnt.',
         ],
         'register' => [
             'label' => 'Handelsregister',
@@ -93,7 +100,6 @@ return [
         'customer_done' => 'Angelegt.',
         'invoice' => 'Erste Rechnung schreiben',
         'invoice_help' => 'Als Entwurf anlegen, prüfen, dann ausstellen.',
-        'invoice_disabled' => 'Rechnungen gibt es noch nicht.',
         'open' => 'Öffnen',
     ],
 

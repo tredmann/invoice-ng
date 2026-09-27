@@ -15,6 +15,14 @@
 # Regenerate with:
 #   docker compose run --rm --no-deps --entrypoint sh app -c 'pip3 freeze'
 # and review the diff before committing.
+#
+# saxonche is a test tool, not a rendering dependency — the same standing as
+# poppler-utils in the Dockerfile. It exists to run the official EN16931
+# Schematron, which horstoeko/zugferd ships compiled to XSLT 2.0. PHP's libxslt
+# implements XSLT 1.0 only, so that stylesheet cannot run through
+# XSLTProcessor; SaxonC-HE is an XSLT 3.0 processor with no JVM, which is what
+# keeps the KoSIT validator (Java) out of this image. It is never called inside
+# the issue transaction.
 brotli==1.2.0
 cffi==2.1.1
 cssselect2==0.10.1
@@ -28,3 +36,4 @@ tinyhtml5==2.1.0
 weasyprint==70.0
 webencodings==0.6.1
 zopfli==0.4.3
+saxonche==13.0.0

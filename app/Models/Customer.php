@@ -6,9 +6,11 @@ namespace App\Models;
 
 use App\Enums\CustomerType;
 use App\Enums\PaymentTerm;
+use App\Rules\VatId;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -157,6 +159,21 @@ class Customer extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class)->latest('issued_on');
+    }
+
+    /**
+     * Normalised exactly as the company's is: the customer's USt-IdNr goes
+     * into the XML as BT-48 and is subject to the same BR-CO-09.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function vatId(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value === null || trim($value) === ''
+                ? null
+                : VatId::normalize($value),
+        );
     }
 
     /**

@@ -13,6 +13,16 @@
  *    Browsershot needs Chrome, which this project deliberately does not
  *    install (see CLAUDE.md / the tech-stack spec) — WeasyPrint is the only
  *    PDF renderer present in the image.
+ *
+ * 3. weasyprint.pdf-version => '1.4'. Load-bearing, and the reason is not
+ *    visible from here: the rendered PDF is not the file anyone receives. It
+ *    is handed to horstoeko/zugferd, which re-writes it as a PDF/A-3 with the
+ *    EN16931 XML embedded, and that library parses the input with FPDI's free
+ *    parser. From 1.5 onwards WeasyPrint writes a compressed cross-reference
+ *    stream, which that parser refuses outright — so the default setting makes
+ *    every Ausstellvorgang fail at the merge. 1.4 emits a classic xref table.
+ *    The version set here is only the intermediate's; the delivered file
+ *    carries whatever version the ZUGFeRD merge writes.
  */
 
 use Spatie\LaravelPdf\Caching\DefaultPdfCache;
@@ -155,6 +165,16 @@ return [
          * mojibake.
          */
         'encoding' => 'utf-8',
+
+        /*
+         * Forces --pdf-version 1.4, so the cross-reference table is the
+         * classic kind rather than the compressed stream WeasyPrint writes
+         * from 1.5 on. See point 3 of the header: FPDI, which horstoeko uses
+         * to build the PDF/A-3, cannot read a compressed xref, and the
+         * symptom is a CrossReferenceException at the merge rather than
+         * anything wrong with the rendered page.
+         */
+        'pdf-version' => '1.4',
     ],
 
     /*

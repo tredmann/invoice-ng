@@ -353,14 +353,21 @@ At the moment of issue, three things are frozen:
 enforced at the model layer — writes are rejected, not merely hidden in
 the interface. Only status, payments and audit entries may still change.
 
-> **Built 2026-09-27, before anything can be issued.** `Document` refuses any
-> dirty attribute but the status once the *stored* status is not `draft` —
-> reading the status being written would refuse the draft → issued transition
-> itself — and `LineItem` refuses every write belonging to an issued Beleg.
-> Deleting is drafts only (§3.4). Nothing reaches a non-draft status yet; the
-> guards are exercised through a factory state, which is the only moment they
-> can be watched refusing. The three things §4 freezes are *not* built: no
-> number is drawn, no block is frozen, no PDF is written.
+> **Guards built 2026-09-27; the freezing itself built 2026-09-28.** `Document`
+> refuses any dirty attribute but the status once the *stored* status is not
+> `draft` — reading the status being written would refuse the draft → issued
+> transition itself — and `LineItem` refuses every write belonging to an issued
+> Beleg. Deleting is drafts only (§3.4).
+>
+> All three things this section freezes now happen, in `App\Actions\IssueDocument`.
+> The block is `App\Documents\FrozenBlock` in a `jsonb` column, and it holds the
+> two parties only: the **Zahlungsziel** §4 also names is already its own frozen
+> column, and one value with two homes is one too many. The PDF is written once
+> to `config('invoice.documents_disk')` with its SHA-256 beside it.
+>
+> One correction to the list: both postal addresses also carry a country code,
+> because EN16931 makes it mandatory (BR-09, BR-11). It is frozen as `DE` and is
+> not a field — see the issuing spec §3.2.
 
 ## 5. Numbering
 
@@ -379,7 +386,14 @@ A Mahnung is **not** an invoice and does not consume an invoice number.
 It has its own separate sequence. Placing reminders in the invoice
 sequence would leave permanent holes in the bookkeeping record.
 
-> **Built 2026-09-26.** The range and the draw exist; the document that would
+> **Built 2026-09-26; spent 2026-09-28.** `IssueDocument` is the caller, and it
+> draws inside its own transaction so a later failure gives the number back.
+> `documents.number` holds the **formatted** value — `RE-2026-0042` — not the
+> counter: that string is what this section's rules are about and what must
+> never change, and the counter stays in `number_ranges`, the only place that
+> has to count. See the issuing spec §3.1.
+>
+> The range and the draw exist; the document that would
 > carry a number does not. `number_ranges` holds one row per company — its own
 > table rather than columns on `companies`, because the row is locked for the
 > length of a PDF render and locking the company row would block the settings
@@ -448,6 +462,14 @@ The XML is validated against the EN16931 schema **inside the issue
 transaction**. A document that would not pass the recipient's software
 never becomes an issued invoice.
 
+> **Built 2026-09-28, and split in two.** What runs inside the transaction is
+> XSD validation through libxml — milliseconds, and it guards the operation. The
+> EN16931 *business rules* are a Schematron, far too heavy to run while the
+> Nummernkreis is locked, so they run over golden fixtures in the test suite
+> instead, through **SaxonC-HE**. §10.2 of the tech stack expected that second
+> level to need the Java KoSIT validator in CI; it does not, and there is no CI.
+> See the issuing spec §3.3.
+
 > **Corrected 2026-09-26.** A **Gutschrift** carries a different document type
 > code: UNTDID 1001 **389** (self-billed invoice) rather than **380**. Its XML
 > also names the **Vermittler** as the supplying party and us as the customer —
@@ -504,8 +526,11 @@ reported as a list, not raised as an exception halfway through issuing.
 > form, and a configured Nummernkreis — and only **warns** about the bank
 > details and the logo. A missing logo never stops an invoice.
 >
-> The check exists; nothing calls it before a transaction, because nothing
-> issues yet. Its only consumer today is the dashboard's „Erste Schritte" card.
+> **Called 2026-09-28.** `IssueDocument` runs it before it opens its
+> transaction and throws `CompanyNotReady`, which carries the `Readiness` so the
+> caller can name each blocker. The Ausstellen dialog *is* that check: a company
+> that cannot issue sees what is missing, a link to the settings, and no submit
+> button at all.
 
 ### 8.2 Correct an invoice
 
@@ -790,6 +815,12 @@ coverage.
 | Document names | Storno = full reversal, Teilstorno = partial, Berichtigung = particulars only, Gutschrift = self-billed. Supersedes the "Storno vs Gutschrift" row above — added 2026-09-26, see ADR 0001 |
 | Gutschriften | In scope: self-billed invoices over a Vermittlungsprovision, drawn from the same number range as invoices — added 2026-09-26, see ADR 0002 |
 | Berichtigung | Named and reserved, not built; until then an error in particulars costs a Storno — added 2026-09-26 |
+| Belegnummer storage | `documents.number` holds the **formatted** value, not the counter; the counter stays in `number_ranges` — added 2026-09-28 |
+| Country code | Frozen as `DE` on both addresses, not a column: nothing here can tax a supply outside Germany — added 2026-09-28 |
+| XML validation | XSD through libxml inside the transaction; the official EN16931 Schematron over golden fixtures in the suite, through SaxonC-HE rather than Java — added 2026-09-28 |
+| Stored totals | The three sums only; the per-rate groups stay derived from immutable Positionen — added 2026-09-28 |
+| Audit events | One `Issued` entry carrying the PDF path and hash, not a second „PDF generated" — added 2026-09-28 |
+| Festschreibung | Seller and buyer only; the Zahlungsziel is already its own frozen column — added 2026-09-28 |
 | Deactivating | „archivieren" is kept for §147 AO retention; customers and companies are deactivated (`deactivate`) — added 2026-09-26 |
 | Leistungsdatum | A document carries either a Leistungsdatum (BT-72) or a Leistungszeitraum (BG-14), never both — added 2026-09-26 |
 | Mahnung | One type (`DunningNotice`) with a Mahnstufe for the printed title; not a Beleg, own number range — added 2026-09-26 |

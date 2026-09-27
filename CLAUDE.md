@@ -2,28 +2,31 @@
 
 A multi-company German invoicing application. Laravel 13 + Filament 5, PHP 8.5.
 
-**Current state: companies, tenancy, customers, and the master data an
-Ausstellvorgang needs are in place.** A company can be created, completed and
-deactivated, and every company-scoped screen sits behind a Filament tenant
-boundary keyed on the company's slug. Each company keeps its own customers under
-`/admin/{company}/customers`, and its settings at `/admin/{company}/settings` now
-span four tabs — Firma, Steuer, Bank, Nummernkreis.
+**Current state: a Rechnung can be written and issued, end to end.** Companies,
+tenancy, customers and master data are in place; every company-scoped screen sits
+behind a Filament tenant boundary keyed on the company's slug, and settings at
+`/admin/{company}/settings` span four tabs — Firma, Steuer, Bank, Nummernkreis.
 
-The money foundation landed with them: `TaxRate` rows in basis points,
-`PaymentTerm` and `Unit` enums, a `NumberRange` per company with
-`DrawNextNumber` doing the locked, gapless draw, `MoneyCast` over integer cents,
-`CalculateTotals` implementing the per-group VAT rounding of §6, and
-`CheckReadiness` reporting what still stands between a company and its first
-Beleg.
+The money foundation carries it: `TaxRate` rows in basis points, `PaymentTerm`
+and `Unit` enums, a `NumberRange` per company with `DrawNextNumber` doing the
+locked, gapless draw, `MoneyCast` over integer cents, `CalculateTotals`
+implementing the per-group VAT rounding of §6, and `CheckReadiness` — which now
+has the caller it was written for.
 
-**A Beleg exists, but nothing can be issued.** `documents` holds every Belegart
-with `Invoice` as its first `tightenco/parental` child, `LineItem` carries the
-Positionen, and a Rechnung can be drafted, listed, read, corrected and deleted
-under `/admin/{company}/invoices`. What does not exist is **ausstellen**:
-nothing calls `DrawNextNumber`, nothing freezes an identity block, no PDF or
-ZUGFeRD XML is produced, and `horstoeko/zugferd` is still unused. `Storno`,
-`PartialCancellation`, `SelfBilledInvoice`, `Payment` and `AuditEntry` are not
-written.
+**Ausstellen is built** (§8.1). `App\Actions\IssueDocument` runs the whole
+operation in one transaction: the readiness gate before it opens, then the
+Belegnummer under the lock, the **Festschreibung**, the stored totals and
+`due_on`, the WeasyPrint render, the EN16931 XML, its XSD validation, the
+PDF/A-3 merge through `horstoeko/zugferd`, the file written before the commit,
+the status, and the `AuditEntry`. Any failure rolls all of it back and consumes
+no number. An issued Beleg is unveränderlich, offers a PDF download and cannot
+be deleted or edited.
+
+**What is still missing** is everything after issuing: `Cancellation`,
+`PartialCancellation`, `SelfBilledInvoice`, `Payment` and `DunningNotice` are not
+written, nothing is sent by email, and no payment can be recorded — so the open
+amount, the `paid` status and the dashboard's and customer's figures do not
+exist. An invoice issued in error cannot be taken back yet.
 
 ## Everything runs in the container
 
@@ -132,12 +135,19 @@ valid PDF full of empty boxes and a green suite. Look at the rendered page after
 changing fonts, the base image, or the WeasyPrint version.
 
 **The concurrency suite is not optional decoration.** `tests/Concurrency` forks
-two processes that draw from one `NumberRange` and asserts they get distinct,
-consecutive numbers. Deleting `lockForUpdate()` from `DrawNextNumber` turns that
-suite red and leaves all 275 Feature tests green — which is precisely why it
-exists and why it needs its own `DatabaseTruncation` binding rather than
+processes that draw from one `NumberRange` — and, since issuing exists, two that
+run the whole `IssueDocument` at the same instant, holding the lock across a real
+WeasyPrint render. Deleting `lockForUpdate()` from `DrawNextNumber` turns that
+suite red and leaves every Feature test green — which is precisely why it exists
+and why it needs its own `DatabaseTruncation` binding rather than
 `RefreshDatabase`. If you change the numbering, break the lock on purpose once
-and confirm the suite notices.
+and confirm the suite notices. (It was broken on purpose when issuing landed, and
+it noticed.)
+
+That suite truncates rather than rolling back, so anything it writes outside the
+database is real. The issuing test fakes the documents disk before it forks, or
+it leaves invoice PDFs in `storage/app/private` belonging to companies that no
+longer exist.
 
 **A green suite says nothing about the development database.** Pest runs against
 `invoice_test`, and `RefreshDatabase` rebuilds that schema on every run — so the
@@ -165,29 +175,23 @@ Deliberately parked, so they are not mistaken for oversights:
   improvements on a Boost upgrade. See the maintenance doc below. (Two of the
   eight files there — `documentation/` and `rector/` — are additions rather
   than forks, and have no upstream to drift from.)
-- A company created through registration has only a name and a legal form; its
-  identity block is incomplete until the settings page has been saved once.
-  **This is now detected but not enforced.** `App\Actions\CheckReadiness`
-  reports it, and the dashboard's „Erste Schritte" card names what is missing —
-  but nothing refuses anything, because nothing issues yet. The invoicing wave
-  owes the enforcement: `IssueDocument` must call `CheckReadiness` before it
-  opens its transaction and refuse on `canIssue() === false`. The check
-  distinguishes blockers (what §14 UStG and §35a GmbHG require) from warnings
-  (bank details, logo); only the blockers may refuse. Now that a `Document`
-  exists, the gate has something concrete to refuse — and still refuses
-  nothing.
-- **The immutability guards run against something nothing can produce.**
-  `Document` refuses any change but the status once a Beleg is issued,
-  `LineItem` refuses every write to an issued Beleg's Positionen, and deleting
-  is drafts only. No code path reaches a non-draft status yet: the guards are
-  exercised through `Invoice::factory()->issued()`. That state exists for the
-  tests and must not become a shortcut for issuing — the real transition is
-  §8.1, under a lock, with the number drawn inside it.
-- **A draft's Positionen are rewritten wholesale on every save**
+- A company created through registration has only a name and a legal form. That
+  is **detected and now enforced**: `IssueDocument` calls `CheckReadiness`
+  before it opens its transaction and refuses on `canIssue() === false`, and the
+  Ausstellen dialog is that check — it names each blocker and offers no submit
+  button. Only blockers refuse; bank details and logo warn.
+- `Invoice::factory()->issued()` **assembles** an issued row rather than issuing
+  one: no number is drawn from the Nummernkreis, nothing is frozen from live
+  master data and no PDF is written. It exists so the guards and the screens can
+  be tested cheaply, and it must not become a shortcut for issuing — anything
+  asserting what issuing *does* has to call `App\Actions\IssueDocument`.
+- **A draft's Positionen are still rewritten wholesale on every save**
   (`HandlesLineItems`), because reordering two rows in place collides on
-  `unique(document_id, position)`. That is affordable only while nothing
-  references a Position and only a draft can be saved. The wave that issues has
-  to stop doing it; `LineItem`'s guard is what will object.
+  `unique(document_id, position)`. It stays affordable because nothing
+  references a Position and because the edit page now 404s for anything but a
+  draft. What changed is that the delete goes through model instances rather
+  than a mass delete, so `LineItem`'s guard actually sees it — the mass delete
+  fired no model events and walked straight past the guard written to forbid it.
 - **Nothing yet seeds a Nummernkreis, on purpose.** A company has no
   `number_ranges` row until its settings tab is saved once — that is what lets
   the readiness check say „noch nicht konfiguriert" truthfully instead of always
@@ -213,6 +217,46 @@ Deliberately parked, so they are not mistaken for oversights:
   recurring-invoice run — sees every company's customers and must scope
   explicitly. Livewire tests must boot the panel for the same reason
   (`actInCompany()` in `tests/Pest.php`).
+- **The official EN16931 rules do not run at issue time.** They cost ~145 ms
+  (measured, against ~240 ms for the render) and could; the decision was to keep
+  a second subprocess out of the invoicing path so a broken `saxonche` cannot
+  stop anyone invoicing. What buys the guarantee instead is a subset argument:
+  **what the forms accept must be a subset of what EN16931 accepts**, and
+  `TaxIdentifierTest` holds every value `VatId` and `TaxNumber` allow to the
+  official Schematron. Loosen a rule past the standard and it goes red there.
+  The corollary is the live risk: a rule EN16931 enforces on a field *nothing*
+  validates would reach a frozen PDF exactly as BR-CO-09 did.
+- **Nothing checks that the issued PDF is a *conforming* PDF/A-3.** It declares
+  the Factur-X XMP, attaches the XML with `AFRelationship=Data` and reads back
+  through `ZugferdDocumentPdfReader` — all asserted. Whether the container
+  satisfies PDF/A-3 needs veraPDF or the full KoSIT validator, both Java, and
+  neither is in the image. The EN16931 *business rules* are checked: the
+  official Schematron runs over golden fixtures in `tests/Feature/SchematronTest`
+  through SaxonC-HE, which is Python and needs no JVM. Note the Schematron ships
+  as XSLT **2.0** and PHP's libxslt is 1.0 only — `XSLTProcessor` cannot run it,
+  and that has been tried.
+- **The country on both addresses is hardcoded `DE`** (`FrozenBlock::COUNTRY`).
+  EN16931 makes it mandatory (BR-09, BR-11) and neither table has the column.
+  This is deliberate rather than pending: nothing here can tax a supply outside
+  Germany — no reverse charge, no §13b, no intra-EU exemption — so a country
+  picker would let someone address an invoice this application would then tax
+  wrongly. The day one of those exists, it becomes a column.
+- **`issued_on` is respected as typed, including across a year boundary.** A
+  draft dated 2025-12-31 issued on 2026-01-02 keeps its 2025 Ausstellungsdatum
+  while `DrawNextNumber`, which counts in real time, gives it a 2026 number.
+  Overwriting a date the user chose would surprise more than it fixes; the
+  storage path follows the number's year, not `issued_on`'s.
+- **`AuditEvent` has one case and `audit_entries` is keyed to a document.**
+  §3.8 lists „PDF generated" as a separate event; it would be written one
+  statement after `Issued`, in the same transaction, and could never differ — so
+  the path and hash ride in `Issued`'s details instead. A **Mahnung** is not a
+  Beleg and will need a trail of its own; that is the wave that should make the
+  subject polymorphic.
+- **`config/laravel-pdf.php` forces `pdf-version` to 1.4, and that is
+  load-bearing.** `horstoeko` builds the PDF/A-3 with FPDI's free parser, which
+  refuses the compressed cross-reference stream WeasyPrint writes from PDF 1.5
+  on. Without the setting every Ausstellvorgang dies at the merge with a
+  `CrossReferenceException`, and nothing is wrong with the rendered page.
 - The **Berichtigung** (§31 Abs. 5 UStDV) is named and reserved in
   `CONTEXT.md`, but not built. Until it is, an error that leaves the amount
   untouched — a missing USt-IdNr., a wrong address — costs a full Storno, and
@@ -235,6 +279,10 @@ Deliberately parked, so they are not mistaken for oversights:
 - `docs/superpowers/specs/2026-09-27-invoice-drafts-design.md` — the Beleg
   table, why a document is addressed by its UUID and a customer by `K-0004`,
   and what the immutability guards refuse
+- `docs/superpowers/specs/2026-09-28-invoice-issuing-design.md` — the
+  Ausstellvorgang: what the transaction does and in which order, why the
+  Belegnummer is a string, why the country is frozen as `DE`, and why the
+  official EN16931 Schematron runs through SaxonC-HE rather than Java
 - `CONTEXT.md` — the German ubiquitous language of the domain, with the
   English identifier beside each term. A change to it is a change to what
   things are called everywhere.

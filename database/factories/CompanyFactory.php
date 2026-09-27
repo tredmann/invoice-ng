@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\LegalForm;
 use App\Enums\VatScheme;
 use App\Models\Company;
+use App\Rules\VatId;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -30,8 +31,13 @@ class CompanyFactory extends Factory
             'street' => fake()->streetAddress(),
             'postal_code' => fake()->numerify('#####'),
             'city' => fake()->city(),
-            'tax_number' => fake()->numerify('###/###/#####'),
-            'vat_id' => 'DE'.fake()->numerify('#########'),
+            'tax_number' => fake()->numerify('##/###/#####'),
+            // A real check digit, not nine random ones. Since CheckReadiness
+            // began asking whether an identifier is *valid* rather than merely
+            // present, a random USt-IdNr would make almost every factory-built
+            // company unable to issue — and the failure would look like a bug
+            // in whatever test happened to hit it.
+            'vat_id' => VatId::germanFor(fake()->numerify('########')),
             'register_court' => 'Amtsgericht '.fake()->city(),
             'register_number' => 'HRB '.fake()->numerify('#####'),
             'managing_directors' => fake()->name(),
