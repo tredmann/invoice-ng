@@ -61,7 +61,7 @@ it('shows the page title alone on pages outside a resource', function (string $p
 
     expect(trailOf($html))->toBe([[$label, null]]);
 })->with([
-    'dashboard' => ['/admin/acme-gmbh', 'Dashboard'],
+    'dashboard' => ['/admin/acme-gmbh', 'Übersicht'],
     'settings' => ['/admin/acme-gmbh/settings', 'Einstellungen'],
 ]);
 
@@ -171,12 +171,12 @@ it('keeps its trail when the top bar re-renders on its own', function (): void {
     resolve(RenderedPage::class)->page = new Dashboard;
 
     $topbar = Livewire::test(Topbar::class)
-        ->assertSeeHtml('<span aria-current="page">Dashboard</span>');
+        ->assertSeeHtml('<span aria-current="page">Übersicht</span>');
 
     resolve(RenderedPage::class)->page = null;
 
     $topbar->dispatch('refresh-topbar')
-        ->assertSeeHtml('<span aria-current="page">Dashboard</span>');
+        ->assertSeeHtml('<span aria-current="page">Übersicht</span>');
 });
 
 it('refreshes the top bar after the company data is saved, so a new name shows', function (): void {

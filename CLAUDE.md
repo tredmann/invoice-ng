@@ -22,11 +22,18 @@ the status, and the `AuditEntry`. Any failure rolls all of it back and consumes
 no number. An issued Beleg is unveränderlich, offers a PDF download and cannot
 be deleted or edited.
 
+**The Übersicht is built** (§9). `App\Actions\CollectFigures` answers with an
+`App\Company\Figures` — Umsatz this month and year, the month-on-month change,
+the offenen Forderungen and what is überfällig, a twelve-month Umsatzverlauf, and
+the two worklists — in nine queries, constant in the number of Belege. The page
+shows the Erste Schritte until a company has issued anything, and the Kennzahlen
+from then on.
+
 **What is still missing** is everything after issuing: `Cancellation`,
 `PartialCancellation`, `SelfBilledInvoice`, `Payment` and `DunningNotice` are not
-written, nothing is sent by email, and no payment can be recorded — so the open
-amount, the `paid` status and the dashboard's and customer's figures do not
-exist. An invoice issued in error cannot be taken back yet.
+written, nothing is sent by email, and no payment can be recorded — so the
+`paid` status and the customer page's three figures do not exist. An invoice
+issued in error cannot be taken back yet.
 
 ## Everything runs in the container
 
@@ -200,6 +207,29 @@ Deliberately parked, so they are not mistaken for oversights:
   choice. A company created before 2026-09-26 therefore has no tax rates; only
   one such company exists and it has been filled in by hand, so no backfill
   migration was written.
+- **The dashboard's offener Betrag is the Bruttobetrag, because nothing can be
+  paid.** CONTEXT.md defines it as Bruttobetrag minus Zahlungen minus
+  Teilstornos, and neither exists — so „everything issued is still open" is not
+  an approximation, it is the truth. The seam is `App\Documents\OpenItems`, the
+  one file that changes when `Payment` lands; the dashboard, the customer's
+  tiles and any later Offene-Posten screen all move with it because none of them
+  writes that sum itself.
+- **`Document::isOverdue()` now has a second expression, in SQL.** A set cannot
+  be filtered by a PHP predicate, so `whereOverdue()` exists beside it. What
+  keeps them from disagreeing is `DocumentTest`, which builds a Beleg for every
+  status × Fälligkeitsdatum and asserts the scope returns exactly the ids
+  `isOverdue()` says — and asserts that set is not empty, or it would pass with
+  both sides broken. Change one and it goes red. The scopes are named
+  `whereOverdue`/`whereOutstanding` and not `overdue`: `Model::isRelation()` is
+  `method_exists()`, so a method named `overdue` makes `$document->overdue`
+  resolve as a relation, and `InvoicesTable` already has a column by that name.
+- **`extraAttributes()` on a Filament `Section` lands on a wrapper *around*
+  `.fi-section`, not on it.** Every override of a section's own padding needs
+  `.app-class > .fi-section > …`. Written without that step the rules match
+  nothing and the page silently falls back to Filament's spacing — which is
+  exactly how a screen drifts from its design without any test noticing. The
+  dashboard's CSS carries the note; a rendered page is the only thing that
+  catches it.
 - `DrawNextNumber` throws outside a transaction, and that is load-bearing rather
   than defensive. Under `RefreshDatabase` the transaction level is always 1, so
   the guard can only be tested from `tests/Concurrency`, which uses
@@ -283,6 +313,10 @@ Deliberately parked, so they are not mistaken for oversights:
   Ausstellvorgang: what the transaction does and in which order, why the
   Belegnummer is a string, why the country is frozen as `DE`, and why the
   official EN16931 Schematron runs through SaxonC-HE rather than Java
+- `docs/superpowers/specs/2026-09-27-company-dashboard-design.md` — the
+  Übersicht: every value measured off the Penpot board, why Umsatz is netto and
+  the Forderungen brutto, what switches the empty state, and where the offener
+  Betrag will change when Zahlungen land
 - `CONTEXT.md` — the German ubiquitous language of the domain, with the
   English identifier beside each term. A change to it is a change to what
   things are called everywhere.

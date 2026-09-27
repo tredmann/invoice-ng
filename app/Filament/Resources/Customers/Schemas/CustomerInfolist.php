@@ -80,16 +80,16 @@ class CustomerInfolist
             // only render before or after the whole infolist.
             Grid::make(['default' => 1, 'md' => 3])->schema([
                 self::tile(
-                    __('customer.stats.revenue', ['year' => now()->year]),
-                    __('customer.stats.revenue_since', ['year' => now()->year]),
+                    __('dashboard.stats.revenue_year', ['year' => now()->year]),
+                    __('dashboard.stats.revenue_year_note', ['year' => now()->year]),
                 ),
                 self::tile(
-                    __('customer.stats.open'),
-                    trans_choice('customer.stats.invoice_count', 0),
+                    __('dashboard.stats.open'),
+                    trans_choice('dashboard.stats.invoice_count', 0),
                 ),
                 self::tile(
-                    __('customer.stats.overdue'),
-                    trans_choice('customer.stats.invoice_count', 0),
+                    __('dashboard.stats.overdue'),
+                    trans_choice('dashboard.stats.invoice_count', 0),
                 ),
             ]),
 

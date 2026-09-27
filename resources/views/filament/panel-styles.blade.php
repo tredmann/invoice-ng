@@ -126,4 +126,106 @@
 
     /* Numbers line up on the right, the way they do on the document. */
     .app-input-end { text-align: end }
+
+    /* ---------------------------------------------------------------------
+       Die Übersicht (§9). Jede Zahl unten ist am Penpot-Board gemessen, nicht
+       geschätzt — die Kacheln 20 Innenabstand bei 20 Abstand, die Karten 24,
+       die Tabellenzeilen 12. Filaments Rahmen stimmt bereits: .fi-main hat
+       32 Seitenabstand und der Schema-Container 24 Abstand, genau wie das
+       Board, also wird hier nichts davon nachgebaut.
+       --------------------------------------------------------------------- */
+
+    /* Die Kennzahlenreihe. Ein eigenes Raster statt vier Sections: eine
+       Section betont die Überschrift und hält den Inhalt auf Abstand, die
+       Kachel macht das Gegenteil — stille Beschriftung, große Zahl, 8
+       dazwischen. */
+    .app-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem }
+    .app-stats-tile { display: flex; flex-direction: column; gap: 0.5rem; padding: 1.25rem; border: 1px solid var(--gray-200); border-radius: 0.75rem; background: var(--color-white) }
+    .app-stats-label { display: flex; align-items: center; gap: 0.375rem; margin: 0; font-size: 0.8125rem; font-weight: 500; color: var(--gray-500) }
+    .app-stats-value { margin: 0; font-size: 1.625rem; font-weight: 600; line-height: 1.4; color: var(--gray-950) }
+    .app-stats-note { display: flex; align-items: center; gap: 0.3125rem; margin: 0; font-size: 0.75rem; color: var(--gray-500) }
+    .app-stats-arrow { width: 0.875rem; height: 0.875rem; flex: none }
+    .app-stats-up { font-weight: 500; color: var(--success-700) }
+    .app-stats-down { font-weight: 500; color: var(--danger-700) }
+    /* Rot erst, wenn etwas überfällig ist — siehe stats.blade.php. */
+    .app-stats-danger .app-stats-label, .app-stats-danger .app-stats-value { color: var(--danger-700) }
+    .dark .app-stats-tile { border-color: var(--gray-700); background: var(--gray-900) }
+    .dark .app-stats-label, .dark .app-stats-note { color: var(--gray-400) }
+    .dark .app-stats-value { color: var(--color-white) }
+    .dark .app-stats-up { color: var(--success-400) }
+    .dark .app-stats-down, .dark .app-stats-danger .app-stats-label, .dark .app-stats-danger .app-stats-value { color: var(--danger-400) }
+
+    /* Das Board zeichnet nur 1440 breit. Vier Kacheln nebeneinander brauchen
+       gut 1000; darunter zwei, auf dem Telefon eine. */
+    @media (max-width: 1279px) { .app-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+    @media (max-width: 639px) { .app-stats { grid-template-columns: minmax(0, 1fr) } }
+
+    /* Zwei Korrekturen am Kartenrhythmus. Filament setzt 16/24 auf den Kopf
+       und noch einmal 24 auf den Inhalt, also 40 zwischen Unterzeile und
+       Inhalt — das Board zeichnet 16. Genau das ist der Grund, aus dem die
+       letzten beiden Seiten vom Board abgedriftet sind: nicht eine falsche
+       Zahl, sondern eine, die nie gesetzt wurde. */
+    /* extraAttributes() einer Section landet auf einem *Rahmen* um die Karte
+       (`div.app-card-plain.fi-sc-section`), nicht auf `.fi-section` selbst —
+       jeder Selektor hier muss also eine Ebene tiefer greifen. Ohne das
+       `> .fi-section` traf keine dieser Regeln, und zwar lautlos: die Seite
+       sah bloß nach Filaments Voreinstellung aus. Genau so driftet eine Seite
+       vom Board ab. */
+    .app-card-snug > .fi-section > .fi-section-header { padding: 1.25rem 1.25rem 0 }
+    .app-card-snug > .fi-section > .fi-section-content-ctn > .fi-section-content { padding: 0.875rem 1.25rem 1.25rem }
+    .app-card-plain > .fi-section > .fi-section-header { padding: 1.5rem 1.5rem 0 }
+    .app-card-plain > .fi-section > .fi-section-content-ctn > .fi-section-content { padding: 1rem 1.5rem 1.5rem }
+    .fi-wi-chart > .fi-section > .fi-section-header { padding: 1.5rem 1.5rem 0 }
+    .fi-wi-chart > .fi-section > .fi-section-content-ctn > .fi-section-content { padding: 1rem 1.5rem 1.5rem }
+
+    /* Und die Linie unter dem Kartenkopf fort — das Board zeichnet keine, und
+       mit ihr läse sich die Karte als zwei Blöcke statt als einer. Die
+       Selektoren tragen Filaments eigene :not()-Glieder, weil sie ihn bei
+       gleicher Spezifität schlagen müssen; dieses Stylesheet kommt später. */
+    .app-card-snug > .fi-section:not(.fi-aside).fi-section-has-header:not(.fi-collapsed) > .fi-section-content-ctn,
+    .app-card-plain > .fi-section:not(.fi-aside).fi-section-has-header:not(.fi-collapsed) > .fi-section-content-ctn,
+    .fi-wi-chart > .fi-section:not(.fi-aside).fi-section-has-header:not(.fi-collapsed) > .fi-section-content-ctn { border-top-width: 0 }
+
+    /* Der Arbeitsvorrat: Name über Datum, Betrag rechts, Haarlinie dazwischen.
+       Die Zeile ist ein Link auf den Entwurf, sieht aber nicht wie einer aus —
+       die ganze Karte wäre sonst blau unterstrichen. */
+    .app-drafts { display: flex; flex-direction: column; gap: 0.875rem }
+    .app-drafts-row { display: flex; align-items: center; justify-content: space-between; gap: 0.625rem; color: inherit; text-decoration: none }
+    .app-drafts-row + .app-drafts-row { padding-top: 0.875rem; border-top: 1px solid var(--gray-100) }
+    .app-drafts-row:hover .app-drafts-name { color: var(--primary-600) }
+    .app-drafts-angaben { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0 }
+    .app-drafts-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 500; color: var(--gray-950) }
+    .app-drafts-date { font-size: 0.6875rem; color: var(--gray-500) }
+    .app-drafts-amount { flex: none; font-size: 0.8125rem; font-weight: 500; color: var(--gray-950) }
+    .app-drafts-empty { margin: 0; font-size: 0.8125rem; color: var(--gray-500) }
+    .dark .app-drafts-row + .app-drafts-row { border-top-color: var(--gray-800) }
+    .dark .app-drafts-name, .dark .app-drafts-amount { color: var(--color-white) }
+    .dark .app-drafts-date, .dark .app-drafts-empty { color: var(--gray-400) }
+
+    .app-cardlink { display: inline-flex; align-items: center; gap: 0.375rem; margin-top: 0.25rem; font-size: 0.8125rem; font-weight: 600; color: var(--primary-600); text-decoration: none }
+    .app-cardlink-icon { width: 0.8125rem; height: 0.8125rem }
+    .dark .app-cardlink { color: var(--primary-400) }
+
+    /* Die überfälligen Rechnungen. Die Spaltenbreiten stehen auf dem Board;
+       der Betrag rechtsbündig, weil Zahlen untereinander gelesen werden. */
+    .app-overdue-scroll { overflow-x: auto }
+    .app-overdue-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem }
+    .app-overdue-table th { padding: 0 0 0.5rem; font-size: 0.75rem; font-weight: 600; color: var(--gray-500); text-align: start; border-bottom: 1px solid var(--gray-200); white-space: nowrap }
+    .app-overdue-table td { padding: 0.75rem 0; color: var(--gray-800); white-space: nowrap }
+    .app-overdue-table tbody tr + tr td { border-top: 1px solid var(--gray-100) }
+    .app-overdue-table th + th, .app-overdue-table td + td { padding-inline-start: 1rem }
+    .app-overdue-number { width: 9.375rem }
+    .app-overdue-number a { font-weight: 500; color: var(--gray-950); text-decoration: none }
+    .app-overdue-number a:hover { color: var(--primary-600) }
+    .app-overdue-customer { width: auto; white-space: normal }
+    .app-overdue-due { width: 12.5rem; color: var(--danger-700) }
+    .app-overdue-table td.app-overdue-due { color: var(--danger-700) }
+    .app-overdue-total { width: 7.5rem; text-align: end; font-weight: 500; color: var(--gray-950) }
+    .app-overdue-empty { margin: 0; font-size: 0.8125rem; color: var(--gray-500) }
+    .dark .app-overdue-table th { color: var(--gray-400); border-bottom-color: var(--gray-700) }
+    .dark .app-overdue-table td { color: var(--gray-300) }
+    .dark .app-overdue-table tbody tr + tr td { border-top-color: var(--gray-800) }
+    .dark .app-overdue-number a, .dark .app-overdue-total { color: var(--color-white) }
+    .dark .app-overdue-table td.app-overdue-due { color: var(--danger-400) }
+    .dark .app-overdue-empty { color: var(--gray-400) }
 </style>

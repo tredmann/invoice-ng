@@ -218,6 +218,27 @@ _Vermeiden_: Restbetrag, Saldo, Differenz
 Die Liste aller **Rechnungen** mit einem **offenen Betrag**.
 _Vermeiden_: Forderungen, Außenstände, Debitoren
 
+**Kennzahlen**:
+Die Zahlen der **Übersicht** zu einer **Firma** und einem Stichtag: Umsatz des
+Monats und des Jahres, offene Forderungen, Überfälliges. Der Umsatz zählt
+**netto**, die Forderungen **brutto** — der **Kunde** schuldet den
+**Bruttobetrag**, aber die **Umsatzsteuer** darin ist kein Umsatz.
+_Code_: `Figures`
+_Vermeiden_: Statistik, Auswertung, KPI
+
+**Umsatzverlauf**:
+Der Nettoumsatz der letzten zwölf Monate, Monat für Monat — das Säulendiagramm
+der **Übersicht**. Ein Monat ohne Umsatz ist eine Null, keine Lücke.
+_Code_: `MonthlyRevenue`
+_Vermeiden_: Umsatzentwicklung, Verlaufskurve, Trend
+
+**Übersicht**:
+Der Einstieg einer **Firma**: bis zum ersten ausgestellten **Beleg** die Ersten
+Schritte, danach die **Kennzahlen**. Die Seite heißt Übersicht, der
+Navigationseintrag „Dashboard" — so steht es im Entwurf.
+_Code_: `Dashboard` (die Filament-Seite)
+_Vermeiden_: Startseite, Cockpit, Armaturenbrett
+
 ### Daten und Fristen
 
 **Ausstellungsdatum**:

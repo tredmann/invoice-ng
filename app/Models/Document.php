@@ -9,12 +9,15 @@ use App\Casts\FrozenBlockCast;
 use App\Casts\MoneyCast;
 use App\Documents\FrozenBlock;
 use App\Enums\DocumentStatus;
+use App\Enums\DocumentType;
 use App\Enums\PaymentTerm;
 use App\Money\LineInput;
 use App\Money\Totals;
 use Brick\Money\Money;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -153,11 +156,80 @@ class Document extends Model
      */
     public function isOverdue(): bool
     {
-        if (! in_array($this->status, [DocumentStatus::Issued, DocumentStatus::Sent], true)) {
+        if (! $this->status->isOutstanding()) {
             return false;
         }
 
         return $this->due_on !== null && $this->due_on->isBefore(today());
+    }
+
+    /**
+     * How long this Beleg has been überfällig, in days. Zero when it is not.
+     *
+     * Derived from isOverdue() rather than from the date alone, so the
+     * dashboard's „seit 7 Tagen" cannot appear beside a Beleg the badge does
+     * not call überfällig.
+     */
+    public function daysOverdue(): int
+    {
+        if (! $this->isOverdue()) {
+            return 0;
+        }
+
+        // isOverdue() already established both that due_on is set and that it
+        // lies in the past.
+        return (int) $this->due_on?->diffInDays(today());
+    }
+
+    /**
+     * The Belege whose Betrag is Umsatz: an ausgestellter, nicht stornierter
+     * Beleg of a Belegart that counts (§9, ADR 0002).
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function whereCountsAsRevenue(Builder $query): void
+    {
+        $query->whereIn('type', DocumentType::revenueValues())
+            ->whereIn('status', DocumentStatus::revenueBearing());
+    }
+
+    /**
+     * Offene Posten: the Belege still carrying an offener Betrag.
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function whereOutstanding(Builder $query): void
+    {
+        $query->whereIn('type', DocumentType::revenueValues())
+            ->whereIn('status', DocumentStatus::outstanding());
+    }
+
+    /**
+     * The SQL half of isOverdue(), for the Kennzahlen and the Offene-Posten
+     * list — a set cannot be filtered by a PHP predicate.
+     *
+     * Two expressions of one rule is the thing isOverdue()'s docblock exists
+     * to prevent, so what „centralised" now means is `DocumentTest`, which
+     * holds the two equal across every status and every Fälligkeitsdatum.
+     * Change one and that test goes red.
+     *
+     * Named `whereOverdue` and not `overdue`: `Model::isRelation()` is
+     * `method_exists()`, so a method named `overdue` would make
+     * `$document->overdue` resolve as a relation — and `InvoicesTable`
+     * already has a `TextColumn::make('overdue')`.
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function whereOverdue(Builder $query, ?Carbon $asOf = null): void
+    {
+        // A plain comparison, not whereDate(): the column is already a date,
+        // and wrapping it in a cast gives up the index.
+        $query->whereOutstanding()
+            ->whereNotNull('due_on')
+            ->where('due_on', '<', ($asOf ?? today())->toDateString());
     }
 
     /**
